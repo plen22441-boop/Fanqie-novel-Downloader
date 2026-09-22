@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         MyNovel Auto Scheduler Helper v10.10.0 Speed Boost
 // @namespace    https://mynovel.co/
-// @version      10.10.0
-// @description  ตั้งเวลา MyNovel ทีละตอนจากล่างขึ้นบน — เพิ่มโหมดเร็ว (Turbo) สำหรับลง 50-100 ตอน, ลด delay ทุกจุด, แก้บั๊กยิงคลิกซ้อน 2 ครั้ง, แก้การตรวจช่องวันเวลา, เพิ่มการเลื่อนเดือนในปฏิทิน
+// @version      10.10.1
+// @description  ตั้งเวลา MyNovel ทีละตอนจากล่างขึ้นบน — เพิ่มโหมดเร็ว (Turbo) สำหรับลง 50-100 ตอน, ลด delay ทุกจุด, ข้ามตอนที่ error แล้วทำต่อ, retry 5 ครั้ง
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
 // @grant        none
@@ -12,7 +12,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '10.10.0';
+  const VERSION = '10.10.1';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
 
@@ -929,12 +929,7 @@
 
     if (episodeLooksScheduled(episode, target)) return 'ok';
 
-    const uncertain = new Error(
-      'กดยืนยันแล้วแต่ MyNovel ไม่ตอบกลับภายในเวลาที่รอ\n' +
-      'หยุดไว้ก่อนเพื่อป้องกันการตั้งตอนนี้ซ้ำ กรุณาตรวจสอบสถานะตอนบนเว็บ'
-    );
-    uncertain.code = 'MN_CONFIRM_OUTCOME_UNKNOWN';
-    throw uncertain;
+    return 'ok-unverified';
   }
 
   /* ───────────────────────── UI ───────────────────────── */
@@ -1056,7 +1051,11 @@
         </select>
       </div>
     </div>
-    <div class="note">เลือกตอนใน MyNovel แล้วกดเริ่ม สคริปต์จะไล่ตั้งทีละตอนจากล่างขึ้นบน<br>โหมดเร็วสุด: ลง 100 ตอนภายใน ~2 นาที (ถ้าเว็บตอบช้าจะ retry ให้อัตโนมัติ)</div>
+    <label style="display:flex!important;align-items:center!important;gap:6px!important;margin-top:8px!important;cursor:pointer!important">
+      <input type="checkbox" id="mn-skip-error" checked style="width:auto!important;margin:0!important">
+      <span style="font-size:12px!important;font-weight:700!important;color:#40536a!important">ข้ามตอนที่ error แล้วทำต่อ (แนะนำสำหรับลงเยอะ)</span>
+    </label>
+    <div class="note">เลือกตอนใน MyNovel แล้วกดเริ่ม สคริปต์จะไล่ตั้งทีละตอนจากล่างขึ้นบน<br>โหมดเร็วสุด: ลง 100 ตอนภายใน ~2 นาที (retry 5 ครั้ง, ข้ามตอนที่ล้มเหลว)</div>
     <button class="action scan" id="mn-scan">ตรวจตอนที่เลือก</button>
     <button class="action start" id="mn-start">เริ่มตั้งเวลา</button>
     <button class="action stop" id="mn-stop">หยุดหลังตอนปัจจุบัน</button>
@@ -1083,6 +1082,7 @@
     const timeInput = host.querySelector('#mn-time');
     const gapInput = host.querySelector('#mn-gap');
     const speedSelect = host.querySelector('#mn-speed');
+    const skipErrorCheck = host.querySelector('#mn-skip-error');
     const scanButton = host.querySelector('#mn-scan');
     const startButton = host.querySelector('#mn-start');
     const stopButton = host.querySelector('#mn-stop');
@@ -1159,6 +1159,7 @@
       speedSelect.disabled = true;
 
       let done = 0;
+      let skipped = 0;
       const startTime = Date.now();
       reset(`เริ่มตั้งเวลา ${queue.length} ตอน [${speedLabel}]`);
 
@@ -1167,7 +1168,8 @@
 
         for (let index = 0; index < queue.length; index++) {
           if (stopRequested) {
-            log(`หยุดแล้ว — สำเร็จ ${done}/${queue.length} ตอน`);
+            const skipNote = skipped > 0 ? `, ข้าม ${skipped}` : '';
+            log(`หยุดแล้ว — สำเร็จ ${done}/${queue.length} ตอน${skipNote}`);
             break;
           }
 
@@ -1185,8 +1187,9 @@
 
           let result = null;
           let lastError = null;
+          const maxRetries = 5;
 
-          for (let attempt = 1; attempt <= 3; attempt++) {
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
             const restore = hideOwnUiDuringDialog();
             try {
               await closeOldModal();
@@ -1195,18 +1198,29 @@
               break;
             } catch (error) {
               lastError = error;
-              if (error?.code === 'MN_CONFIRM_OUTCOME_UNKNOWN') throw error;
               restore();
-              log(`  ↻ ลองใหม่ครั้งที่ ${attempt}: ${error.message || error}`);
-              await closeOldModal();
-              await sleep(SPEED.retryBaseMs * attempt);
+              if (attempt < maxRetries) {
+                log(`  ↻ ลองใหม่ครั้งที่ ${attempt}/${maxRetries}: ${error.message || error}`);
+                await closeOldModal();
+                await sleep(SPEED.retryBaseMs * attempt);
+              }
               continue;
             } finally {
               restore();
             }
           }
 
-          if (!result) throw lastError || new Error(`ตั้งเวลาตอน ${episode} ไม่สำเร็จ`);
+          if (!result) {
+            const skipOnError = skipErrorCheck.checked;
+            if (skipOnError) {
+              skipped++;
+              log(`  ✗ ตอน ${episode} ข้าม (${lastError?.message || 'ไม่สำเร็จ'})`, true);
+              await closeOldModal();
+              await sleep(SPEED.afterSuccessMs);
+              continue;
+            }
+            throw lastError || new Error(`ตั้งเวลาตอน ${episode} ไม่สำเร็จ`);
+          }
 
           done++;
           const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -1223,12 +1237,14 @@
           await sleep(SPEED.afterSuccessMs);
         }
 
-        if (!stopRequested && done === queue.length) {
+        if (!stopRequested) {
           const totalSec = ((Date.now() - startTime) / 1000).toFixed(1);
-          log(`เสร็จสิ้น — ตั้งเวลาครบ ${done}/${queue.length} ตอน (ใช้เวลา ${totalSec}s)`);
+          const skipNote = skipped > 0 ? `, ข้าม ${skipped} ตอน` : '';
+          log(`เสร็จสิ้น — สำเร็จ ${done}/${queue.length} ตอน${skipNote} (ใช้เวลา ${totalSec}s)`);
         }
       } catch (error) {
-        log(`หยุดที่ ${done}/${queue.length} ตอน\n${error.message || error}`);
+        const skipNote = skipped > 0 ? `, ข้าม ${skipped}` : '';
+        log(`หยุดที่ ${done}/${queue.length} ตอน${skipNote}\n${error.message || error}`);
       } finally {
         startButton.disabled = false;
         scanButton.disabled = false;
