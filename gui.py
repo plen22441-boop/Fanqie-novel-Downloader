@@ -206,16 +206,27 @@ class NovelDownloaderGUI(ctk.CTk):
         if self.is_downloading:
             messagebox.showwarning("提示", "下载正在进行中")
             return
-        
+
         novel_id = self.novel_id.get().strip()
         if not novel_id:
             messagebox.showerror("错误", "请输入小说ID")
             return
-        
+
         save_path = self.save_path.get().strip()
         if not save_path:
             save_path = CONFIG["file"].get("default_save_path", "downloads")
-        
+
+        # Detect m.xxsypro.com category URL — browse all pages and show results
+        if 'xxsypro.com/category/' in novel_id:
+            self.download_button.configure(state="disabled")
+            self.is_downloading = True
+            threading.Thread(
+                target=self._browse_xxsypro_category,
+                args=(novel_id,),
+                daemon=True
+            ).start()
+            return
+
         # 检查cookie是否可用
         try:
             # 尝试获取cookie，如果失败会抛出异常
@@ -227,15 +238,35 @@ class NovelDownloaderGUI(ctk.CTk):
                 f"无法获取有效Cookie，请检查网络连接或手动清除cookie.json文件\n\n错误详情:\n{str(e)}"
             )
             return
-        
+
         self.download_button.configure(state="disabled")
         self.is_downloading = True
         self.downloaded_chapters.clear()
         self.content_cache.clear()
-        
+
         threading.Thread(target=self.download_novel,
                        args=(novel_id, save_path),
                        daemon=True).start()
+
+    def _browse_xxsypro_category(self, url):
+        """Fetch all pages from an m.xxsypro.com category URL and log them."""
+        try:
+            self.log(f"正在从 m.xxsypro.com 获取所有页面...")
+            self.log(f"URL: {url}")
+            novels = self.request_handler.get_xxsypro_novels(url)
+            if not novels:
+                self.log("未找到任何小说，请确认 URL 格式是否正确。")
+            else:
+                self.log(f"\n共找到 {len(novels)} 本小说：")
+                for i, novel in enumerate(novels, 1):
+                    author_str = f"  作者：{novel['author']}" if novel.get('author') else ''
+                    self.log(f"{i}. {novel['title']}{author_str}")
+                    self.log(f"   链接：{novel['url']}")
+        except Exception as e:
+            self.log(f"获取失败：{str(e)}")
+        finally:
+            self.is_downloading = False
+            self.download_button.configure(state="normal")
     
     def download_novel(self, book_id, save_path):
         """下载小说的具体实现"""

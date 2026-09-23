@@ -140,6 +140,111 @@ class RequestHandler:
         
         return chapters
 
+    def parse_xxsypro_url(self, url):
+        """Parse m.xxsypro.com category URL into components.
+
+        URL format: /category/{catId}_{filter}_{page}_{perPage}_{sort}_{extra}
+        Returns dict with keys: base, cat_id, filter_, page, per_page, sort, extra
+        """
+        import re
+        m = re.search(r'/category/([^/_]+)_([^/_]+)_(\d+)_(\d+)_(\d+)_(\d+)', url)
+        if not m:
+            return None
+        return {
+            'base': 'https://m.xxsypro.com/category',
+            'cat_id': m.group(1),
+            'filter_': m.group(2),
+            'page': int(m.group(3)),
+            'per_page': int(m.group(4)),
+            'sort': m.group(5),
+            'extra': m.group(6),
+        }
+
+    def build_xxsypro_url(self, params, page):
+        """Build an m.xxsypro.com category URL for the given page number."""
+        return (
+            f"{params['base']}/"
+            f"{params['cat_id']}_{params['filter_']}_{page}_"
+            f"{params['per_page']}_{params['sort']}_{params['extra']}"
+        )
+
+    def get_xxsypro_novels(self, category_url):
+        """Fetch all pages of novel listings from an m.xxsypro.com category URL.
+
+        Paginates through every page (not just the first 3) and returns a list of
+        dicts with 'title', 'url', and optionally 'author'.
+        """
+        params = self.parse_xxsypro_url(category_url)
+        if not params:
+            raise ValueError(f"Unrecognised m.xxsypro.com URL format: {category_url}")
+
+        all_novels = []
+        page = 1
+
+        while True:
+            url = self.build_xxsypro_url(params, page)
+            try:
+                response = self.session.get(url, headers=self.get_headers(), timeout=self.config["request_timeout"])
+            except Exception as e:
+                print(f"请求第{page}页失败: {e}")
+                break
+
+            if response.status_code != 200:
+                print(f"第{page}页返回状态码 {response.status_code}，停止翻页")
+                break
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Collect novel entries — try common CSS selectors used by aggregator sites
+            items = (
+                soup.select('li.book-item') or
+                soup.select('div.book-item') or
+                soup.select('ul.book-list li') or
+                soup.select('.novel-list .item') or
+                soup.select('a.book-name')
+            )
+
+            if not items:
+                # Fallback: grab every anchor whose href looks like a book page
+                items = [
+                    a for a in soup.find_all('a', href=True)
+                    if re.search(r'/book/\d+|/novel/\d+', a['href'])
+                ]
+
+            if not items:
+                # No more novels found on this page — stop
+                break
+
+            page_novels = []
+            for item in items:
+                a_tag = item if item.name == 'a' else item.find('a', href=True)
+                if not a_tag:
+                    continue
+                title = a_tag.get_text(strip=True) or a_tag.get('title', '')
+                href = a_tag['href']
+                if href.startswith('/'):
+                    href = 'https://m.xxsypro.com' + href
+                author_tag = item.find(class_=re.compile(r'author', re.I)) if item.name != 'a' else None
+                author = author_tag.get_text(strip=True) if author_tag else ''
+                if title and href:
+                    page_novels.append({'title': title, 'url': href, 'author': author})
+
+            if not page_novels:
+                break
+
+            all_novels.extend(page_novels)
+            print(f"第{page}页：获取到 {len(page_novels)} 本小说")
+
+            # Detect last page: if fewer items than per_page, we've reached the end
+            if len(page_novels) < params['per_page']:
+                break
+
+            page += 1
+            time.sleep(0.5)  # polite delay between requests
+
+        print(f"共获取到 {len(all_novels)} 本小说（共 {page} 页）")
+        return all_novels
+
     def down_text(self, chapter_id):
         """下载章节内容"""
         max_retries = self.config.get('max_retries', 3)
