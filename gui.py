@@ -14,6 +14,7 @@ import sys
 from config import CONFIG, save_user_config
 from request_handler import RequestHandler
 from library import LibraryWindow, add_to_library
+from legado_gui import LegadoManagerWindow
 
 # 设置 CustomTkinter 外观
 ctk.set_appearance_mode("dark")  # 默认使用暗色主题
@@ -120,7 +121,7 @@ class NovelDownloaderGUI(ctk.CTk):
         
         # 书库按钮
         library_button = ctk.CTkButton(
-            main_frame, 
+            main_frame,
             text="我的书库",
             command=self.open_library,
             width=120,
@@ -128,6 +129,17 @@ class NovelDownloaderGUI(ctk.CTk):
             compound="left" if "library" in self.icons else "none"
         )
         library_button.grid(row=0, column=3, padx=5, pady=10)
+
+        # Legado 多站搜索按钮
+        legado_button = ctk.CTkButton(
+            main_frame,
+            text="Legado 书源",
+            command=self.open_legado,
+            width=120,
+            fg_color="#8E44AD",
+            hover_color="#9B59B6"
+        )
+        legado_button.grid(row=0, column=2, padx=5, pady=10)
         
         # 进度区域
         progress_frame = ctk.CTkFrame(self)
@@ -356,6 +368,14 @@ class NovelDownloaderGUI(ctk.CTk):
             library_window.focus()
         except Exception as e:
             messagebox.showerror("错误", f"无法打开书库: {str(e)}")
+
+    def open_legado(self):
+        """打开 Legado 书源管理窗口"""
+        try:
+            legado_window = LegadoManagerWindow(self, geometry="900x700")
+            legado_window.focus()
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开 Legado 书源管理: {str(e)}")
     
     def open_settings(self):
         """打开设置窗口"""
