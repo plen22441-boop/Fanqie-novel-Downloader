@@ -19,7 +19,12 @@ import time
 import random
 import os
 import requests
-from bs4 import BeautifulSoup
+
+try:
+    from bs4 import BeautifulSoup
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
 
 
 def get_cookie(session):
@@ -76,22 +81,23 @@ def get_chapter_list(session, book_id, cookie):
             except Exception:
                 pass
 
-            # ลอง parse HTML
-            soup = BeautifulSoup(resp.text, "html.parser")
-            items = soup.select("div.chapter-item")
-            if items:
-                chapters = []
-                for idx, item in enumerate(items):
-                    a_tag = item.find("a")
-                    if a_tag:
-                        chapters.append({
-                            "id": a_tag["href"].split("/")[-1],
-                            "index": idx,
-                            "title": a_tag.get_text(strip=True),
-                        })
-                if chapters:
-                    print(f"  ดึงรายการตอนจาก HTML สำเร็จ ({len(chapters)} ตอน)")
-                    return chapters
+            # ลอง parse HTML (ต้องมี bs4)
+            if HAS_BS4:
+                soup = BeautifulSoup(resp.text, "html.parser")
+                items = soup.select("div.chapter-item")
+                if items:
+                    chapters = []
+                    for idx, item in enumerate(items):
+                        a_tag = item.find("a")
+                        if a_tag:
+                            chapters.append({
+                                "id": a_tag["href"].split("/")[-1],
+                                "index": idx,
+                                "title": a_tag.get_text(strip=True),
+                            })
+                    if chapters:
+                        print(f"  ดึงรายการตอนจาก HTML สำเร็จ ({len(chapters)} ตอน)")
+                        return chapters
 
         except Exception as e:
             print(f"  [ลอง {url[:50]}... ไม่สำเร็จ: {e}]")
