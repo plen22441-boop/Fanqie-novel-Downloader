@@ -1,4 +1,5 @@
 import requests
+from requests.adapters import HTTPAdapter
 import random
 import json
 import os
@@ -17,6 +18,19 @@ class RequestHandler:
         self.config = CONFIG["request"]
 
         self.session = requests.Session()
+
+        # Turbo mode doubles the connection pool and worker count
+        turbo = self.config.get("turbo_mode", False)
+        pool_size = self.config.get("connection_pool_size", 20)
+        if turbo:
+            pool_size = pool_size * 2
+        adapter = HTTPAdapter(
+            pool_connections=pool_size,
+            pool_maxsize=pool_size,
+            max_retries=0
+        )
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     def get_headers(self, cookie=None):
         """生成随机请求头"""
@@ -59,13 +73,16 @@ class RequestHandler:
                 )
                 if resp.ok:
                     # 确保目录存在
-                    os.makedirs(os.path.dirname(cookie_path), exist_ok=True)
+                    cookie_dir = os.path.dirname(cookie_path)
+                    if cookie_dir:
+                        os.makedirs(cookie_dir, exist_ok=True)
                     with open(cookie_path, 'w', encoding='utf-8') as f:
                         json.dump(cookie, f, ensure_ascii=False, indent=4)
                     return cookie
             except Exception as e:
                 last_error = f"Cookie生成失败(尝试{attempt+1}/10): {str(e)}"
-                time.sleep(0.5)
+                # Exponential backoff: 0.2s, 0.4s, 0.8s...
+                time.sleep(min(0.2 * (2 ** attempt), 5))
         
         raise CookieGenerationError(
             f"无法获取有效Cookie\n"
@@ -175,7 +192,8 @@ class RequestHandler:
             except Exception as e:
                 print(f"请求失败: {str(e)}, 重试第{retry_count + 1}次...")
                 retry_count += 1
-                time.sleep(1 * retry_count)
+                # Exponential backoff: 0.5s, 1s, 2s...
+                time.sleep(0.5 * (2 ** (retry_count - 1)))
         
         if not content: # 如果所有重试后 content 仍然为空
             raise ConnectionError(f"无法下载章节 {chapter_id}，API 可能已失效或网络错误。")

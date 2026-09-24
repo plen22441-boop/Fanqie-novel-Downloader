@@ -8,6 +8,7 @@ import time
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import OrderedDict
+import queue
 import sys
 
 # 导入项目中的其他模块
@@ -32,6 +33,10 @@ class NovelDownloaderGUI(ctk.CTk):
         self.downloaded_chapters = set()
         self.content_cache = OrderedDict()
         self.request_handler = RequestHandler()
+
+        # Log queue for batched UI updates
+        self._log_queue = queue.Queue()
+        self._flush_log_pending = False
 
         # 加载图标 (移到 setup_ui 之前)
         self.load_icons()
@@ -180,19 +185,36 @@ class NovelDownloaderGUI(ctk.CTk):
         clear_log_button.pack(side="right", padx=5)
     
     def log(self, message):
-        """添加日志"""
-        self.log_text.configure(state="normal")
-        self.log_text.insert("end", message + "\n")
-        self.log_text.see("end")
-        self.log_text.configure(state="disabled")
-        self.update_idletasks()
-    
+        """Add log message via queue to avoid blocking the download thread."""
+        self._log_queue.put(message)
+        if not self._flush_log_pending:
+            self._flush_log_pending = True
+            self.after(200, self._flush_log)
+
+    def _flush_log(self):
+        """Flush all queued log messages to the text widget at once."""
+        self._flush_log_pending = False
+        messages = []
+        try:
+            while True:
+                messages.append(self._log_queue.get_nowait())
+        except queue.Empty:
+            pass
+        if messages:
+            self.log_text.configure(state="normal")
+            self.log_text.insert("end", "\n".join(messages) + "\n")
+            self.log_text.see("end")
+            self.log_text.configure(state="disabled")
+        # If more messages arrived while flushing, schedule another flush
+        if not self._log_queue.empty():
+            self._flush_log_pending = True
+            self.after(200, self._flush_log)
+
     def update_progress(self, value, status_text):
         """更新进度和状态"""
         self.progress_var.set(value)
         self.progress_bar.set(value / 100)  # 进度条值范围是0-1
         self.status_label.configure(text=status_text)
-        self.update_idletasks()
     
     def browse_folder(self):
         """打开文件夹选择对话框"""
@@ -268,26 +290,15 @@ class NovelDownloaderGUI(ctk.CTk):
             # 下载章节
             total_chapters = len(chapters)
             success_count = 0
-            
-            # 先顺序下载前5章
-            for chapter in chapters[:5]:
-                content = self.request_handler.down_text(chapter["id"])
-                if content:
-                    self.content_cache[chapter["index"]] = (chapter, content)
-                    self.downloaded_chapters.add(chapter["id"])
-                    success_count += 1
-                    progress = (success_count / total_chapters) * 100
-                    self.update_progress(progress, f"正在下载: {success_count}/{total_chapters}")
-                    self.log(f"已下载：{chapter['title']}")
-            
-            # 多线程下载剩余章节
-            remaining_chapters = chapters[5:]
-            with ThreadPoolExecutor(max_workers=CONFIG["request"].get("max_workers", 5)) as executor:
+
+            # Download all chapters in parallel from the start
+            max_workers = CONFIG["request"].get("max_workers", 5)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_chapter = {
                     executor.submit(self.request_handler.down_text, chapter["id"]): chapter
-                    for chapter in remaining_chapters
+                    for chapter in chapters
                 }
-                
+
                 for future in as_completed(future_to_chapter):
                     chapter = future_to_chapter[future]
                     try:
@@ -429,6 +440,18 @@ class SettingsWindow(ctk.CTkToplevel):
         self.request_timeout_var = ctk.StringVar(value=str(self.config["request"].get("request_timeout", 15)))
         request_timeout_entry = ctk.CTkEntry(download_tab, textvariable=self.request_timeout_var, width=100)
         request_timeout_entry.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+
+        # 连接池大小设置
+        ctk.CTkLabel(download_tab, text="连接池大小:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.connection_pool_var = ctk.StringVar(value=str(self.config["request"].get("connection_pool_size", 20)))
+        connection_pool_entry = ctk.CTkEntry(download_tab, textvariable=self.connection_pool_var, width=100)
+        connection_pool_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+
+        # 极速模式开关
+        ctk.CTkLabel(download_tab, text="极速模式 (Turbo):").grid(row=4, column=0, padx=10, pady=10, sticky="w")
+        self.turbo_mode_var = ctk.BooleanVar(value=self.config["request"].get("turbo_mode", False))
+        turbo_switch = ctk.CTkSwitch(download_tab, text="加倍连接池与线程数", variable=self.turbo_mode_var)
+        turbo_switch.grid(row=4, column=1, padx=10, pady=10, sticky="w")
         
         # 阅读器设置选项卡
         reader_tab = self.tabview.tab("阅读器设置")
@@ -541,6 +564,8 @@ class SettingsWindow(ctk.CTkToplevel):
             self.config["request"]["max_workers"] = int(self.max_workers_var.get())
             self.config["request"]["max_retries"] = int(self.max_retries_var.get())
             self.config["request"]["request_timeout"] = int(self.request_timeout_var.get())
+            self.config["request"]["connection_pool_size"] = int(self.connection_pool_var.get())
+            self.config["request"]["turbo_mode"] = self.turbo_mode_var.get()
 
             # 更新阅读器设置
             self.config["reader"]["default_font"] = self.default_font_var.get()
