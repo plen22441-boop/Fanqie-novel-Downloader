@@ -1,0 +1,255 @@
+name: 下载指定章节范围
+
+on:
+  workflow_dispatch:
+    inputs:
+      novel_id:
+        description: '小说ID (从番茄小说URL中获取)'
+        required: true
+      start_chapter:
+        description: '起始章节号 (例如: 821)'
+        required: true
+        default: '821'
+      end_chapter:
+        description: '结束章节号 (例如: 860)'
+        required: true
+        default: '860'
+      threads:
+        description: '下载线程数 (1-10)'
+        required: true
+        default: '5'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  download-chapters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: 确保cookie.json存在
+        run: |
+          if [ ! -f "./cookie.json" ]; then
+            echo '""' > "./cookie.json"
+          fi
+
+      - name: 准备下载脚本
+        run: |
+          cat > download_chapters.py << 'EOF'
+          import sys
+          import os
+          import time
+          import requests
+          import bs4
+          import re
+          import json
+          import random
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from collections import OrderedDict
+
+          novel_id = sys.argv[1]
+          start_ch = int(sys.argv[2])
+          end_ch = int(sys.argv[3])
+          threads_count = int(sys.argv[4])
+          save_path = "novel_output"
+
+          os.makedirs(save_path, exist_ok=True)
+
+          USER_AGENTS = [
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+          ]
+
+          def get_cookie():
+              cookie_path = "cookie.json"
+              if os.path.exists(cookie_path):
+                  try:
+                      with open(cookie_path, 'r') as f:
+                          data = json.load(f)
+                          if isinstance(data, str) and data:
+                              return data
+                  except:
+                      pass
+              for _ in range(10):
+                  novel_web_id = random.randint(10**18, 10**19-1)
+                  cookie = f'novel_web_id={novel_web_id}'
+                  try:
+                      resp = requests.get(
+                          'https://fanqienovel.com',
+                          headers={"User-Agent": random.choice(USER_AGENTS)},
+                          cookies={"novel_web_id": str(novel_web_id)},
+                          timeout=10
+                      )
+                      if resp.ok:
+                          with open(cookie_path, 'w') as f:
+                              json.dump(cookie, f)
+                          return cookie
+                  except Exception as e:
+                      print(f"Cookie生成失败: {str(e)}")
+                      time.sleep(0.5)
+              raise Exception("无法获取有效Cookie")
+
+          def get_headers():
+              return {
+                  "User-Agent": random.choice(USER_AGENTS),
+                  "Cookie": get_cookie()
+              }
+
+          def extract_chapters(book_id, headers):
+              url = f'https://fanqienovel.com/page/{book_id}'
+              response = requests.get(url, headers=headers, timeout=15)
+              soup = bs4.BeautifulSoup(response.text, 'html.parser')
+              chapters = []
+              for idx, item in enumerate(soup.select('div.chapter-item')):
+                  a_tag = item.find('a')
+                  if not a_tag:
+                      continue
+                  raw_title = a_tag.get_text(strip=True)
+                  if re.match(r'^(番外|特别篇|if线)\s*', raw_title):
+                      final_title = raw_title
+                  else:
+                      clean_title = re.sub(
+                          r'^第[一二三四五六七八九十百千\d]+章\s*',
+                          '', raw_title
+                      ).strip()
+                      final_title = f"第{idx+1}章 {clean_title}"
+                  chapters.append({
+                      "id": a_tag['href'].split('/')[-1],
+                      "title": final_title,
+                      "index": idx
+                  })
+              return chapters
+
+          def down_text(chapter_id):
+              for attempt in range(3):
+                  try:
+                      api_url = f"https://api.cenguigui.cn/api/tomato/content.php?item_id={chapter_id}"
+                      response = requests.get(api_url, timeout=15)
+                      data = response.json()
+                      if data.get("code") == 200:
+                          content = data.get("data", {}).get("content", "")
+                          content = re.sub(r'<header>.*?</header>', '', content, flags=re.DOTALL)
+                          content = re.sub(r'<footer>.*?</footer>', '', content, flags=re.DOTALL)
+                          content = re.sub(r'</?article>', '', content)
+                          content = re.sub(r'<p idx="\d+">', '\n', content)
+                          content = re.sub(r'</p>', '\n', content)
+                          content = re.sub(r'<[^>]+>', '', content)
+                          content = re.sub(r'\\u003c|\\u003e', '', content)
+                          title = data.get("data", {}).get("title", "")
+                          if title and content.startswith(title):
+                              content = content[len(title):].lstrip()
+                          content = re.sub(r'\n{2,}', '\n', content).strip()
+                          content = '\n'.join(['    ' + line if line.strip() else line for line in content.split('\n')])
+                          return content
+                  except Exception as e:
+                      print(f"请求失败: {str(e)}, 重试第{attempt+1}次...")
+                      time.sleep(1 * (attempt + 1))
+              raise ConnectionError(f"无法下载章节 {chapter_id}")
+
+          print(f"正在获取小说 {novel_id} 的章节列表...")
+          headers = get_headers()
+          all_chapters = extract_chapters(novel_id, headers)
+          total = len(all_chapters)
+          print(f"共找到 {total} 章")
+
+          # 筛选指定范围 (章节号从1开始，index从0开始)
+          target_chapters = [ch for ch in all_chapters if start_ch <= ch["index"] + 1 <= end_ch]
+          print(f"目标下载范围：第{start_ch}章 ~ 第{end_ch}章，共 {len(target_chapters)} 章")
+
+          if not target_chapters:
+              print(f"错误：找不到第{start_ch}至{end_ch}章，小说总章数为{total}")
+              sys.exit(1)
+
+          content_cache = OrderedDict()
+          success_count = 0
+          failed_chapters = []
+
+          with ThreadPoolExecutor(max_workers=threads_count) as executor:
+              future_to_chapter = {
+                  executor.submit(down_text, ch["id"]): ch
+                  for ch in target_chapters
+              }
+              for future in as_completed(future_to_chapter):
+                  ch = future_to_chapter[future]
+                  try:
+                      content = future.result()
+                      if content:
+                          content_cache[ch["index"]] = (ch, content)
+                          success_count += 1
+                          print(f"[{success_count}/{len(target_chapters)}] 已下载：{ch['title']}")
+                  except Exception as e:
+                      failed_chapters.append(ch["title"])
+                      print(f"下载失败：{ch['title']} - {str(e)}")
+
+          # 获取书名用于文件名
+          book_name = "novel"
+          try:
+              url = f'https://fanqienovel.com/page/{novel_id}'
+              resp = requests.get(url, headers=headers, timeout=15)
+              soup = bs4.BeautifulSoup(resp.text, 'html.parser')
+              h1 = soup.find('h1')
+              if h1:
+                  book_name = h1.text.strip()
+          except:
+              pass
+
+          output_file = os.path.join(save_path, f"{book_name}_第{start_ch}-{end_ch}章.txt")
+          with open(output_file, 'w', encoding='utf-8') as f:
+              f.write(f"# {book_name} — 第{start_ch}章至第{end_ch}章\n\n")
+              f.write(f"（共下载 {success_count} 章）\n\n")
+              f.write("=" * 60 + "\n\n")
+              for index in sorted(content_cache.keys()):
+                  ch, content = content_cache[index]
+                  f.write(f"\n{ch['title']}\n\n")
+                  f.write(content + "\n\n")
+
+          print(f"\n完成！成功：{success_count} 章，失败：{len(failed_chapters)} 章")
+          if failed_chapters:
+              print("下载失败的章节：")
+              for title in failed_chapters:
+                  print(f"  - {title}")
+          print(f"文件保存在：{output_file}")
+
+          if success_count == 0:
+              sys.exit(1)
+          EOF
+
+      - name: 下载指定章节
+        run: |
+          python download_chapters.py \
+            "${{ github.event.inputs.novel_id }}" \
+            "${{ github.event.inputs.start_chapter }}" \
+            "${{ github.event.inputs.end_chapter }}" \
+            "${{ github.event.inputs.threads }}"
+
+      - name: 压缩下载结果
+        run: |
+          cd novel_output && zip -r ../chapters_output.zip .
+
+      - name: 上传下载结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: novel-${{ github.event.inputs.novel_id }}-ch${{ github.event.inputs.start_chapter }}-${{ github.event.inputs.end_chapter }}
+          path: chapters_output.zip
+          retention-days: 7
+
+      - name: 提供下载信息
+        run: |
+          echo "✅ 第${{ github.event.inputs.start_chapter }}章至第${{ github.event.inputs.end_chapter }}章下载完成！"
+          echo "请点击上方 'Summary' 标签，然后在 'Artifacts' 部分下载文件。"
+          echo "文件保存期限为7天。"
