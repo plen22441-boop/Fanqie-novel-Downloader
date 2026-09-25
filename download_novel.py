@@ -25,16 +25,27 @@ USER_AGENTS = [
 ]
 
 CONTENT_SELECTORS = [
-    "#content", "#chaptercontent", "#booktxt", "#htmlContent",
+    "#chaptercontent", "#BookText", "#content", "#booktxt", "#htmlContent",
     ".chapter-content", ".read-content", ".novel-content", ".chapter-txt",
     ".readcontent", ".duanzhang", ".box_con #content", "article .content",
+    "#nr1", "#nr2", ".neirong", ".zuopin_content", "#novelcontent",
+    "#chapterBody", ".chaptercontent", "#reader-content", ".text-content",
 ]
 
 
-def get_headers(referer=None):
-    h = {"User-Agent": random.choice(USER_AGENTS)}
+def get_headers(referer=None, extra=None):
+    h = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    }
     if referer:
         h["Referer"] = referer
+    if extra:
+        h.update(extra)
     return h
 
 
@@ -120,15 +131,28 @@ def download_fanqie_chapter(session, chapter, max_retries=5):
 
 def extract_text_from_html(html, base_url=""):
     tmp = BeautifulSoup(html, "html.parser")
-    for tag in tmp.select("script,style,ins,iframe,.adsbygoogle,nav,header,footer"):
+    for tag in tmp.select("script,style,ins,iframe,.adsbygoogle,nav,header,footer,.ad,.ads"):
         tag.decompose()
+
+    # Try each selector
     for sel in CONTENT_SELECTORS:
         el = tmp.select_one(sel)
         if el:
+            # Remove ads/navigation inside content block
+            for sub in el.select("script,style,.ad,.ads,a[href*='novel'],a[href*='book']"):
+                sub.decompose()
             t = (el.get_text("\n") or "").strip()
-            if len(t.replace(" ", "")) > 100:
+            if len(t.replace(" ", "").replace("\n", "")) > 80:
                 return re.sub(r"\n{3,}", "\n\n", t).strip()
-    # fallback: body text
+
+    # biquge fallback: look for dense <p> tags
+    paragraphs = tmp.find_all("p")
+    if paragraphs:
+        long_ps = [p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 20]
+        if len(long_ps) >= 3:
+            return "\n".join(long_ps)
+
+    # last resort: body text
     body = tmp.find("body")
     if body:
         t = (body.get_text("\n") or "").strip()
@@ -194,10 +218,11 @@ def scrape_chapter_list(book_url, html):
 def download_web_chapter(session, chapter, book_url, max_retries=5):
     for attempt in range(max_retries):
         try:
-            r = session.get(chapter["url"], headers=get_headers(book_url), timeout=20)
+            r = session.get(chapter["url"], headers=get_headers(book_url), timeout=25)
+            r.encoding = r.apparent_encoding or "utf-8"
             if r.ok:
                 text = extract_text_from_html(r.text, chapter["url"])
-                if len(text.replace(" ", "")) > 100:
+                if len(text.replace(" ", "").replace("\n", "")) > 80:
                     return chapter.get("index", 0), chapter["title"], text
         except Exception:
             pass
