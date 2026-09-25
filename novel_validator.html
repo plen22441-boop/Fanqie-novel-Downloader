@@ -1,0 +1,1299 @@
+<title>ตรวจนิยาย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+
+<style>
+:root {
+  --bg: #FAF9F7;
+  --surface: #FFFFFF;
+  --surface-2: #F3F2EF;
+  --border: #E2E0DB;
+  --border-2: #CBC9C3;
+  --text: #1A1816;
+  --text-2: #6B6762;
+  --text-3: #9A9792;
+  --accent: #E84A27;
+  --accent-light: #FFF0EC;
+  --success: #16A34A;
+  --success-bg: #F0FDF4;
+  --success-border: #BBF7D0;
+  --warning: #B45309;
+  --warning-bg: #FFFBEB;
+  --warning-border: #FDE68A;
+  --error: #DC2626;
+  --error-bg: #FEF2F2;
+  --error-border: #FECACA;
+  --info: #1D4ED8;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111014;
+    --surface: #1B1A1F;
+    --surface-2: #232229;
+    --border: #2C2B31;
+    --border-2: #3C3B41;
+    --text: #F0EDE8;
+    --text-2: #8A8783;
+    --text-3: #5C5A57;
+    --accent: #FF6B47;
+    --accent-light: #2A1810;
+    --success: #4ADE80;
+    --success-bg: #052E16;
+    --success-border: #166534;
+    --warning: #FCD34D;
+    --warning-bg: #1C1200;
+    --warning-border: #78350F;
+    --error: #F87171;
+    --error-bg: #1F0707;
+    --error-border: #7F1D1D;
+    --info: #93C5FD;
+    --info-bg: #0C1A3B;
+    --info-border: #1E3A8A;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #111014;
+  --surface: #1B1A1F;
+  --surface-2: #232229;
+  --border: #2C2B31;
+  --border-2: #3C3B41;
+  --text: #F0EDE8;
+  --text-2: #8A8783;
+  --text-3: #5C5A57;
+  --accent: #FF6B47;
+  --accent-light: #2A1810;
+  --success: #4ADE80;
+  --success-bg: #052E16;
+  --success-border: #166534;
+  --warning: #FCD34D;
+  --warning-bg: #1C1200;
+  --warning-border: #78350F;
+  --error: #F87171;
+  --error-bg: #1F0707;
+  --error-border: #7F1D1D;
+  --info: #93C5FD;
+  --info-bg: #0C1A3B;
+  --info-border: #1E3A8A;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 28px 48px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 12px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-mark {
+  width: 38px;
+  height: 38px;
+  background: var(--accent);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+
+.logo-info { display: flex; flex-direction: column; gap: 1px; }
+
+.logo-name {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.logo-caption {
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+}
+
+/* INPUT TABS */
+.input-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+  border-bottom: none;
+  overflow: hidden;
+}
+
+.itab {
+  flex: 1;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-2);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.itab:hover { color: var(--accent); }
+.itab.on { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-light); }
+
+.input-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 14px 14px;
+}
+
+/* DROPZONE */
+.dropzone {
+  border: none;
+  border-radius: 0 0 14px 14px;
+  padding: 44px 24px;
+  text-align: center;
+  cursor: pointer;
+  background: transparent;
+  position: relative;
+  transition: background 0.15s;
+  margin-bottom: 0;
+}
+
+.dropzone:hover, .dropzone.over {
+  background: var(--accent-light);
+}
+
+.dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.dz-icon {
+  width: 52px;
+  height: 52px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dz-icon svg { opacity: 0.5; }
+
+.dz-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.dz-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 14px;
+}
+
+.dz-chips { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+
+.dz-chip {
+  font-size: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 9px;
+  color: var(--text-2);
+  font-family: 'Inter', monospace;
+}
+
+/* FILE BAR */
+.file-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.file-bar-name {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+
+.chip-neutral { background: var(--surface-2); color: var(--text-2); border-color: var(--border); }
+.chip-info    { background: var(--info-bg);    color: var(--info);    border-color: var(--info-border); }
+.chip-ok      { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+.chip-warn    { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+.chip-err     { background: var(--error-bg);   color: var(--error);   border-color: var(--error-border); }
+
+/* BOOK INFO */
+.book-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.book-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  font-family: 'Noto Serif SC', serif;
+}
+
+.book-author {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* SUMMARY GRID */
+.grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 540px) {
+  .grid4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--border-2);
+  border-radius: 10px;
+  padding: 14px 14px 12px;
+}
+
+.stat.ok   { border-top-color: var(--success); }
+.stat.warn { border-top-color: var(--warning); }
+.stat.err  { border-top-color: var(--error); }
+.stat.info { border-top-color: var(--info); }
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+
+.stat-val {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.stat.ok   .stat-val { color: var(--success); }
+.stat.warn .stat-val { color: var(--warning); }
+.stat.err  .stat-val { color: var(--error); }
+.stat.info .stat-val { color: var(--info); }
+
+.stat-hint { font-size: 11px; color: var(--text-3); }
+
+/* ALL CLEAR */
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  color: var(--success);
+}
+
+.all-clear-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.all-clear-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+.all-clear-sub { font-size: 12px; opacity: 0.8; }
+
+/* SECTION CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  gap: 10px;
+}
+
+.card-head:hover { background: var(--surface-2); }
+
+.card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.card-caret {
+  color: var(--text-3);
+  font-size: 11px;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.card.closed .card-caret { transform: rotate(-90deg); }
+.card.closed .card-body { display: none; }
+
+/* MISSING LIST */
+.missing-box {
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 2;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.miss-num {
+  display: inline-block;
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error-border);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 2px 3px;
+}
+
+/* FILTER TABS */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.ftab {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.1s;
+  white-space: nowrap;
+}
+
+.ftab:hover { border-color: var(--accent); color: var(--accent); }
+.ftab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.ftab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.1);
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 10px;
+  min-width: 18px;
+  height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ftab.on .ftab-count { background: rgba(255,255,255,0.25); }
+
+.copy-report-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.copy-report-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* TABLE */
+.tbl-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--surface-2); }
+
+.td-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-3);
+  width: 56px;
+  font-size: 12px;
+}
+
+.td-title {
+  color: var(--text);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-len {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.len-ok   { color: var(--text-2); }
+.len-warn { color: var(--warning); font-weight: 600; }
+.len-err  { color: var(--error); font-weight: 600; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.tag-ok   { color: var(--success); }
+.tag-warn { background: var(--warning-bg); color: var(--warning); }
+.tag-err  { background: var(--error-bg);  color: var(--error); }
+.tag-dup  { background: var(--info-bg);   color: var(--info); }
+
+/* PAGINATION */
+.pag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.pag-info { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; flex: 1; min-width: 100px; }
+
+.pbtn {
+  min-width: 30px;
+  height: 28px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.1s;
+}
+
+.pbtn:hover:not(:disabled):not(.active) { border-color: var(--accent); color: var(--accent); }
+.pbtn:disabled { opacity: 0.35; cursor: default; }
+.pbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* EMPTY */
+.empty {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--text-3);
+}
+
+.empty-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+
+/* PICK BUTTON */
+.pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.1s;
+  min-width: 200px;
+  justify-content: center;
+}
+
+.pick-btn:hover { opacity: 0.88; }
+.pick-btn:active { opacity: 0.75; transform: scale(0.98); }
+
+/* PASTE PANEL */
+.paste-panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.paste-area {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.paste-area:focus { border-color: var(--accent); }
+.paste-area::placeholder { color: var(--text-3); }
+
+.paste-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+
+.paste-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  flex: 1;
+}
+
+/* RESET */
+.reset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-2);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* STACK */
+.stack { display: flex; flex-direction: column; gap: 12px; }
+</style>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">番</div>
+      <div class="logo-info">
+        <div class="logo-name">ตรวจสอบไฟล์นิยาย</div>
+        <div class="logo-caption">Fanqie Novel File Validator</div>
+      </div>
+    </div>
+    <button class="reset-btn" id="btn-change" style="display:none" onclick="doReset()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 0 1.5-3.9"/><polyline points="2,3 2,8 7,8"/></svg>
+      เปลี่ยนไฟล์
+    </button>
+  </header>
+
+  <!-- INPUT AREA -->
+  <div id="input-area">
+    <!-- TABS -->
+    <div class="input-tabs">
+      <button class="itab on" id="tab-file" onclick="switchTab('file')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 1H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V5z"/><polyline points="9 1 9 5 13 5"/></svg>
+        เลือกไฟล์ .txt
+      </button>
+      <button class="itab" id="tab-paste" onclick="switchTab('paste')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="10" height="10" rx="1"/><path d="M2 2h8v2H2z"/></svg>
+        วางข้อความ
+      </button>
+    </div>
+
+    <!-- PANEL: FILE -->
+    <div class="input-panel" id="panel-file">
+      <!-- Hidden file input — accept */* so mobile file manager shows all files -->
+      <input type="file" id="file-in" accept="*/*" style="display:none" aria-label="เลือกไฟล์">
+
+      <!-- Mobile-friendly big button -->
+      <div style="padding:24px 20px;text-align:center">
+        <button class="pick-btn" onclick="$('file-in').click()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          เลือกไฟล์นิยาย .txt
+        </button>
+        <div style="margin-top:10px;font-size:12px;color:var(--text-3)">กดปุ่มแล้วเลือกไฟล์จาก Files / ไฟล์</div>
+      </div>
+
+      <!-- Desktop drop zone (hidden on touch) -->
+      <div id="dz" class="dropzone" style="display:none;border-top:1px dashed var(--border);border-radius:0 0 12px 12px;padding:28px 20px">
+        <div class="dz-title" style="font-size:14px">หรือลากไฟล์มาวางที่นี่ก็ได้ค่ะ</div>
+      </div>
+    </div>
+
+    <!-- PANEL: PASTE -->
+    <div class="input-panel" id="panel-paste" hidden>
+      <div class="paste-panel">
+        <textarea class="paste-area" id="paste-txt"
+          placeholder="วางเนื้อหานิยายที่นี่ค่ะ&#10;&#10;รองรับรูปแบบ:&#10;  第1章 ชื่อตอน&#10;  เนื้อหา...&#10;&#10;  第2章 ชื่อตอน&#10;  เนื้อหา..."></textarea>
+        <div class="paste-actions">
+          <span class="paste-hint" id="paste-counter">ยังไม่มีข้อความ</span>
+          <button class="btn-primary" id="btn-analyze" onclick="analyzePaste()" disabled>ตรวจสอบ →</button>
+        </div>
+        <!-- URL hint -->
+        <div id="url-hint" hidden style="margin-top:4px;padding:12px 14px;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:8px;font-size:12px;color:var(--warning);line-height:1.7">
+          <strong>เว็บไม่สามารถดึงข้อมูลจาก URL โดยตรงได้ค่ะ</strong> เพราะ browser ติดข้อจำกัด CORS<br>
+          วิธีแก้: เปิดไฟล์ .txt ใน Files/ตัวจัดการไฟล์แล้วแชร์ข้อความออกมา หรือใช้แท็บ "เลือกไฟล์" แทนค่ะ
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results" hidden class="stack" style="margin-top:16px">
+
+    <!-- FILE BAR -->
+    <div class="file-bar">
+      <span class="file-bar-name" id="r-fname"></span>
+      <span class="chip chip-neutral" id="r-fsize"></span>
+      <span class="chip chip-info" id="r-fchap"></span>
+    </div>
+
+    <!-- BOOK INFO -->
+    <div class="book-banner" id="r-book" hidden></div>
+
+    <!-- STATS -->
+    <div class="grid4">
+      <div class="stat info">
+        <div class="stat-label">ตอนทั้งหมด</div>
+        <div class="stat-val" id="s-total">0</div>
+        <div class="stat-hint">ที่ดาวน์โหลดได้</div>
+      </div>
+      <div class="stat" id="s-miss-card">
+        <div class="stat-label">ตอนที่หายไป</div>
+        <div class="stat-val" id="s-miss">0</div>
+        <div class="stat-hint">ช่องว่างในลำดับ</div>
+      </div>
+      <div class="stat" id="s-short-card">
+        <div class="stat-label">เนื้อหาสั้น</div>
+        <div class="stat-val" id="s-short">0</div>
+        <div class="stat-hint">น้อยกว่า 200 ตัวอักษร</div>
+      </div>
+      <div class="stat" id="s-dup-card">
+        <div class="stat-label">เนื้อหาซ้ำ</div>
+        <div class="stat-val" id="s-dup">0</div>
+        <div class="stat-hint">hash เดียวกัน</div>
+      </div>
+    </div>
+
+    <!-- ALL CLEAR -->
+    <div id="r-allclear" class="all-clear" hidden>
+      <div class="all-clear-icon">✓</div>
+      <div>
+        <div class="all-clear-title">ไฟล์ผ่านการตรวจสอบทั้งหมด</div>
+        <div class="all-clear-sub">ไม่พบตอนหาย / เนื้อหาว่าง / เนื้อหาซ้ำ</div>
+      </div>
+    </div>
+
+    <!-- MISSING CHAPTERS -->
+    <div class="card" id="r-miss-card" hidden>
+      <div class="card-head" onclick="toggleCard('r-miss-card')">
+        <div class="card-head-left">
+          <span class="chip chip-err">ตอนที่หายไป</span>
+          <span id="r-miss-count" style="font-size:13px;color:var(--text-2)"></span>
+        </div>
+        <span class="card-caret">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="missing-box" id="r-miss-body"></div>
+      </div>
+    </div>
+
+    <!-- CHAPTERS TABLE -->
+    <div class="card" id="r-table-card">
+      <div class="card-head" onclick="toggleCard('r-table-card')">
+        <div class="card-head-left">รายการตอนทั้งหมด</div>
+        <span class="card-caret">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="filter-row" id="filter-row">
+          <button class="ftab on" data-f="all" onclick="setFilter('all')">
+            ทั้งหมด <span class="ftab-count" id="fc-all">0</span>
+          </button>
+          <button class="ftab" data-f="issues" onclick="setFilter('issues')">
+            มีปัญหา <span class="ftab-count" id="fc-issues">0</span>
+          </button>
+          <button class="ftab" data-f="near" onclick="setFilter('near')">
+            บริเวณตอนหาย <span class="ftab-count" id="fc-near">0</span>
+          </button>
+          <button class="copy-report-btn" id="btn-copy" onclick="copyReport()">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M3 11V3a1 1 0 0 1 1-1h8"/></svg>
+            คัดลอกรายงาน
+          </button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ตอนที่</th>
+                <th>ชื่อตอน</th>
+                <th style="text-align:right">ความยาว</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+        <div class="pag" id="pag"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const PAGE = 50;
+let state = null;
+
+// ── PARSE ─────────────────────────────────────────────────────────────────────
+function parseFile(text) {
+  const lines = text.split('\n');
+  const chapters = [];
+  let cur = null;
+  let headerLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    const mNum = t.match(/^第(\d+)章\s*(.*)/);
+    const mSpc = !mNum && t.match(/^(番外|特别篇|if线)[\d\s]*(.*)/);
+
+    if (mNum || mSpc) {
+      if (cur) chapters.push(cur);
+      cur = { title: t, num: mNum ? parseInt(mNum[1]) : null, special: !!mSpc, content: '', issues: [] };
+    } else if (cur) {
+      cur.content += (t ? t : '') + '\n';
+    } else {
+      headerLines.push(lines[i]);
+    }
+  }
+  if (cur) chapters.push(cur);
+
+  const hdr = headerLines.join('\n');
+  const tm = hdr.match(/书名[：:]\s*[《]?([^》\n]+)[》]?/);
+  const am = hdr.match(/作者[：:]\s*([^\n]+)/);
+
+  return { chapters, bookTitle: tm ? tm[1].trim() : null, bookAuthor: am ? am[1].trim() : null };
+}
+
+function analyze(chapters) {
+  // gaps
+  const nums = chapters.filter(c => c.num !== null).sort((a,b) => a.num - b.num);
+  const missing = [];
+  for (let i = 0; i < nums.length - 1; i++) {
+    for (let n = nums[i].num + 1; n < nums[i+1].num; n++) missing.push(n);
+  }
+
+  // short / empty
+  const SHORT = 200;
+  for (const c of chapters) {
+    const len = c.content.trim().length;
+    if (len === 0) c.issues.push({ k: 'empty', label: 'ว่างเปล่า' });
+    else if (len < SHORT) c.issues.push({ k: 'short', label: `สั้น (${len} ตัวอักษร)` });
+  }
+
+  // duplicate
+  const seen = new Map();
+  for (const c of chapters) {
+    const tc = c.content.trim();
+    if (!tc) continue;
+    const h = hashStr(tc);
+    if (seen.has(h)) {
+      c.issues.push({ k: 'dup', label: `ซ้ำ "${seen.get(h).title.slice(0,20)}…"` });
+    } else {
+      seen.set(h, c);
+    }
+  }
+
+  const issueChaps = chapters.filter(c => c.issues.length > 0);
+  const nearSet = new Set();
+  for (const c of chapters) {
+    if (!c.num) continue;
+    if (missing.some(m => Math.abs(c.num - m) <= 2)) nearSet.add(c);
+  }
+
+  return { missing, issueChaps, nearChaps: [...nearSet] };
+}
+
+function hashStr(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < Math.min(s.length, 2000); i++) {
+    h ^= s.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function render() {
+  const { file, chapters, bookTitle, bookAuthor, missing, issueChaps, nearChaps } = state;
+
+  // file bar
+  $('r-fname').textContent = file.name;
+  $('r-fsize').textContent = fmtBytes(file.size);
+  $('r-fchap').textContent = chapters.length + ' ตอน';
+
+  // book info
+  if (bookTitle || bookAuthor) {
+    const b = $('r-book');
+    b.hidden = false;
+    b.innerHTML = `<div class="book-title">《${bookTitle || '—'}》</div><div class="book-author">ผู้แต่ง: ${bookAuthor || '—'}</div>`;
+  }
+
+  // stats
+  $('s-total').textContent = chapters.length;
+  $('s-miss').textContent  = missing.length;
+  $('s-short').textContent = issueChaps.filter(c => c.issues.some(i => i.k==='short'||i.k==='empty')).length;
+  $('s-dup').textContent   = issueChaps.filter(c => c.issues.some(i => i.k==='dup')).length;
+
+  setStatCard('s-miss-card',  missing.length  > 0, 'err');
+  setStatCard('s-short-card', issueChaps.filter(c=>c.issues.some(i=>i.k==='short'||i.k==='empty')).length > 0, 'warn');
+  setStatCard('s-dup-card',   issueChaps.filter(c=>c.issues.some(i=>i.k==='dup')).length > 0, 'warn');
+
+  // all clear
+  const hasIssues = missing.length > 0 || issueChaps.length > 0;
+  $('r-allclear').hidden = hasIssues;
+
+  // missing section
+  if (missing.length > 0) {
+    const card = $('r-miss-card');
+    card.hidden = false;
+    $('r-miss-count').textContent = `— ${missing.length} ตอน`;
+    const show = missing.slice(0, 100);
+    $('r-miss-body').innerHTML = show.map(n => `<span class="miss-num">ตอน ${n}</span>`).join('') +
+      (missing.length > 100 ? `<span style="color:var(--text-3);font-size:12px"> … และอีก ${missing.length-100} ตอน</span>` : '');
+  }
+
+  // filter counts
+  $('fc-all').textContent    = chapters.length;
+  $('fc-issues').textContent = issueChaps.length;
+  $('fc-near').textContent   = nearChaps.length;
+
+  // near tab: hide if no missing chapters
+  if (missing.length === 0) {
+    document.querySelector('[data-f="near"]').style.display = 'none';
+  }
+
+  $('results').hidden = false;
+  $('btn-change').style.display = '';
+  $('input-area').hidden = true;
+
+  applyFilter('all');
+}
+
+function setStatCard(id, hasIssue, type) {
+  const el = $(id);
+  el.className = 'stat ' + (hasIssue ? type : 'ok');
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let currentPage = 1;
+let viewList = [];
+
+function setFilter(f) {
+  currentFilter = f;
+  currentPage = 1;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.toggle('on', t.dataset.f === f));
+
+  const { chapters, issueChaps, nearChaps } = state;
+  if (f === 'issues') viewList = issueChaps;
+  else if (f === 'near') viewList = nearChaps;
+  else viewList = chapters;
+
+  renderTable();
+}
+
+function applyFilter(f) { setFilter(f); }
+
+function renderTable() {
+  const start = (currentPage-1) * PAGE;
+  const page = viewList.slice(start, start+PAGE);
+  const tbody = $('tbl-body');
+
+  if (page.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="empty-icon">✓</span>ไม่พบตอนที่มีปัญหาในหมวดนี้</div></td></tr>`;
+    renderPag();
+    return;
+  }
+
+  tbody.innerHTML = page.map(c => {
+    const len = c.content.trim().length;
+    const lenCls = len === 0 ? 'len-err' : len < 200 ? 'len-warn' : 'len-ok';
+    const lenTxt = len === 0 ? '—' : len.toLocaleString();
+
+    const tagHtml = c.issues.length === 0
+      ? '<span class="tag tag-ok">✓</span>'
+      : c.issues.map(i => {
+          const cls = i.k==='empty' ? 'tag-err' : i.k==='short' ? 'tag-warn' : 'tag-dup';
+          return `<span class="tag ${cls}">${i.label}</span>`;
+        }).join(' ');
+
+    const numLbl = c.num !== null ? c.num : '番外';
+
+    return `<tr>
+      <td class="td-num">${numLbl}</td>
+      <td class="td-title" title="${esc(c.title)}">${esc(c.title)}</td>
+      <td class="td-len"><span class="${lenCls}">${lenTxt}</span></td>
+      <td style="white-space:nowrap">${tagHtml}</td>
+    </tr>`;
+  }).join('');
+
+  renderPag();
+}
+
+function renderPag() {
+  const total = viewList.length;
+  const totalP = Math.ceil(total / PAGE);
+  const el = $('pag');
+
+  if (totalP <= 1) {
+    el.innerHTML = `<span class="pag-info">${total} รายการ</span>`;
+    return;
+  }
+
+  const cp = currentPage;
+  let html = `<span class="pag-info">${(cp-1)*PAGE+1}–${Math.min(cp*PAGE,total)} จาก ${total}</span>`;
+  html += `<button class="pbtn" onclick="goPage(${cp-1})" ${cp===1?'disabled':''}>‹</button>`;
+
+  const ps = pagNums(cp, totalP);
+  for (const p of ps) {
+    if (p === '…') html += `<span style="color:var(--text-3);padding:0 3px;font-size:13px">…</span>`;
+    else html += `<button class="pbtn ${p===cp?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  }
+
+  html += `<button class="pbtn" onclick="goPage(${cp+1})" ${cp===totalP?'disabled':''}>›</button>`;
+  el.innerHTML = html;
+}
+
+function pagNums(c, t) {
+  if (t <= 7) return Array.from({length:t},(_,i)=>i+1);
+  const r = [1];
+  if (c > 3) r.push('…');
+  for (let p=Math.max(2,c-1); p<=Math.min(t-1,c+1); p++) r.push(p);
+  if (c < t-2) r.push('…');
+  r.push(t);
+  return r;
+}
+
+function goPage(p) {
+  const t = Math.ceil(viewList.length / PAGE);
+  if (p < 1 || p > t) return;
+  currentPage = p;
+  renderTable();
+  $('r-table-card').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ── COPY REPORT ───────────────────────────────────────────────────────────────
+function copyReport() {
+  if (!state) return;
+  const { file, chapters, missing, issueChaps } = state;
+  const shortCount = issueChaps.filter(c=>c.issues.some(i=>i.k==='short'||i.k==='empty')).length;
+  const dupCount   = issueChaps.filter(c=>c.issues.some(i=>i.k==='dup')).length;
+
+  let txt = `=== รายงานการตรวจสอบไฟล์นิยาย ===\n`;
+  txt += `ไฟล์: ${file.name} (${fmtBytes(file.size)})\n`;
+  if (state.bookTitle) txt += `ชื่อเรื่อง: ${state.bookTitle}\n`;
+  if (state.bookAuthor) txt += `ผู้แต่ง: ${state.bookAuthor}\n`;
+  txt += `\nตอนทั้งหมด: ${chapters.length}\n`;
+  txt += `ตอนที่หายไป: ${missing.length}\n`;
+  txt += `เนื้อหาสั้น/ว่าง: ${shortCount}\n`;
+  txt += `เนื้อหาซ้ำ: ${dupCount}\n`;
+
+  if (missing.length > 0) {
+    txt += `\nตอนที่หาย: ${missing.slice(0,50).map(n=>`ตอน ${n}`).join(', ')}`;
+    if (missing.length > 50) txt += ` ... และอีก ${missing.length-50} ตอน`;
+    txt += '\n';
+  }
+
+  if (issueChaps.length > 0) {
+    txt += `\nตอนที่มีปัญหา:\n`;
+    for (const c of issueChaps) {
+      txt += `  ${c.title} — ${c.issues.map(i=>i.label).join(', ')}\n`;
+    }
+  }
+
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = $('btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = '✓ คัดลอกแล้ว';
+    setTimeout(() => { btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M3 11V3a1 1 0 0 1 1-1h8"/></svg> คัดลอกรายงาน`; }, 2000);
+  }).catch(() => {
+    alert(txt);
+  });
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleCard(id) {
+  $(id).classList.toggle('closed');
+}
+
+function doReset() {
+  $('input-area').hidden = false;
+  $('results').hidden = true;
+  $('r-book').hidden = true;
+  $('r-allclear').hidden = true;
+  $('r-miss-card').hidden = true;
+  $('btn-change').style.display = 'none';
+  const nearBtn = document.querySelector('[data-f="near"]');
+  if (nearBtn) nearBtn.style.display = '';
+  state = null;
+  $('file-in').value = '';
+  $('paste-txt').value = '';
+  $('paste-counter').textContent = 'ยังไม่มีข้อความ';
+  $('btn-analyze').disabled = true;
+}
+
+// Tab switching
+function switchTab(tab) {
+  const isFile = tab === 'file';
+  $('tab-file').classList.toggle('on', isFile);
+  $('tab-paste').classList.toggle('on', !isFile);
+  $('panel-file').hidden = !isFile;
+  $('panel-paste').hidden = isFile;
+}
+
+// Paste textarea — update counter on any change (input, paste, keyup)
+function updatePasteCounter() {
+  const val = $('paste-txt').value;
+  const len = val.trim().length;
+  const isUrl = /^https?:\/\//i.test(val.trim());
+  if (isUrl) {
+    $('paste-counter').innerHTML = '<span style="color:var(--warning)">⚠ URL ไม่รองรับ — ดูคำแนะนำด้านล่าง</span>';
+    $('url-hint').hidden = false;
+    $('btn-analyze').disabled = true;
+  } else {
+    $('url-hint').hidden = true;
+    $('paste-counter').textContent = len > 0 ? `${len.toLocaleString()} ตัวอักษร` : 'ยังไม่มีข้อความ';
+    $('btn-analyze').disabled = len < 10;
+  }
+}
+
+['input', 'paste', 'change', 'keyup'].forEach(ev =>
+  $('paste-txt').addEventListener(ev, updatePasteCounter)
+);
+
+function analyzePaste() {
+  const text = $('paste-txt').value;
+  if (!text.trim()) return;
+  const { chapters, bookTitle, bookAuthor } = parseFile(text);
+  if (chapters.length === 0) {
+    alert('ไม่พบตอนในข้อความนี้ค่ะ\n\nตรวจสอบว่าข้อความมีหัวตอนในรูปแบบ:\n  第1章 ชื่อตอน\n  เนื้อหา...');
+    return;
+  }
+  const res = analyze(chapters);
+  const byteLen = new Blob([text]).size;
+  state = {
+    file: { name: bookTitle ? `《${bookTitle}》` : 'ข้อความที่วาง', size: byteLen },
+    chapters, bookTitle, bookAuthor, ...res
+  };
+  render();
+}
+
+// ── FILE HANDLING ─────────────────────────────────────────────────────────────
+function loadFile(file) {
+  if (!file) return;
+  const name = file.name.toLowerCase();
+  if (!name.endsWith('.txt') && file.type && !file.type.includes('text')) {
+    if (!confirm(`ไฟล์ "${file.name}" อาจไม่ใช่ .txt ค่ะ ต้องการลองตรวจสอบต่อไหม?`)) return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const { chapters, bookTitle, bookAuthor } = parseFile(text);
+    if (chapters.length === 0) {
+      alert('ไม่พบตอนในไฟล์นี้ค่ะ กรุณาตรวจสอบว่าเป็นไฟล์นิยายที่โหลดจาก Fanqie Novel Downloader');
+      return;
+    }
+    const res = analyze(chapters);
+    state = { file, chapters, bookTitle, bookAuthor, ...res };
+    render();
+  };
+  reader.onerror = () => alert('เกิดข้อผิดพลาดในการอ่านไฟล์ค่ะ');
+  reader.readAsText(file, 'UTF-8');
+}
+
+// Show drop zone only on non-touch (desktop)
+if (!('ontouchstart' in window)) {
+  const dz = $('dz');
+  dz.style.display = '';
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+}
+
+$('file-in').addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+</script>
