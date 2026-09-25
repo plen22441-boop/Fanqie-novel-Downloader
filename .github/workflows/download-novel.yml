@@ -36,10 +36,16 @@ jobs:
             --output downloads \
             --retries 5
 
+      - name: Set artifact name
+        id: artifact_name
+        run: |
+          SAFE=$(echo "${{ github.event.inputs.book_id }}" | grep -oE '[0-9]+' | tail -1)
+          echo "name=novel-${SAFE}" >> $GITHUB_OUTPUT
+
       - name: Upload TXT file
         uses: actions/upload-artifact@v4
         with:
-          name: novel-${{ github.event.inputs.book_id }}
+          name: ${{ steps.artifact_name.outputs.name }}
           path: downloads/*.txt
           retention-days: 7
 
