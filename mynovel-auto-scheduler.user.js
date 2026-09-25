@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         MyNovel Auto Scheduler Helper v10.10.0 Speed Boost
+// @name         MyNovel Auto Scheduler Helper v10.11.0
 // @namespace    https://mynovel.co/
-// @version      10.10.1
-// @description  ตั้งเวลา MyNovel ทีละตอนจากล่างขึ้นบน — เพิ่มโหมดเร็ว (Turbo) สำหรับลง 50-100 ตอน, ลด delay ทุกจุด, ข้ามตอนที่ error แล้วทำต่อ, retry 5 ครั้ง
+// @version      10.11.0
+// @description  ตั้งเวลา MyNovel ทีละตอนจากล่างขึ้นบน — ตรวจหาเวลาต่อจากตอนที่ตั้งไว้แล้ว, กันหน้าจอพัก (Wake Lock), เสียงแจ้งเตือนเมื่อเสร็จ, โหมดเร็ว/Turbo
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
 // @grant        none
@@ -12,7 +12,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '10.10.1';
+  const VERSION = '10.11.0';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
 
@@ -278,6 +278,105 @@
     const hm = timeText(target);
     return compact.includes('กำหนดเผยแพร่') &&
       (compact.includes(hm) || compact.includes(hm.replace(':', '：')));
+  }
+
+  /* ───────────────────────── ตรวจหาเวลาต่อจากตอนที่ตั้งไว้แล้ว ───────────────────────── */
+
+  // อ่านเวลาตั้งเผยแพร่จาก card text เช่น "กำหนดเผยแพร่ 26 ก.ย. 2569 02:55"
+  function parseScheduledDateFromCard(card) {
+    const t = txt(card);
+    if (!t.includes('กำหนดเผยแพร่')) return null;
+
+    // จับ HH:MM
+    const timeMatch = t.match(/(\d{1,2}):(\d{2})(?!:\d)/);
+    if (!timeMatch) return null;
+    const hour = Number(timeMatch[1]);
+    const minute = Number(timeMatch[2]);
+
+    // จับวัน
+    const dayMatch = t.match(/กำหนดเผยแพร่\s+(\d{1,2})/);
+    const day = dayMatch ? Number(dayMatch[1]) : null;
+
+    // จับเดือนไทย
+    const thMonthMatch = t.match(MONTH_TH_RE);
+    const enMonthMatch = t.match(MONTH_EN_RE);
+    let month = null;
+    if (thMonthMatch) month = MONTHS_TH[thMonthMatch[1]];
+    else if (enMonthMatch) month = MONTHS_EN[enMonthMatch[1].toLowerCase()];
+
+    // จับปี (4 หลัก)
+    const yearMatches = t.match(/\d{4}/g);
+    let year = null;
+    if (yearMatches) {
+      const years = yearMatches.map(Number).filter(y => y >= 1900);
+      if (years.length) {
+        const y = years[years.length - 1]; // ปีล่าสุดที่เจอ
+        year = y >= 2400 ? y - 543 : y;   // แปลง พ.ศ. → ค.ศ.
+      }
+    }
+
+    if (day === null || month === null || year === null) return null;
+    return new Date(year, month, day, hour, minute, 0, 0);
+  }
+
+  // หาเวลาล่าสุดของตอนที่ตั้งเวลาไว้แล้ว (episode สูงสุดที่มี schedule)
+  // ใช้สำหรับ "ตั้งเวลาต่อ" — คืน Date หรือ null
+  function findLastScheduledTime() {
+    const cards = episodeCards();
+    // เรียงตาม episode มากไปน้อย (หาตอนล่าสุดที่ตั้งไว้)
+    const sorted = [...cards].sort((a, b) => b.episode - a.episode);
+    for (const item of sorted) {
+      const d = parseScheduledDateFromCard(item.card);
+      if (d) return { date: d, episode: item.episode };
+    }
+    return null;
+  }
+
+  /* ───────────────────────── Wake Lock (กันหน้าจอพัก) ───────────────────────── */
+
+  let _wakeLock = null;
+
+  async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return false;
+    try {
+      _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+      return true;
+    } catch (_) { return false; }
+  }
+
+  async function releaseWakeLock() {
+    if (_wakeLock) { try { await _wakeLock.release(); } catch (_) {} _wakeLock = null; }
+  }
+
+  // ขอ wake lock ใหม่เมื่อหน้าจอกลับมา visible (หลังจอล็อกแล้วปลดล็อก)
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && _wakeLock === null) {
+      await acquireWakeLock();
+    }
+  });
+
+  /* ───────────────────────── เสียงแจ้งเตือน (Web Audio API) ───────────────────────── */
+
+  function playDoneSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = ctx.currentTime + i * 0.18;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.4, start + 0.04);
+        gain.gain.linearRampToValueAtTime(0, start + 0.28);
+        osc.start(start);
+        osc.stop(start + 0.3);
+      });
+    } catch (_) {}
   }
 
   /* ───────────────────────── การเลือกตอน ───────────────────────── */
@@ -1053,10 +1152,15 @@
     </div>
     <label style="display:flex!important;align-items:center!important;gap:6px!important;margin-top:8px!important;cursor:pointer!important">
       <input type="checkbox" id="mn-skip-error" checked style="width:auto!important;margin:0!important">
-      <span style="font-size:12px!important;font-weight:700!important;color:#40536a!important">ข้ามตอนที่ error แล้วทำต่อ (แนะนำสำหรับลงเยอะ)</span>
+      <span style="font-size:12px!important;font-weight:700!important;color:#40536a!important">ข้ามตอนที่ error แล้วทำต่อ</span>
     </label>
-    <div class="note">เลือกตอนใน MyNovel แล้วกดเริ่ม สคริปต์จะไล่ตั้งทีละตอนจากล่างขึ้นบน<br>โหมดเร็วสุด: ลง 100 ตอนภายใน ~2 นาที (retry 5 ครั้ง, ข้ามตอนที่ล้มเหลว)</div>
+    <label style="display:flex!important;align-items:center!important;gap:6px!important;margin-top:4px!important;cursor:pointer!important">
+      <input type="checkbox" id="mn-wakelock" checked style="width:auto!important;margin:0!important">
+      <span style="font-size:12px!important;font-weight:700!important;color:#40536a!important">กันหน้าจอพัก (Wake Lock) ⚠️ อย่าสลับแอป</span>
+    </label>
+    <div class="note">เลือกตอนใน MyNovel แล้วกดเริ่ม — สคริปต์ไล่ตั้งจากล่างขึ้นบน<br>⚠️ ต้องคาหน้าเบราว์เซอร์ไว้ สลับแอปอื่น JS จะหยุดทำงาน</div>
     <button class="action scan" id="mn-scan">ตรวจตอนที่เลือก</button>
+    <button class="action" id="mn-detect" style="background:#e8f5e9!important;color:#1b5e20!important;border:1px solid #a5d6a7!important">ตรวจหาเวลาต่อจากตอนที่ตั้งไว้</button>
     <button class="action start" id="mn-start">เริ่มตั้งเวลา</button>
     <button class="action stop" id="mn-stop">หยุดหลังตอนปัจจุบัน</button>
     <div class="status" id="mn-status">พร้อมใช้งาน — เลือกตอนใน MyNovel แล้วกดเริ่ม</div>
@@ -1083,7 +1187,9 @@
     const gapInput = host.querySelector('#mn-gap');
     const speedSelect = host.querySelector('#mn-speed');
     const skipErrorCheck = host.querySelector('#mn-skip-error');
+    const wakeLockCheck = host.querySelector('#mn-wakelock');
     const scanButton = host.querySelector('#mn-scan');
+    const detectButton = host.querySelector('#mn-detect');
     const startButton = host.querySelector('#mn-start');
     const stopButton = host.querySelector('#mn-stop');
     const closeButton = host.querySelector('#mn-close');
@@ -1127,6 +1233,23 @@
         : 'ยังไม่พบตอนที่เลือก');
     };
 
+    detectButton.onclick = () => {
+      const gap = Math.max(1, Math.min(1440, Number(gapInput.value) || 15));
+      const found = findLastScheduledTime();
+      if (!found) {
+        reset('ไม่พบตอนที่ตั้งเวลาไว้บนหน้านี้');
+        return;
+      }
+      // ตั้งเวลาเริ่มเป็น เวลาล่าสุดที่เจอ + gap
+      const next = new Date(found.date.getTime() + gap * 60000);
+      const yyyy = next.getFullYear();
+      const mm = String(next.getMonth() + 1).padStart(2, '0');
+      const dd = String(next.getDate()).padStart(2, '0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+      timeInput.value = `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`;
+      reset(`ตรวจพบ: ตอน ${found.episode} ตั้งไว้ ${timeText(found.date)}\n→ เริ่มตั้งจาก ${timeText(next)} (+${gap} นาที)`);
+    };
+
     stopButton.onclick = () => {
       stopRequested = true;
       log('· ขอหยุดแล้ว จะหยุดหลังตอนปัจจุบัน');
@@ -1156,12 +1279,20 @@
       stopRequested = false;
       startButton.disabled = true;
       scanButton.disabled = true;
+      detectButton.disabled = true;
       speedSelect.disabled = true;
+
+      // Wake Lock
+      let wakeLockActive = false;
+      if (wakeLockCheck.checked) {
+        wakeLockActive = await acquireWakeLock();
+        if (!wakeLockActive) log('⚠️ Wake Lock ไม่รองรับในเบราว์เซอร์นี้');
+      }
 
       let done = 0;
       let skipped = 0;
       const startTime = Date.now();
-      reset(`เริ่มตั้งเวลา ${queue.length} ตอน [${speedLabel}]`);
+      reset(`เริ่มตั้งเวลา ${queue.length} ตอน [${speedLabel}]${wakeLockActive ? ' 🔆' : ''}`);
 
       try {
         await closeOldModal();
@@ -1240,14 +1371,18 @@
         if (!stopRequested) {
           const totalSec = ((Date.now() - startTime) / 1000).toFixed(1);
           const skipNote = skipped > 0 ? `, ข้าม ${skipped} ตอน` : '';
-          log(`เสร็จสิ้น — สำเร็จ ${done}/${queue.length} ตอน${skipNote} (ใช้เวลา ${totalSec}s)`);
+          log(`✅ เสร็จสิ้น — สำเร็จ ${done}/${queue.length} ตอน${skipNote} (${totalSec}s)`);
+          playDoneSound();
         }
       } catch (error) {
         const skipNote = skipped > 0 ? `, ข้าม ${skipped}` : '';
         log(`หยุดที่ ${done}/${queue.length} ตอน${skipNote}\n${error.message || error}`);
+        playDoneSound();
       } finally {
+        await releaseWakeLock();
         startButton.disabled = false;
         scanButton.disabled = false;
+        detectButton.disabled = false;
         speedSelect.disabled = false;
       }
     };
