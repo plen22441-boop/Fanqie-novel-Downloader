@@ -177,7 +177,7 @@ class RequestHandler:
                 retry_count += 1
                 time.sleep(1 * retry_count)
         
-        if not content: # 如果所有重试后 content 仍然为空
-            raise ConnectionError(f"无法下载章节 {chapter_id}，API 可能已失效或网络错误。")
-            
+        if not content:
+            return None
+
         return content

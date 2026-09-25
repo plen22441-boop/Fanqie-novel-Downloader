@@ -232,7 +232,8 @@ class NovelDownloaderGUI(ctk.CTk):
         self.is_downloading = True
         self.downloaded_chapters.clear()
         self.content_cache.clear()
-        
+        self.missing_chapters = []
+
         threading.Thread(target=self.download_novel,
                        args=(novel_id, save_path),
                        daemon=True).start()
@@ -271,15 +272,23 @@ class NovelDownloaderGUI(ctk.CTk):
             
             # 先顺序下载前5章
             for chapter in chapters[:5]:
-                content = self.request_handler.down_text(chapter["id"])
-                if content:
-                    self.content_cache[chapter["index"]] = (chapter, content)
-                    self.downloaded_chapters.add(chapter["id"])
-                    success_count += 1
-                    progress = (success_count / total_chapters) * 100
+                try:
+                    content = self.request_handler.down_text(chapter["id"])
+                    if content:
+                        self.content_cache[chapter["index"]] = (chapter, content)
+                        self.downloaded_chapters.add(chapter["id"])
+                        success_count += 1
+                        self.log(f"已下载：{chapter['title']}")
+                    else:
+                        self.missing_chapters.append(chapter)
+                        self.log(f"⚠️ 内容缺失：{chapter['title']}")
+                except Exception as e:
+                    self.missing_chapters.append(chapter)
+                    self.log(f"⚠️ 下载失败：{chapter['title']} - {str(e)}")
+                finally:
+                    progress = ((success_count + len(self.missing_chapters)) / total_chapters) * 100
                     self.update_progress(progress, f"正在下载: {success_count}/{total_chapters}")
-                    self.log(f"已下载：{chapter['title']}")
-            
+
             # 多线程下载剩余章节
             remaining_chapters = chapters[5:]
             with ThreadPoolExecutor(max_workers=CONFIG["request"].get("max_workers", 5)) as executor:
@@ -287,7 +296,7 @@ class NovelDownloaderGUI(ctk.CTk):
                     executor.submit(self.request_handler.down_text, chapter["id"]): chapter
                     for chapter in remaining_chapters
                 }
-                
+
                 for future in as_completed(future_to_chapter):
                     chapter = future_to_chapter[future]
                     try:
@@ -297,34 +306,58 @@ class NovelDownloaderGUI(ctk.CTk):
                             self.downloaded_chapters.add(chapter["id"])
                             success_count += 1
                             self.log(f"已下载：{chapter['title']}")
+                        else:
+                            self.missing_chapters.append(chapter)
+                            self.log(f"⚠️ 内容缺失：{chapter['title']}")
                     except Exception as e:
-                        self.log(f"下载失败：{chapter['title']} - {str(e)}")
+                        self.missing_chapters.append(chapter)
+                        self.log(f"⚠️ 下载失败：{chapter['title']} - {str(e)}")
                     finally:
-                        progress = (success_count / total_chapters) * 100
+                        progress = ((success_count + len(self.missing_chapters)) / total_chapters) * 100
                         self.update_progress(progress, f"正在下载: {success_count}/{total_chapters}")
             
-            # 按顺序写入文件
+            # 按顺序写入文件（含缺失章节 placeholder）
             self.log("\n正在保存文件...")
-            
-            # 检查重复章节内容
+
+            # 建立缺失章节 index 集合，方便快速查找
+            missing_indices = {ch["index"]: ch for ch in self.missing_chapters}
+            all_indices = sorted(set(self.content_cache.keys()) | set(missing_indices.keys()))
+
             processed_contents = set()
             with open(output_file, 'a', encoding='utf-8') as f:
-                for index in sorted(self.content_cache.keys()):
-                    chapter, content = self.content_cache[index]
-                    
-                    # 检查内容是否重复
-                    content_hash = hash(content)
-                    if content_hash in processed_contents:
-                        self.log(f"跳过重复章节：{chapter['title']}")
-                        continue
-                    
-                    processed_contents.add(content_hash)
-                    f.write(f"\n{chapter['title']}\n\n")
-                    f.write(content + "\n\n")
-            
+                for index in all_indices:
+                    if index in missing_indices:
+                        chapter = missing_indices[index]
+                        f.write(f"\n{chapter['title']}\n\n")
+                        f.write("    ⚠️ เนื้อหาต้นฉบับขาดหาย / 原文内容缺失\n")
+                        f.write("    (The original source content is missing for this chapter)\n\n")
+                    else:
+                        chapter, content = self.content_cache[index]
+                        content_hash = hash(content)
+                        if content_hash in processed_contents:
+                            self.log(f"跳过重复章节：{chapter['title']}")
+                            continue
+                        processed_contents.add(content_hash)
+                        f.write(f"\n{chapter['title']}\n\n")
+                        f.write(content + "\n\n")
+
+                # 末尾写入缺失章节汇总
+                if self.missing_chapters:
+                    f.write("\n" + "="*60 + "\n")
+                    f.write("⚠️ รายชื่อตอนที่เนื้อหาขาดหาย / 内容缺失章节列表\n")
+                    f.write("="*60 + "\n")
+                    for ch in sorted(self.missing_chapters, key=lambda x: x["index"]):
+                        f.write(f"  • {ch['title']}\n")
+                    f.write("="*60 + "\n")
+
+            missing_count = len(self.missing_chapters)
             self.update_progress(100, "下载完成！")
-            self.log(f"\n下载完成！成功：{success_count}章，失败：{total_chapters - success_count}章")
-            self.log(f"文件保存在：{output_file}")
+            self.log(f"\n下载完成！成功：{success_count}章，缺失：{missing_count}章")
+            if self.missing_chapters:
+                self.log("\n⚠️ 以下章节内容缺失（已在文件中标注）：")
+                for ch in sorted(self.missing_chapters, key=lambda x: x["index"]):
+                    self.log(f"   • {ch['title']}")
+            self.log(f"\n文件保存在：{output_file}")
             
             # 添加到书库
             book_info = {
@@ -336,7 +369,21 @@ class NovelDownloaderGUI(ctk.CTk):
             add_to_library(book_id, book_info, output_file)
             self.log("已添加到书库")
             
-            messagebox.showinfo("完成", f"小说《{name}》下载完成！\n保存路径：{output_file}")
+            missing_count = len(self.missing_chapters)
+            if missing_count > 0:
+                missing_titles = "\n".join(
+                    f"  • {ch['title']}"
+                    for ch in sorted(self.missing_chapters, key=lambda x: x["index"])
+                )
+                messagebox.showwarning(
+                    "下载完成（含缺失章节）",
+                    f"小说《{name}》下载完成！\n"
+                    f"成功：{success_count} 章，缺失：{missing_count} 章\n\n"
+                    f"⚠️ 缺失章节已在文件中标注：\n{missing_titles}\n\n"
+                    f"保存路径：{output_file}"
+                )
+            else:
+                messagebox.showinfo("完成", f"小说《{name}》下载完成！\n保存路径：{output_file}")
             
         except Exception as e:
             self.log(f"\n错误：{str(e)}")
