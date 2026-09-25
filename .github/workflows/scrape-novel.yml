@@ -1,0 +1,59 @@
+name: Scrape Novel
+
+on:
+  workflow_dispatch:
+    inputs:
+      novel_url:
+        description: "Novel index URL (e.g. https://ixdzs8.com/read/620538/)"
+        required: false
+        default: "https://ixdzs8.com/read/620538/"
+      parallel:
+        description: "Number of parallel browser contexts"
+        required: false
+        default: "5"
+      min_chars:
+        description: "Minimum characters to consider chapter valid"
+        required: false
+        default: "100"
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright beautifulsoup4
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run scraper
+        env:
+          NOVEL_URL: ${{ github.event.inputs.novel_url }}
+          PARALLEL: ${{ github.event.inputs.parallel }}
+          MIN_CHARS: ${{ github.event.inputs.min_chars }}
+          OUT_TXT: novel.txt
+          OUT_REPORT: report.txt
+        run: python scrape_novel.py
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: novel-output
+          path: |
+            novel.txt
+            report.txt
+          retention-days: 30
