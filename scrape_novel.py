@@ -15,8 +15,8 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 NOVEL_URL  = os.environ.get("NOVEL_URL", "https://ixdzs8.com/read/620538/")
-PARALLEL   = int(os.environ.get("PARALLEL", "5"))
-DELAY_S    = float(os.environ.get("DELAY_S", "0.8"))
+PARALLEL   = int(os.environ.get("PARALLEL", "20"))
+DELAY_S    = float(os.environ.get("DELAY_S", "0.3"))
 MIN_CHARS  = int(os.environ.get("MIN_CHARS", "100"))
 OUT_TXT    = os.environ.get("OUT_TXT", "novel.txt")
 OUT_REPORT = os.environ.get("OUT_REPORT", "report.txt")
@@ -106,7 +106,7 @@ async def get_chapters(url: str) -> list[dict]:
 async def fetch_one(ctx, ch: dict, idx: int, total: int) -> dict:
     page = await ctx.new_page()
     try:
-        await page.goto(ch["url"], wait_until="networkidle", timeout=30_000)
+        await page.goto(ch["url"], wait_until="load", timeout=30_000)
         await wait_past_security(page)
         content = await extract_content(page)
         clen = len(content.replace(" ", "").replace("\n", ""))

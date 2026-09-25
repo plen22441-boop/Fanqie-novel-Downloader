@@ -10,7 +10,7 @@ on:
       parallel:
         description: "Number of parallel browser contexts"
         required: false
-        default: "5"
+        default: "20"
       min_chars:
         description: "Minimum characters to consider chapter valid"
         required: false
