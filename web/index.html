@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rose ฝานฝาน v7.6 • FinalBatch10</title>
+  <meta name="description" content="จัดงานแปลครั้งละ 10 ตอนด้วย Rose v7.6 รองรับไฟล์ TXT แบบ UTF-8, UTF-16 และ GBK/GB18030" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23131d3a'/%3E%3Cpath d='M32 49c-9-7-16-14-16-23 0-7 5-12 11-12 3 0 5 1 7 4 2-3 4-4 7-4 6 0 11 5 11 12 0 9-8 16-20 23Z' fill='%23ff5d8f'/%3E%3Cpath d='M32 19c-4 6-4 13 0 20 4-7 4-14 0-20Z' fill='%236ee7e0'/%3E%3C/svg%3E" />
+  <style>
+    :root{
+      --bg:#f5f8f7; --card:#fff; --ink:#102e31; --primary:#d9573f; --primary2:#bf852f;
+      --accent:#087f72; --text:#18383b; --muted:#667d7f; --border:#d8e5e2; --success:#087f72;
+      --danger:#c83c55; --soft:#f2f8f6; --shadow:0 18px 46px rgba(16,62,65,.10);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;
+      background:
+        radial-gradient(circle at 8% 2%,rgba(217,87,63,.15),transparent 26rem),
+        radial-gradient(circle at 94% 12%,rgba(8,127,114,.16),transparent 25rem),
+        linear-gradient(155deg,#f3f8f6,#fff 48%,#fff8ef);color:var(--text);min-height:100vh
+    }
+    .container{max-width:1180px;margin:auto;padding:24px}
+    .hero{
+      position:relative;overflow:hidden;background:linear-gradient(125deg,#102e31 0%,#145d5a 55%,#8a5e28 100%);color:#fff;
+      padding:30px;border-radius:28px;box-shadow:0 22px 55px rgba(16,46,49,.22);margin-bottom:20px;border:1px solid rgba(255,255,255,.12)
+    }
+    .hero::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-55px;top:-110px;background:linear-gradient(145deg,rgba(255,183,77,.72),rgba(118,232,213,.2));filter:blur(2px)}
+    .hero h1{position:relative;z-index:1;margin:0 0 8px;font-size:clamp(27px,5vw,43px);letter-spacing:-.02em}
+    .hero p{position:relative;z-index:1;margin:0;line-height:1.75;opacity:.92;max-width:850px}
+    .panel{
+      background:var(--card);border:1px solid var(--border);border-radius:20px;
+      padding:21px;box-shadow:var(--shadow);margin-bottom:18px
+    }
+    label{display:block;font-weight:800;margin-bottom:8px}
+    textarea{
+      width:100%;min-height:350px;resize:vertical;border:1px solid var(--border);
+      border-radius:16px;padding:16px;font:inherit;line-height:1.75;outline:none;background:#fff
+    }
+    textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(8,127,114,.11)}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+    .field{background:var(--soft);border:1px solid var(--border);border-radius:14px;padding:12px}
+    .field label{font-size:13px;color:var(--muted);margin-bottom:5px}
+    input,select{width:100%;border:0;background:transparent;font:inherit;outline:none;color:var(--text)}
+    .checkrow{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px}
+    .check{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--text)}
+    .check input{width:auto}
+    .buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    button{
+      border:0;border-radius:12px;padding:11px 16px;font:inherit;font-weight:800;
+      cursor:pointer;transition:.2s
+    }
+    button:hover{transform:translateY(-1px)}
+    .primary{background:linear-gradient(135deg,var(--primary),#b83f2d);color:#fff;box-shadow:0 8px 20px rgba(217,87,63,.2)}
+    .secondary{background:#e7f4f1;color:#087f72}
+    .success{background:#e4f8f5;color:var(--success)}
+    .danger{background:#fff0f4;color:var(--danger)}
+    .status{margin-top:12px;padding:12px 14px;border-radius:12px;background:#eef4ff;color:var(--muted);line-height:1.6;border-left:4px solid var(--primary2)}
+    .results{display:grid;gap:16px}
+    .batch{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+    .batch-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;background:linear-gradient(90deg,#f6f7ff,#fff5f8);border-bottom:1px solid var(--border)}
+    .batch-title{font-weight:900;font-size:18px}
+    .batch-meta{font-size:13px;color:var(--muted);margin-top:3px}
+    .batch-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .batch-actions button{padding:8px 12px;font-size:14px}
+    .batch textarea{min-height:280px;border:0;border-radius:0}
+    .empty{text-align:center;padding:44px 18px;color:var(--muted);border:2px dashed var(--border);border-radius:18px;background:#fff}
+    .note{font-size:13px;color:var(--muted);line-height:1.7;margin-top:10px}
+    .file-drop{
+      border:2px dashed #b8c7e6;border-radius:18px;padding:20px;margin-bottom:14px;
+      background:linear-gradient(135deg,#f7f9ff,#fff6f9);text-align:center;transition:.2s;cursor:pointer
+    }
+    .file-drop:hover,.file-drop.dragover{border-color:var(--primary);background:#fff4f7;box-shadow:0 0 0 4px rgba(232,62,117,.08)}
+    .file-drop-title{font-weight:900;font-size:17px;margin-bottom:5px}
+    .file-drop-sub{font-size:13px;color:var(--muted);line-height:1.6}
+    .file-tools{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .file-tools button{padding:9px 13px}
+    .file-meta{margin-top:9px;font-size:13px;color:#5148b8;font-weight:700;word-break:break-word}
+    #txtFileInput{display:none}
+
+    .rose-panel{border:1px solid #d8dff1;background:linear-gradient(145deg,#fff,#f8f9ff 55%,#fff6f9)}
+    .rose-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+    .rose-heading h2{margin:0;font-size:22px}
+    .rose-badge{display:inline-flex;align-items:center;gap:6px;background:#fff4df;color:#8a5e28;border:1px solid #f0d49c;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900}
+    .rose-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .rose-info{margin-top:12px;padding:13px 15px;border-radius:14px;background:#f1f5ff;border:1px solid var(--border);line-height:1.65}
+    .rose-info strong{color:#4e45b7}
+    details.rose-details{margin-top:12px;border:1px solid var(--border);border-radius:14px;background:#fff;overflow:hidden}
+    details.rose-details summary{cursor:pointer;padding:12px 14px;font-weight:900;background:linear-gradient(90deg,#f3f5ff,#fff7fa)}
+    .rose-preview-wrap{padding:12px}
+    #rosePreview{min-height:250px;font-size:13px;line-height:1.6}
+    .mini-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .mini-buttons button{padding:9px 12px;font-size:13px}
+    .batch-mode{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#fff0f5;color:#bd2458;font-size:11px;font-weight:800}
+    .rule-downloads{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .download-chip{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:#e5f8f6;color:#087f72;border:1px solid #bceae5;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:850;transition:.2s}
+    .download-chip:hover{transform:translateY(-1px);background:#d8f3ef}
+
+    .audit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .audit-box{margin-top:12px;padding:12px 14px;border-radius:14px;background:#fbf9ff;border:1px solid var(--border);line-height:1.65}
+    .audit-ok{background:#e8f7ef;color:#237b50;border-color:#c9ead8}
+    .audit-bad{background:#fff0f3;color:#a72f45;border-color:#f3c6cf;font-weight:800}
+    @media(max-width:600px){.rose-grid,.audit-grid{grid-template-columns:1fr}}
+
+
+    @media(max-width:760px){.container{padding:14px}.grid{grid-template-columns:1fr 1fr}.batch-head{flex-direction:column;align-items:flex-start}}
+    @media(max-width:440px){.grid{grid-template-columns:1fr}.buttons button{width:100%}.batch-actions{width:100%}.batch-actions button{flex:1}}
+  </style>
+</head>
+<body>
+<div class="container">
+  <section class="hero">
+    <h1>Rose ฝานฝาน v7.6 • FinalBatch10</h1>
+    <p>หนึ่งแชทต่อ 10 ตอน • อ่าน TXT จีนได้หลายรหัส • สร้างคำสั่งสำหรับรับไฟล์ .txt ในแชท</p>
+  </section>
+
+  <section class="panel rose-panel">
+    <div class="rose-heading">
+      <div>
+        <div class="rose-badge">🌹 ฝานฝาน • งานละ 10 ตอน • แบ่งไฟล์เมื่อจำเป็น</div>
+        <h2>เลือกยุคสำหรับคำสั่งแปล</h2>
+      </div>
+    </div>
+
+    <div class="grid rose-grid">
+      <div class="field">
+        <label for="roseEra">Opening Command ตามยุคนิยาย</label>
+        <select id="roseEra">
+          <option value="ancient">โบราณ / ย้อนยุคจีน</option>
+          <option value="current">ปัจจุบัน</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="roseCopyMode">รูปแบบที่คัดลอกไปแชท</label>
+        <select id="roseCopyMode">
+          <option value="opening">✓ ใช้แปล: Smart Pack + Opening Command + นิยาย</option>
+          <option value="full">Full Master: Master เต็ม + นิยาย (ใช้เมื่อส่งตอนสั้น)</option>
+          <option value="novel">เฉพาะต้นฉบับ — ไม่มีคำสั่ง (ห้ามเลือกเมื่อต้องการแปล)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="roseInfo" class="rose-info"></div>
+    <div class="note"><strong>Smart Pack:</strong> ส่งต้นฉบับครั้งละ 10 ตอนในแชทเดียว พร้อมรายการเลขตอนที่เว็บตรวจแล้ว</div>
+    <div class="note"><strong>Full Master:</strong> ใช้กับแชตใหม่หรือต้นฉบับสั้น โดยใช้ Master v7.6 เป็นกฎหลักเพียงไฟล์เดียว</div>
+    <div class="note"><strong>การแปลเมื่อมีตอนขาด:</strong> เว็บจะข้ามเลขตอนที่ขาดและไม่สร้างไฟล์ตอนว่าง โดยให้ใส่ป้ายเตือนท้ายตอนก่อนหน้าที่มีเนื้อหาจริง แล้วเริ่มตอนถัดไปตามเลขต้นฉบับเดิม</div>
+    <div class="note"><strong>กฎส่งงาน:</strong> เนื้อหานิยายส่งเป็นไฟล์ <code>.txt</code> เท่านั้น หัวไฟล์ต้องระบุช่วงตอน เช่น <code>ตอน 421–430</code></div>
+    <div class="note"><strong>รายงานใต้ไฟล์:</strong> ให้แชทแจ้งช่วงตอน จำนวนตอน ตอนที่ขาด และผลตรวจอักษรจีนตกค้างแบบสั้น ๆ ตามตัวอย่าง</div>
+    <div class="note"><strong>การใช้เว็บ:</strong> เว็บจัดต้นฉบับและสร้างคำสั่งให้คัดลอกไปวางในแชท จากนั้นแชทเป็นผู้แนบไฟล์ <code>.txt</code> ให้ดาวน์โหลด</div>
+    <div class="note"><strong>Split-Page Merge:</strong> ตอนเดียวที่เว็บแบ่งเป็น (1/2)+(2/2) หรือ (1/3)+(2/3)+(3/3) จะถูกรวมเป็นตอนจริงเดียวก่อนนับและแบ่งชุด หากส่วนไม่ครบจะเตือนและไม่เอาไปนับเป็นตอนสมบูรณ์</div>
+    <div class="rule-downloads" aria-label="ดาวน์โหลดไฟล์คำสั่ง Rose v7.6">
+      <a class="download-chip" href="./rules/Rose_v7.6_PublisherEditorialIntelligence_Master.md" download>↓ Master v7.6</a>
+      <a class="download-chip" href="./rules/Rose_Fanfan_Adaptive10_v4.md" download>↓ Adaptive10 v4</a>
+    </div>
+
+    <details class="rose-details">
+      <summary>ดู / คัดลอก Opening Command ที่เลือก</summary>
+      <div class="rose-preview-wrap">
+        <textarea id="rosePreview" readonly></textarea>
+        <div class="mini-buttons">
+          <button class="secondary" id="copyRoseBtn">คัดลอก Opening Command</button>
+          <button class="success" id="copyRoseFullBtn">คัดลอก Full Power Pack</button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div id="txtDropZone" class="file-drop" tabindex="0" role="button" aria-label="เลือกหรือลากไฟล์ TXT มาวาง">
+      <input id="txtFileInput" type="file" accept=".txt,text/plain" multiple>
+      <div class="file-drop-title">📄 วางไฟล์ TXT ได้เลย</div>
+      <div class="file-drop-sub">กดตรงนี้เพื่อเลือกไฟล์ หรือ ลากไฟล์ .txt มาวาง • รองรับ UTF-8, UTF-16 และ GBK/GB18030 • เลือกหลายไฟล์ได้</div>
+      <div class="file-tools">
+        <button type="button" class="secondary" id="chooseTxtBtn">เลือกไฟล์ TXT</button>
+        <button type="button" class="danger" id="clearTxtBtn">ล้างไฟล์/ข้อความ</button>
+      </div>
+      <div id="txtFileMeta" class="file-meta">ยังไม่ได้เลือกไฟล์</div>
+    </div>
+
+    <label for="sourceText">หรือวางข้อความนิยายทั้งหมด</label>
+    <textarea id="sourceText" placeholder="วางข้อความ หรือวางไฟล์ TXT ได้ เช่น 001 ถึง 020, ตอนที่ 001 หรือ 第41章 ถึง 第90章"></textarea>
+
+    <div class="field" style="margin-top:14px">
+      <label for="novelTitle">ชื่อเรื่องนิยาย (ใส่ได้ ถ้าต้องการให้แสดงในไฟล์ TXT)</label>
+      <input id="novelTitle" type="text" placeholder="เช่น 穿成五个崽崽妈，我当杀手来养家">
+      <div class="field-hint">ช่วงงานจะขึ้นก่อนชื่อเรื่อง เช่น ตอนที่ 491–500_ชื่อเรื่อง.txt; หากยาวจะแบ่งชื่อไฟล์ย่อยให้อัตโนมัติ</div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label for="batchSize">จำนวนตอนต่อหนึ่งแชท (ล็อก)</label>
+        <input id="batchSize" type="number" min="10" max="10" value="10" readonly>
+        <div class="field-hint">ไฟล์ผลลัพธ์อาจแบ่งย่อยเฉพาะเมื่อความยาวเกินเกณฑ์</div>
+      </div>
+      <div class="field">
+        <label for="setStart">เลขชุดเริ่มต้น</label>
+        <input id="setStart" type="number" min="1" value="1">
+      </div>
+      <div class="field">
+        <label for="titleMode">รูปแบบชื่อชุด</label>
+        <select id="titleMode">
+          <option value="chapter">ตอน 41–50</option>
+          <option value="set">ชุดที่ 1</option>
+          <option value="both">ชุดที่ 1 • ตอน 41–50</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="separator">ตัวคั่นระหว่างตอน</label>
+        <select id="separator">
+          <option value="blank">เว้น 2 บรรทัด</option>
+          <option value="line">เส้นคั่น</option>
+          <option value="none">ไม่เพิ่มตัวคั่น</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid audit-grid">
+      <div class="field">
+        <label for="expectedStart">ตอนเริ่มที่คาดไว้ (ถ้ามี)</label>
+        <input id="expectedStart" type="number" min="0" placeholder="เช่น 1">
+      </div>
+      <div class="field">
+        <label for="expectedEnd">ตอนสุดท้ายที่คาดไว้ (ถ้ามี)</label>
+        <input id="expectedEnd" type="number" min="0" placeholder="เช่น 100">
+      </div>
+      <div class="field">
+        <label for="parserMode">ความเข้มการจับหัวตอน</label>
+        <select id="parserMode"><option value="balanced">สมดุล (แนะนำ)</option><option value="strict">เข้มงวด</option><option value="wide">กว้าง</option></select>
+      </div>
+    </div>
+
+    <div class="checkrow">
+      <label class="check"><input id="cleanSite" type="checkbox" checked> ตัดเมนูเว็บและข้อความลิขสิทธิ์</label>
+      <label class="check"><input id="keepTitle" type="checkbox" checked> เก็บหัวตอน เช่น 第41章 不明生物</label>
+      <label class="check"><input id="mergeSplit" type="checkbox" checked> รวมตอนแบ่งหน้า (1/2)+(2/2) อัตโนมัติ</label>
+      <label class="check"><input id="autoSave" type="checkbox" checked> บันทึกข้อความอัตโนมัติในเครื่อง</label>
+      <label class="check"><input id="failClosed" type="checkbox"> Fail-Closed: พบช่องว่าง/ซ้ำ/ย้อน/ไม่ครบ = หยุดรวม</label>
+      <label class="check"><input id="normalizeNumbers" type="checkbox"> ซ่อมเลขหัวเว็บให้ต่อเนื่อง (เปิดเฉพาะเมื่อเลขหัวเว็บเพี้ยนจริง)</label>
+      <label class="check"><input id="allowPartialBatch" type="checkbox" checked> อนุญาตชุดสุดท้ายที่ไม่ครบ 10 ตอน</label>
+    </div>
+
+    <div class="buttons">
+      <button class="primary" id="splitBtn">ตรวจ + แบ่งเป็นชุด</button>
+      <button class="secondary" id="copyAllBtn">คัดลอกทุกชุดเพื่อเก็บ (อย่าส่งพร้อมกัน)</button>
+      <button class="success" id="downloadAllBtn">ดาวน์โหลดทุกชุด</button>
+      <button class="danger" id="clearBtn">ล้างทั้งหมด</button>
+    </div>
+
+    <div id="status" class="status">ยังไม่ได้แบ่งเนื้อหา</div>
+    <div id="auditBox" class="audit-box" style="display:none"></div>
+    <div class="note">รองรับ 001, 001 ชื่อตอน, 001集, ตอนที่/บทที่, Chapter/Ch./Episode, 第61章/回/节/话/集, เลขจีน เลขไทย เลขเต็มความกว้าง และ Split-Page (1/2), （２／３）</div>
+  </section>
+
+  <section id="results" class="results">
+    <div class="empty">ผลลัพธ์แต่ละชุดจะแสดงตรงนี้</div>
+  </section>
+</div>
+
+<script src="./rose-fanfan-finalbatch10-rules.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const sourceText = $('sourceText');
+const txtFileInput = $('txtFileInput');
+const novelTitle = $('novelTitle');
+const txtDropZone = $('txtDropZone');
+const txtFileMeta = $('txtFileMeta');
+
+function formatBytes(bytes){
+  if(bytes < 1024) return `${bytes} B`;
+  if(bytes < 1024*1024) return `${(bytes/1024).toFixed(1)} KB`;
+  return `${(bytes/(1024*1024)).toFixed(1)} MB`;
+}
+
+function looksUtf16(bytes){
+  const limit=Math.min(bytes.length,4000);
+  let evenZero=0,oddZero=0,pairs=0;
+  for(let i=0;i+1<limit;i+=2){
+    if(bytes[i]===0) evenZero++;
+    if(bytes[i+1]===0) oddZero++;
+    pairs++;
+  }
+  if(!pairs) return null;
+  if(oddZero/pairs>0.25 && evenZero/pairs<0.05) return 'utf-16le';
+  if(evenZero/pairs>0.25 && oddZero/pairs<0.05) return 'utf-16be';
+  return null;
+}
+
+function decodeTxtBuffer(buffer){
+  const bytes=new Uint8Array(buffer);
+  if(bytes.length>=3 && bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF){
+    return {text:new TextDecoder('utf-8').decode(bytes.subarray(3)), encoding:'UTF-8 BOM'};
+  }
+  if(bytes.length>=2 && bytes[0]===0xFF && bytes[1]===0xFE){
+    return {text:new TextDecoder('utf-16le').decode(bytes.subarray(2)), encoding:'UTF-16LE'};
+  }
+  if(bytes.length>=2 && bytes[0]===0xFE && bytes[1]===0xFF){
+    try{return {text:new TextDecoder('utf-16be').decode(bytes.subarray(2)), encoding:'UTF-16BE'}}catch(e){}
+  }
+  const utf16=looksUtf16(bytes);
+  if(utf16){
+    try{return {text:new TextDecoder(utf16).decode(bytes), encoding:utf16.toUpperCase()}}catch(e){}
+  }
+  try{
+    return {text:new TextDecoder('utf-8',{fatal:true}).decode(bytes), encoding:'UTF-8'};
+  }catch(e){
+    try{return {text:new TextDecoder('gb18030').decode(bytes), encoding:'GB18030/GBK'}}catch(e2){
+      return {text:new TextDecoder('utf-8').decode(bytes), encoding:'UTF-8 (fallback)'};
+    }
+  }
+}
+
+async function loadTxtFiles(fileList){
+  const files=Array.from(fileList||[]).filter(f=>/\.txt$/i.test(f.name)||f.type==='text/plain'||!f.type);
+  if(!files.length){
+    statusBox.textContent='ไม่พบไฟล์ TXT กรุณาเลือกไฟล์นามสกุล .txt';
+    return;
+  }
+  let totalBytes=0;
+  const parts=[];
+  const meta=[];
+  for(const file of files){
+    totalBytes+=file.size||0;
+    const decoded=decodeTxtBuffer(await file.arrayBuffer());
+    let text=decoded.text.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+    parts.push(text.trim());
+    meta.push(`${file.name} • ${formatBytes(file.size||0)} • ${decoded.encoding}`);
+  }
+  const combined=parts.filter(Boolean).join('\n\n');
+  sourceText.value=combined;
+  if(!novelTitle.value.trim() && files.length===1){
+    novelTitle.value=files[0].name.replace(/\.txt$/i,'').replace(/[_-]+/g,' ').trim();
+    localStorage.setItem('novelSplitterNovelTitle',novelTitle.value);
+  }
+  sourceText.dispatchEvent(new Event('input',{bubbles:true}));
+  txtFileMeta.textContent=`โหลด ${files.length} ไฟล์ • รวม ${formatBytes(totalBytes)} — ${meta.join(' | ')}`;
+  statusBox.textContent=`โหลดไฟล์ TXT สำเร็จ ${files.length} ไฟล์ • ${combined.length.toLocaleString()} ตัวอักษร • พร้อมแบ่งตอน`;
+  sourceText.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+$('chooseTxtBtn').addEventListener('click',e=>{e.stopPropagation();txtFileInput.click();});
+txtDropZone.addEventListener('click',e=>{if(e.target.closest('button')) return;txtFileInput.click();});
+txtDropZone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();txtFileInput.click();}});
+txtFileInput.addEventListener('change',()=>{if(txtFileInput.files.length) loadTxtFiles(txtFileInput.files);});
+
+['dragenter','dragover'].forEach(type=>txtDropZone.addEventListener(type,e=>{
+  e.preventDefault();e.stopPropagation();txtDropZone.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(type=>txtDropZone.addEventListener(type,e=>{
+  e.preventDefault();e.stopPropagation();txtDropZone.classList.remove('dragover');
+}));
+txtDropZone.addEventListener('drop',e=>{if(e.dataTransfer?.files?.length) loadTxtFiles(e.dataTransfer.files);});
+
+sourceText.addEventListener('paste',e=>{
+  const files=e.clipboardData?.files;
+  if(files&&files.length){
+    const txts=Array.from(files).filter(f=>/\.txt$/i.test(f.name)||f.type==='text/plain');
+    if(txts.length){e.preventDefault();loadTxtFiles(txts);}
+  }
+});
+
+$('clearTxtBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  txtFileInput.value='';
+  txtFileMeta.textContent='ยังไม่ได้เลือกไฟล์';
+  sourceText.value='';
+  sourceText.dispatchEvent(new Event('input',{bubbles:true}));
+  results.innerHTML='<div class="empty">ผลลัพธ์แต่ละชุดจะแสดงตรงนี้</div>';
+  batches=[];
+  statusBox.textContent='ล้างไฟล์และข้อความแล้ว';
+});
+
+const results = $('results');
+const statusBox = $('status');
+let batches = [];
+let splitDiagnostics = {merged:[], incomplete:[], titleWarnings:[]};
+
+// Rose v7.6 — Publisher Editorial Intelligence + Thai Book Reconstruction + Deterministic TXT Delivery
+const ROSE_RULES_FULL = window.ROSE_V741_MASTER;
+const ROSE_OPENINGS = window.ROSE_V741_OPENINGS;
+
+function rulePackReady(){
+  // .length นับเป็นจำนวนตัวอักษร Unicode ไม่ใช่จำนวนไบต์: Master ภาษาไทย 62 KB มีราว 26,000 ตัวอักษร
+  return typeof ROSE_RULES_FULL==='string' && ROSE_RULES_FULL.length>20000 &&
+    ROSE_OPENINGS && typeof ROSE_OPENINGS.ancient==='string' && typeof ROSE_OPENINGS.current==='string' &&
+    ROSE_OPENINGS.ancient.length>2000 && ROSE_OPENINGS.current.length>2000;
+}
+
+function roseEraLabel(){
+  return $('roseEra').value==='current' ? 'ปัจจุบัน' : 'โบราณ / ย้อนยุคจีน';
+}
+
+function roseModeLabel(){
+  const mode=$('roseCopyMode').value;
+  if(mode==='full') return 'Full Master + นิยาย';
+  if(mode==='novel') return 'นิยายอย่างเดียว';
+  return 'Smart Pack + นิยาย';
+}
+
+function getRoseOpening(count=10){
+  const current=$('roseEra').value==='current';
+  const era=current
+    ? 'rose era ปัจจุบัน\nเลือกยุค 70–80, 90 หรือปัจจุบันจากหลักฐาน และรักษาสิ่งของ เทคโนโลยี ค่านิยมกับระดับภาษาให้ตรงยุค'
+    : 'rose era โบราณ\nใช้บริบทจีนโบราณ/ย้อนยุค รักษายศ ระบบญาติ วัฒนธรรม และระดับภาษาตามฐานะจริง';
+  return `@Rose Book Translator\nใช้ไฟล์ Rose_v7.6_PublisherEditorialIntelligence_Master.md เป็น Master เพียงไฟล์เดียวและมีอำนาจสูงสุด\n\nrose preset ${current?'ปัจจุบัน':'โบราณ'}ขาย v7.5.1\n${era}\nrose style professional-web\nrose rewrite publication\nrose project lock on\nrose source repair smart\nrose source coverage hard\nrose sourcepower full\nrose editorial intelligence on\nrose zerochinese failclosed\nrose continuity on\nrose glossary lock hard\nrose kinship lock hard\nrose pronoun lock hard\nrose qc self-review readonly\nrose qc blind-context\nrose adapt off\nrose friendship off\nrose female gaze off\nrose audience neutral\nrose chunk 10\nrose microbatch auto\nrose execution adaptive\nrose repair budget 2\nrose delivery txt\nrose source status\nrose calibration on\nrose glossary export on\nrose numerals arabic\nrose spotcheck on\nrose all ${count}\n\nรักษาความหมาย เหตุการณ์ ข้อเท็จจริง ปฏิกิริยา เสียงผู้เขียน Focalization, Subtext, Voiceprint, Reveal Order, Emotional Causality วัฒนธรรมจีน และ Source Power ให้ครบ\nใช้ภาษาไทยแบบนิยายเว็บมืออาชีพ: ตรง ลื่น มีชีวิต อ่านง่ายบนมือถือ บทพูดเป็นธรรมชาติ แบ่งย่อหน้าตาม narrative beat และจัดข้อมูลตามธรรมชาติภาษาไทย\nห้ามตัด สรุป เพิ่ม ย้ายเนื้อหา เฉลยเร็วขึ้น แต่งคลิฟแฮงเกอร์ หรือเพิ่มระดับอารมณ์\nใช้ 3 Pass เท่านั้น: Source Intelligence → Literary Thai Transfer → Publisher Finalization; แก้เฉพาะจุดไม่เกิน 2 รอบ\nตรวจผู้พูด ผู้คิด ผู้กระทำ จุดอ้างอิง เวลา เหตุ–ผล คำปฏิเสธ ตัวเลข หน่วย คู่คำไทย ความต่อเนื่อง และ Zero Chinese ก่อน Freeze\nตรวจคำเรียกญาติ (ปู่/ย่า/ตา/ยาย/ป้า/น้า/อา/ลุง) ให้คงที่ตลอดและสม่ำเสมอกับ Kinship Registry ก่อน Freeze\nตรวจสรรพนามตัวละคร (เขา/เธอ/ผม/ฉัน/ข้า/เจ้า) ให้คงที่ตลอดและสม่ำเสมอกับ Pronoun Registry ก่อน Freeze\nแปลทุกตอนที่ระบุใน SOURCE MANIFEST ให้ครบตามลำดับ ห้ามข้ามตอนเพื่อลดความยาว และห้ามอ้างว่าต้นฉบับขาดนอกเหนือจากรายการที่เว็บระบุ\n\nส่งเป็นไฟล์ .txt แนบกับคำตอบเท่านั้น ห้ามสร้างลิงก์ข้อความแทนไฟล์แนบ`;
+}
+
+function buildSourceManifest(item){
+  const received=(item.chapterNums||[]).join(', ')||`${item.from}–${item.to}`;
+  const missing=(item.sourceMissing||[]).length ? compressNumberList(item.sourceMissing) : 'ไม่มี';
+  return `## SOURCE MANIFEST — เว็บตรวจจากหัวต้นฉบับแล้ว (ให้ถือเป็นข้อมูลยืนยัน)\n- ช่วงงานในแชทนี้: ตอน ${item.from}–${item.to}\n- ตอนที่ได้รับจริง: ${received}\n- จำนวนที่ต้องแปลจริง: ${item.count} ตอน\n- ตอนที่ขาดในช่วงงานนี้: ${missing}\n- ห้ามคำนวณรายการตอนขาดใหม่จากความยาวคำตอบ ห้ามข้ามตอน และห้ามเปลี่ยนเลขตอน\n- ถ้ารายการตอนขาดเป็น “ไม่มี” ห้ามรายงานว่าต้นฉบับขาดตอน`;
+}
+
+function buildMissingChapterLock(item){
+  const missing=item.sourceMissing||[];
+  if(!missing.length){
+    return `## กฎป้องกันตอนว่าง\n- ไม่พบตอนขาดในช่วงนี้`;
+  }
+  const notices=missing.map(n=>{
+    const next=(item.chapterNums||[]).find(x=>x>n);
+    return next
+      ? `⛔ ตอนที่ ${n} ต้นฉบับขาดหาย — ระบบข้ามไปตอนที่ ${next}`
+      : `⛔ ตอนที่ ${n} ต้นฉบับขาดหาย — ห้ามสร้างตอนว่าง`;
+  });
+  return `## ⛔ กฎป้องกันการขายตอนว่าง — บังคับใช้\n- ห้ามสร้างไฟล์ หัวตอน หรือเนื้อหาสมมติสำหรับตอนที่ขาด\n- ห้ามเลื่อนหรือเปลี่ยนเลขตอนถัดไป ให้คงเลขตามต้นฉบับ\n- ใส่ป้ายต่อไปนี้ท้ายตอนก่อนหน้าที่มีเนื้อหาจริง แล้วจึงขึ้นตอนถัดไป:\n${notices.map(x=>`  ${x}`).join('\n')}\n- ตอนที่มีคำว่า “ขาด / แจ้ง / ประกาศ” และไม่มีเนื้อหานิยายจริง ห้ามแยกเป็นตอนสำหรับอัปโหลดหรือคิดเหรียญ\n- การแบ่งตอนก่อนหน้าเป็น (1/2), (2/2) ทำได้เฉพาะเมื่อผู้ใช้สั่งเองและแต่ละส่วนมีเนื้อหาจริงยาวพอ ห้ามระบบแบ่งอัตโนมัติเพื่ออุดเลขตอน`;
+}
+
+function buildDeliveryPlan(item){
+  const parts=item.deliveryParts||[];
+  if(parts.length<=1){
+    return `## รูปแบบส่งงาน\n- ส่งเป็นไฟล์ .txt แนบกับคำตอบเท่านั้น\n- ห้ามสร้างลิงก์ข้อความแทนไฟล์แนบ\n- ชื่อไฟล์ต้องใช้ภาษาอังกฤษและตัวเลขเท่านั้น: chapters_${item.from}-${item.to}_th.txt\n- ห้ามใช้ชื่อเรื่องภาษาไทยหรือภาษาจีนในชื่อไฟล์ ห้ามเว้นวรรค และห้ามตั้งชื่อว่า downloadfile\n- หัวไฟล์: ตอน ${item.from}–${item.to}\n- ภายในไฟล์มีเฉพาะหัวไฟล์ ชื่อตอน และคำแปล Final`;
+  }
+  return `## รูปแบบส่งงาน\n- ส่งเป็นไฟล์ .txt แนบกับคำตอบเท่านั้น\n- ห้ามสร้างลิงก์ข้อความแทนไฟล์แนบ\n${parts.map((p,i)=>`- ไฟล์ ${i+1}: ชื่อไฟล์ chapters_${p.from}-${p.to}_th.txt | หัวไฟล์: ตอน ${p.from}–${p.to}`).join('\n')}\n- ชื่อไฟล์ต้องใช้ภาษาอังกฤษและตัวเลขเท่านั้น ห้ามใช้ชื่อเรื่องภาษาไทยหรือภาษาจีน ห้ามเว้นวรรค และห้ามตั้งชื่อว่า downloadfile\n- ภายในแต่ละไฟล์มีเฉพาะหัวไฟล์ ชื่อตอน และคำแปล Final`;
+}
+
+function buildStatusReport(item){
+  const missing=(item.sourceMissing||[]).length ? `ตอน ${compressNumberList(item.sourceMissing)}` : 'ไม่มี';
+  return `## รายงานสถานะหลังแนบไฟล์ (อยู่นอกไฟล์ .txt)\nให้แนบไฟล์ .txt ก่อน แล้วรายงานสั้น ๆ ตามนี้:\n✅ แปลเสร็จเรียบร้อยแล้ว: ตอนที่ ${item.from}–${item.to}\n📚 จำนวนที่ส่ง: ${item.count} ตอน\n📌 เนื้อหาขาดจากต้นฉบับ: ${missing}\n🔎 Final Unicode Sweep: อักษรจีนตกค้าง = 0\n🔎 ผ่าน Final QC: Source Coverage, Meaning/Continuity, Thai Native Publication และ Zero Chinese\nห้ามใส่รายงานนี้ไว้ในไฟล์ .txt`;
+}
+
+function buildDeliveryLock(item){
+  return `## ขอบเขตงานที่เว็บตรวจแล้ว\n${buildSourceManifest(item)}\n\n${buildMissingChapterLock(item)}\n\n${buildDeliveryPlan(item)}\n\n${buildStatusReport(item)}\n- แปลตอนใน SOURCE MANIFEST ให้ครบทุกตอนที่ได้รับตามลำดับ\n- ห้ามแต่งเติมตอนที่ขาด หรือย้ายเนื้อหาจากตอนอื่นมาแทน\n- เนื้อหานิยายส่งเป็นไฟล์ .txt เท่านั้น`;
+}
+
+function getFullPowerPack(){
+  if(!rulePackReady()) return '';
+  return `ไฟล์กฎหลัก: Rose_v7.6_PublisherEditorialIntelligence_Master.md\n\n${ROSE_RULES_FULL}\n\n────────────\nADAPTIVE10 OPENING COMMAND — ${roseEraLabel()}\n────────────\n${getRoseOpening(10)}`;
+}
+
+function buildBatchOutput(item, novelText){
+  const mode=$('roseCopyMode').value;
+  const body=String(novelText ?? item.text ?? '').trim();
+  const title=novelTitle.value.trim();
+  const titleHeader=title ? `ชื่อเรื่อง: ${title}\n\n` : '';
+  const chapterHeader=`หัวไฟล์: ${item.title}\n\n`;
+  if(mode==='novel') return `${chapterHeader}${titleHeader}${body}`;
+
+  const opening=getRoseOpening(item.count||10);
+  const header=`${chapterHeader}${titleHeader}`;
+  const source=`ต้นฉบับสำหรับแปล:\n\n${body}`;
+
+  if(mode==='full'){
+    return `${header}\n\n${getFullPowerPack()}\n\n────────────\n${buildDeliveryLock(item)}\n\n────────────\n${source}`;
+  }
+
+  return `${header}\n\n${opening}\n\n────────────\n${buildDeliveryLock(item)}\n\n────────────\n${source}`;
+}
+
+function getBatchTextarea(index){
+  return results.querySelector(`textarea[data-batch-index="${index}"]`);
+}
+
+function getBatchOutputByIndex(index){
+  const item=batches[index];
+  if(!item) return '';
+  const ta=getBatchTextarea(index);
+  return buildBatchOutput(item, ta ? ta.value : item.text);
+}
+
+function updateRoseUI(){
+  const mode=$('roseCopyMode').value;
+  $('rosePreview').value=getRoseOpening(parseInt($('batchSize').value||'10',10));
+  let desc='';
+  if(mode==='full') desc='ทุกชุดจะใส่ Master v7.6 เต็ม เหมาะกับตอนสั้นหรือแชตใหม่; งานทั่วไปใช้ Smart Pack เพื่อเหลือพื้นที่ให้ต้นฉบับและผลแปล';
+  else if(mode==='novel') desc='⚠️ โหมดนี้ไม่มี Opening Command และใช้สำหรับคัดลอกต้นฉบับเท่านั้น หากต้องการแปล ให้เลือก “✓ ใช้แปล: Smart Pack + Opening Command + นิยาย”';
+  else desc='ทุกงานใส่ต้นฉบับช่วง 10 ตอนในแชทเดียว พร้อมรายการตอนที่เว็บตรวจแล้ว และกำหนดให้ส่งไฟล์ .txt เท่านั้น';
+  const health=rulePackReady() ? '✅ โหลด Rule Pack ครบ' : '⛔ โหลด Rule Pack ไม่ครบ — ระบบจะไม่สร้างชุด';
+  $('roseInfo').innerHTML=`<strong>ยุคที่เลือก:</strong> ${roseEraLabel()} • <strong>โหมดคัดลอก:</strong> ${roseModeLabel()}<br>${health}<br>${desc}`;
+  localStorage.setItem('novelSplitterRoseEra',$('roseEra').value);
+  localStorage.setItem('novelSplitterRoseMode',$('roseCopyMode').value);
+  refreshBatchModeLabels();
+}
+
+function refreshBatchModeLabels(){
+  results.querySelectorAll('.batch-mode').forEach(el=>el.textContent=roseModeLabel());
+  results.querySelectorAll('button[data-copy-batch]').forEach(btn=>{
+    btn.textContent=$('roseCopyMode').value==='novel'?'คัดลอกชุดนี้':'คัดลอกชุดนี้ + Rose';
+  });
+}
+
+
+const boilerplateExact = new Set([
+  '笔趣阁','搜索从这里开始...','书架 排行 书库','书架 排行 书库 ','繁体',
+  '首页玄幻武侠都市历史科幻','超小小中大超大','上一章','目录','下一章',
+  '本站所有小说为转载作品，所有章节均由网友上传，转载至本站只是为了宣传本书让更多读者欣赏。',
+  'Copyright © 2023 笔趣阁','首页','目录','上一章','下一章','加入书签','返回目录','章节目录','手机阅读','最新网址'
+]);
+
+function normalizeDigits(s){
+  return String(s??'').normalize('NFKC').replace(/[๐-๙]/g,ch=>'0123456789'['๐๑๒๓๔๕๖๗๘๙'.indexOf(ch)]);
+}
+
+function chineseToNumber(s){
+  s=normalizeDigits(s).replace(/\s+/g,'');
+  if(/^\d+$/.test(s)) return parseInt(s,10);
+  const digit={零:0,〇:0,一:1,二:2,两:2,兩:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+  const small={十:10,百:100,千:1000};
+  const big={万:10000,萬:10000,亿:100000000,億:100000000};
+  let total=0,section=0,number=0,seen=false;
+  for(const ch of s){
+    if(ch in digit){number=digit[ch];seen=true;continue;}
+    if(ch in small){seen=true;if(number===0)number=1;section+=number*small[ch];number=0;continue;}
+    if(ch in big){seen=true;section+=number;number=0;total+=(section||1)*big[ch];section=0;continue;}
+    return NaN;
+  }
+  return seen?total+section+number:NaN;
+}
+
+function normalizeText(text){
+  return String(text||'').replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ').replace(/[\u200B\u200C\u200D\uFEFF]/g,'').trim();
+}
+
+function thaiDigitsToArabic(s){return normalizeDigits(s);}
+
+function splitMarkerInfo(text){
+  const s=String(text||'').normalize('NFKC').trim();
+  const m=s.match(/(?:\(|\[|【|<)\s*([0-9๐-๙]+)\s*[/／]\s*([0-9๐-๙]+)\s*(?:\)|\]|】|>)\s*$/);
+  if(!m) return {partNo:null,partTotal:null,base:s,marker:''};
+  const partNo=parseInt(normalizeDigits(m[1]),10),partTotal=parseInt(normalizeDigits(m[2]),10);
+  if(!Number.isFinite(partNo)||!Number.isFinite(partTotal)||partNo<1||partTotal<2||partNo>partTotal||partTotal>50) return {partNo:null,partTotal:null,base:s,marker:''};
+  return {partNo,partTotal,base:s.slice(0,m.index).trim(),marker:m[0]};
+}
+
+function stripSplitMarker(text){return splitMarkerInfo(text).base;}
+
+function parseChapterHeading(line){
+  const original=String(line||'').trim();
+  if(!original) return null;
+  // TXT exports commonly wrap a real heading as "== 第001章 ... ==".
+  // Remove only the wrapper; never remove text from the chapter itself.
+  let stripped=original
+    .replace(/^\s*(?:={2,}\s*|#{1,6}\s*|[-*•·]+\s*)?/,'')
+    .replace(/\s*={2,}\s*$/,'')
+    .trim().normalize('NFKC');
+  if(/(首页|目录|上一章|下一章|加入书签|返回目录|Copyright|版权所有|广告|最新网址)/i.test(stripped) && stripped.length>30) return null;
+  const split=splitMarkerInfo(stripped),core=split.base;
+  let m,num=NaN,width=0,type='',score=0,raw='';
+  m=core.match(/^(?:(?:\d+|[๐-๙]+)\s*[.)、.:-]\s*)?第\s*([0-9๐-๙零〇一二两兩三四五六七八九十百千万萬亿億]+)\s*(章|回|节|節|话|話|集)\s*(.*)$/i);
+  // เช่น “第三节课的时候” เป็นประโยคเล่าเรื่อง ไม่ใช่หัวตอน
+  if(m && /^(节|節)$/.test(m[2]) && /^(课|課|时|時)/.test(m[3])) m=null;
+  if(m){raw=normalizeDigits(m[1]);num=chineseToNumber(raw);width=/^0\d+$/.test(raw)?raw.length:0;type='zh';score=98;}
+  if(!Number.isFinite(num)){
+    m=core.match(/^([0-9๐-๙]{1,7})\s*(章|回|节|節|话|話|集)\s*(.*)$/i);
+    if(m){raw=normalizeDigits(m[1]);num=parseInt(raw,10);width=/^0/.test(raw)?raw.length:0;type='suffix';score=96;}
+  }
+  if(!Number.isFinite(num)){
+    m=core.match(/^(ตอน(?:ที่)?|บท(?:ที่)?|chapter|ch\.?|episode|ep\.?)\s*[#:#.\-–—]*\s*([0-9๐-๙]{1,7})(?=\s|$)\s*(.*)$/i);
+    if(m){raw=normalizeDigits(m[2]);num=parseInt(raw,10);width=/^0/.test(raw)?raw.length:0;type='label';score=96;}
+  }
+  if(!Number.isFinite(num)){
+    // ไม่รับ ':' หรือ '：' ในหัวแบบเลขล้วน เพราะบทสนทนาระบบ เช่น 003：【...】 ไม่ใช่หัวตอน
+    // A dot can be part of a price such as 79.8, not a chapter heading.
+    // Plain numeric headings remain supported, but need 3+ digits or a
+    // non-decimal title separator so prose prices cannot become chapters.
+    m=core.match(/^([0-9๐-๙]{3,7})(?:\s*[)、\-–—]\s*|\.(?![0-9])\s*|\s+)(.{1,160})$/);
+    if(m){raw=normalizeDigits(m[1]);num=parseInt(raw,10);width=/^0/.test(raw)?raw.length:0;type='numeric-title';score=raw.length>=3?88:74;}
+  }
+  if(!Number.isFinite(num)){
+    m=core.match(/^([0-9๐-๙]{3,7})$/);
+    if(m){raw=normalizeDigits(m[1]);num=parseInt(raw,10);width=raw.length;type='numeric';score=82;}
+  }
+  if(!Number.isFinite(num) && $('parserMode')?.value==='wide'){
+    m=core.match(/^([0-9๐-๙]{1,2})$/);if(m){raw=normalizeDigits(m[1]);num=parseInt(raw,10);type='numeric-weak';score=58;}
+  }
+  if(!Number.isFinite(num)||num<0||num>9999999) return null;
+  const minScore=$('parserMode')?.value==='strict'?88:$('parserMode')?.value==='wide'?58:72;
+  if(score<minScore) return null;
+  return {num,width,rawNum:raw,heading:original,baseHeading:stripSplitMarker(original),type,partNo:split.partNo,partTotal:split.partTotal,score};
+}
+
+function formatChapterNumber(chapter){
+  const width=chapter.width||0;
+  return width?String(chapter.num).padStart(width,'0'):String(chapter.num);
+}
+
+function isBoilerplate(line){
+  const t=line.trim();
+  if(!t) return false;
+  if(boilerplateExact.has(t)) return true;
+  if(/^(?:https?:\/\/|www\.)\S+$/i.test(t)) return true;
+  if(/(?:กำลังทำการตรวจสอบความปลอดภัย|เว็บไซต์นี้ใช้บริการรักษาความปลอดภัยเพื่อป้องกันบอต|ตรวจสอบว่าคุณไม่ใช่บอต)/.test(t)) return true;
+  if(/^笔趣阁\s+小说\s+.+第(?:\d+|[零〇一二两三四五六七八九十百千万]+)章/.test(t)) return true;
+  if(/^第(?:\d+|[零〇一二两三四五六七八九十百千万]+)章.+（\s*1\s*\/\s*1\s*）$/.test(t)) return false;
+  if(/^Copyright\s*©\s*\d{4}\s*笔趣阁/i.test(t)) return true;
+  if(/^(?:首页|目录|上一章|下一章|加入书签|返回目录|章节目录|手机阅读|最新网址)(?:\s|$)/.test(t)) return true;
+  return false;
+}
+
+function cleanChapter(raw, keepTitle, headingInfo=null){
+  let lines=raw.split('\n');
+
+  if(lines.length){
+    const info=parseChapterHeading(lines[0]);
+    if(info){
+      if(!keepTitle){
+        lines.shift();
+      }else{
+        // เก็บหัวตอนจริง แต่ตัดสัญลักษณ์หน้าหัวและเลขส่วน (1/2), (2/2) ออก
+        lines[0]=stripSplitMarker(lines[0].trim().replace(/^\s*(?:#{1,6}\s*|[-*•]+\s*)?/,''));
+      }
+    }
+  }
+
+  let out=[];
+  for(let line of lines){
+    const t=line.trim();
+    if($('cleanSite').checked && isBoilerplate(t)) continue;
+
+    const embeddedHeading=parseChapterHeading(t);
+    if(embeddedHeading){
+      // หัวตอนซ้ำที่เล็ดลอดเข้ามาในส่วนเดียวกัน: ถ้าเก็บหัวให้คงเฉพาะรูปที่ตัดเลขหน้าแล้ว
+      if(keepTitle) out.push(stripSplitMarker(t.replace(/^\s*(?:(?:\d+|[๐-๙]+)\s*[.)、．]\s*)?(?:#{1,6}\s*|[-*•]+\s*)?/,'')).trim());
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join('\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+}
+
+function canonicalHeadingTitle(info){
+  if(!info) return '';
+  let s=stripSplitMarker(info.baseHeading||info.heading||'')
+    .replace(/^\s*(?:#{1,6}\s*|[-*•]+\s*)?/,'')
+    .trim();
+
+  if(info.type==='zh'){
+    s=s.replace(/^(?:(?:\d+|[๐-๙]+)\s*[.)、．]\s*)?第\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)\s*章\s*/i,'');
+  }else if(info.type==='label'){
+    s=s.replace(/^(?:ตอน(?:ที่)?|บท(?:ที่)?|chapter|ch\.?)[\s:#-]*[0-9๐-๙]+\s*[.)、．:-]?\s*/i,'');
+  }else{
+    s=s.replace(/^[0-9๐-๙]{3}\s*[.)、．:-]?\s*/,'');
+  }
+  return s.replace(/\s+/g,' ').trim();
+}
+
+function stripLeadingHeading(text){
+  const lines=String(text||'').split('\n');
+  if(lines.length && parseChapterHeading(lines[0])) lines.shift();
+  return lines.join('\n').replace(/^\n+/,'').trim();
+}
+
+function collapseRepeatedWebHeadings(segments){
+  const collapsed=[];
+  for(const seg of segments){
+    const prev=collapsed[collapsed.length-1];
+    const sameHeading=prev && !prev.partTotal && !seg.partTotal &&
+      prev.num===seg.num && canonicalHeadingTitle(prev)===canonicalHeadingTitle(seg);
+    if(sameHeading){
+      const continuation=stripLeadingHeading(seg.text);
+      if(continuation) prev.text=`${prev.text}\n\n${continuation}`.replace(/\n{3,}/g,'\n\n').trim();
+      continue;
+    }
+    collapsed.push({...seg});
+  }
+  return collapsed;
+}
+
+function rewriteLeadingChapterNumber(text,num){
+  const lines=String(text||'').split('\n');
+  if(lines.length && parseChapterHeading(lines[0])){
+    lines[0]=lines[0].replace(/^(\s*(?:#{1,6}\s*)?)第\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)\s*章/,`$1第${num}章`);
+  }
+  return lines.join('\n');
+}
+
+function normalizeChapterNumbers(chapters){
+  if(!$('normalizeNumbers')?.checked || !chapters.length) return chapters;
+  const start=chapters[0].num;
+  return chapters.map((chapter,index)=>{
+    const num=start+index;
+    return {
+      ...chapter,
+      originalDisplayNum:chapter.displayNum,
+      num,
+      displayNum:String(num),
+      text:rewriteLeadingChapterNumber(chapter.text,num)
+    };
+  });
+}
+
+function extractChapters(text){
+  splitDiagnostics={merged:[],incomplete:[],titleWarnings:[]};
+
+  const clean=normalizeText(text);
+  const matches=[];
+  const lines=clean.split('\n');
+  let offset=0;
+
+  for(const line of lines){
+    const info=parseChapterHeading(line);
+    if(info){
+      matches.push({
+        index:offset,
+        num:info.num,
+        width:info.width,
+        rawNum:info.rawNum,
+        heading:info.heading,
+        baseHeading:info.baseHeading,
+        type:info.type,
+        partNo:info.partNo,
+        partTotal:info.partTotal
+      });
+    }
+    offset += line.length+1;
+  }
+
+  // กรอง breadcrumb / หัวตอนซ้ำที่อยู่ใกล้กัน โดยให้หัวที่มีเลขส่วนชัดเจนมีสิทธิ์เหนือหัวทั่วไป
+  const filtered=[];
+  for(const item of matches){
+    const prev=filtered[filtered.length-1];
+    if(prev && prev.num===item.num && item.index-prev.index<300){
+      const prevHasSplit=!!prev.partTotal;
+      const curHasSplit=!!item.partTotal;
+      const samePart=prev.partNo===item.partNo && prev.partTotal===item.partTotal;
+
+      if(!prevHasSplit && curHasSplit){
+        filtered[filtered.length-1]=item;
+        continue;
+      }
+      if(prevHasSplit && !curHasSplit){
+        continue;
+      }
+      if(samePart){
+        const prevScore=(prev.heading.length<100?1:0)+(prevHasSplit?2:0);
+        const curScore=(item.heading.length<100?1:0)+(curHasSplit?2:0);
+        if(curScore>prevScore) filtered[filtered.length-1]=item;
+        continue;
+      }
+    }
+    filtered.push(item);
+  }
+
+  const segments=[];
+  for(let i=0;i<filtered.length;i++){
+    const info=filtered[i];
+    const start=info.index;
+    const end=i+1<filtered.length?filtered[i+1].index:clean.length;
+    let raw=clean.slice(start,end).trim();
+
+    // ส่วนแรกของ split-page เท่านั้นที่เก็บหัวตอน ส่วนถัดไปตัดหัวซ้ำออก
+    const keepThisTitle=$('keepTitle').checked && (!info.partTotal || info.partNo===1);
+    raw=cleanChapter(raw,keepThisTitle,info);
+
+    if(raw){
+      segments.push({
+        ...info,
+        displayNum:formatChapterNumber(info),
+        text:raw
+      });
+    }
+  }
+
+  const cleanedSegments=collapseRepeatedWebHeadings(segments);
+
+  if(!$('mergeSplit').checked){
+    return normalizeChapterNumbers(cleanedSegments.map(s=>({
+      num:s.num,width:s.width,displayNum:s.displayNum,text:s.text
+    })));
+  }
+
+  const chapters=[];
+  for(let i=0;i<cleanedSegments.length;){
+    const seg=cleanedSegments[i];
+
+    if(!seg.partTotal){
+      chapters.push({
+        num:seg.num,
+        width:seg.width,
+        displayNum:seg.displayNum,
+        text:seg.text
+      });
+      i++;
+      continue;
+    }
+
+    // รวมเฉพาะกลุ่มเลขตอนหลักเดียวกันที่อยู่ต่อเนื่องกัน
+    const group=[];
+    let j=i;
+    while(j<cleanedSegments.length && cleanedSegments[j].num===seg.num && cleanedSegments[j].partTotal){
+      group.push(cleanedSegments[j]);
+      j++;
+    }
+
+    const expectedTotal=Math.max(...group.map(x=>x.partTotal||0));
+    const byPart=new Map();
+    for(const g of group){
+      const existing=byPart.get(g.partNo);
+      // ถ้าส่วนเดียวกันซ้ำจากเว็บ ให้เลือกชิ้นที่มีเนื้อหายาวกว่า แต่ไม่ผสมข้อความเอง
+      if(!existing || g.text.length>existing.text.length) byPart.set(g.partNo,g);
+    }
+
+    const missing=[];
+    for(let p=1;p<=expectedTotal;p++) if(!byPart.has(p)) missing.push(p);
+
+    if(missing.length){
+      splitDiagnostics.incomplete.push({
+        num:seg.displayNum,
+        total:expectedTotal,
+        found:[...byPart.keys()].sort((a,b)=>a-b),
+        missing
+      });
+      i=j;
+      continue;
+    }
+
+    const ordered=[];
+    for(let p=1;p<=expectedTotal;p++) ordered.push(byPart.get(p));
+
+    const titles=[...new Set(ordered.map(canonicalHeadingTitle).filter(Boolean))];
+    if(titles.length>1){
+      splitDiagnostics.titleWarnings.push({
+        num:seg.displayNum,
+        titles
+      });
+    }
+
+    // ไม่ลบข้อความบริเวณรอยต่ออัตโนมัติ เพื่อไม่ให้ Functional Authorial Repetition หาย
+    const mergedText=ordered.map(x=>x.text).filter(Boolean).join('\n\n').replace(/\n{3,}/g,'\n\n').trim();
+
+    chapters.push({
+      num:seg.num,
+      width:seg.width,
+      displayNum:seg.displayNum,
+      text:mergedText
+    });
+    splitDiagnostics.merged.push({
+      num:seg.displayNum,
+      parts:expectedTotal
+    });
+
+    i=j;
+  }
+
+  return normalizeChapterNumbers(chapters);
+}
+
+function getSeparator(){
+  const v=$('separator').value;
+  if(v==='line') return '\n\n────────────\n\n';
+  if(v==='none') return '\n';
+  return '\n\n';
+}
+
+const WORK_RANGE_SIZE=10;
+const MAX_SINGLE_FILE_SOURCE_CHARS=26000;
+
+function sourceCharCount(text){
+  return String(text||'').replace(/\s/g,'').length;
+}
+
+function makeBatches(chapters){
+  const arr=[];
+  if(!chapters.length) return arr;
+  let rangeStart=chapters[0].num;
+  let rangeEnd=rangeStart+WORK_RANGE_SIZE-1;
+  let current=[];
+  const commit=()=>{
+    if(!current.length) return;
+    current.rangeStart=rangeStart;
+    current.rangeEnd=rangeEnd;
+    arr.push(current);
+    current=[];
+  };
+  for(const chapter of chapters){
+    while(chapter.num>rangeEnd){
+      commit();
+      rangeStart=rangeEnd+1;
+      rangeEnd=rangeStart+WORK_RANGE_SIZE-1;
+    }
+    current.push(chapter);
+  }
+  commit();
+  return arr;
+}
+
+function makeDeliveryParts(batch){
+  const parts=[];
+  let current=[], chars=0;
+  for(const chapter of batch){
+    const chapterChars=sourceCharCount(chapter.text);
+    if(current.length && chars+chapterChars>MAX_SINGLE_FILE_SOURCE_CHARS){
+      parts.push(current);
+      current=[];
+      chars=0;
+    }
+    current.push(chapter);
+    chars+=chapterChars;
+  }
+  if(current.length) parts.push(current);
+  return parts.map(part=>({
+    from:part[0].displayNum||part[0].num,
+    to:part[part.length-1].displayNum||part[part.length-1].num,
+    nums:part.map(x=>x.num),
+    chars:part.reduce((sum,x)=>sum+sourceCharCount(x.text),0)
+  }));
+}
+
+function titleFor(batch,index){
+  const first=batch.rangeStart??(batch[0].displayNum||batch[0].num);
+  const last=batch.rangeEnd??(batch[batch.length-1].displayNum||batch[batch.length-1].num);
+  const setNo=parseInt($('setStart').value||'1',10)+index;
+  const mode=$('titleMode').value;
+  if(mode==='set') return `ชุดที่ ${setNo}`;
+  if(mode==='both') return `ชุดที่ ${setNo} • ตอน ${first}–${last}`;
+  return `ตอน ${first}–${last}`;
+}
+
+function render(grouped,audit){
+  results.innerHTML='';
+  batches=grouped.map((batch,index)=>{
+    const from=batch.rangeStart??batch[0].num;
+    const to=batch.rangeEnd??batch[batch.length-1].num;
+    return {
+      title:titleFor(batch,index),
+      from,
+      to,
+      count:batch.length,
+      chapterNums:batch.map(x=>x.num),
+      sourceMissing:(audit?.missing||[]).filter(n=>n>=from&&n<=to),
+      sourceChars:batch.reduce((sum,x)=>sum+sourceCharCount(x.text),0),
+      deliveryParts:makeDeliveryParts(batch),
+      text:batch.map(x=>x.text).join(getSeparator())
+    };
+  });
+
+  batches.forEach((item,index)=>{
+    const card=document.createElement('article');
+    card.className='batch';
+
+    const head=document.createElement('div');
+    head.className='batch-head';
+
+    const info=document.createElement('div');
+    const delivery=item.deliveryParts.length===1
+      ? 'ดาวน์โหลด 1 ไฟล์'
+      : `แบ่ง ${item.deliveryParts.length} ไฟล์: ${item.deliveryParts.map(p=>`${p.from}–${p.to}`).join(' + ')}`;
+    info.innerHTML=`<div class="batch-title">${item.title}<span class="batch-mode">${roseModeLabel()}</span></div>
+      <div class="batch-meta">${item.count} ตอนที่ได้รับ • ${item.sourceChars.toLocaleString()} ตัวอักษรต้นฉบับ • ${delivery} • ยุค ${roseEraLabel()}</div>`;
+
+    const actions=document.createElement('div');
+    actions.className='batch-actions';
+
+    const copy=document.createElement('button');
+    copy.className='secondary';
+    copy.dataset.copyBatch=String(index);
+    copy.textContent=$('roseCopyMode').value==='novel'?'คัดลอกชุดนี้':'คัดลอกชุดนี้ + Rose';
+    copy.onclick=async()=>{
+      const output=getBatchOutputByIndex(index);
+      const ok=await copyTextSmart(output);
+      if(!ok){
+        showCopyOverlay(output,`รวม ${item.title} ไว้ในกล่องเดียวให้แล้ว`);
+        copy.textContent='เลือกทั้งหมดแล้ว';
+      }else{
+        statusBox.textContent=`คัดลอก ${item.title} แล้ว • ${roseEraLabel()}`;
+        copy.textContent='คัดลอกแล้ว';
+      }
+      setTimeout(()=>{copy.textContent=$('roseCopyMode').value==='novel'?'คัดลอกชุดนี้':'คัดลอกชุดนี้ + Rose'},1200);
+    };
+
+    const dl=document.createElement('button');
+    dl.className='success';
+    dl.textContent='ดาวน์โหลด .txt';
+    dl.onclick=()=>downloadText(getBatchOutputByIndex(index),downloadFilename(item));
+
+    actions.append(copy,dl);
+    head.append(info,actions);
+
+    const ta=document.createElement('textarea');
+    ta.value=item.text;
+    ta.dataset.batchIndex=String(index);
+    ta.setAttribute('aria-label',`เนื้อหานิยาย ${item.title}`);
+
+    card.append(head);
+    if(item.sourceMissing.length){
+      const warning=document.createElement('div');
+      warning.setAttribute('role','alert');
+      warning.style.cssText='margin:0 0 12px;padding:14px 16px;border:2px solid #dc2626;border-radius:14px;background:#fff1f2;color:#991b1b;font-weight:800;line-height:1.65';
+      const nextByMissing=item.sourceMissing.map(n=>{
+        const next=item.chapterNums.find(x=>x>n);
+        return next?`ตอนที่ ${n} ขาด — ข้ามไปตอนที่ ${next}`:`ตอนที่ ${n} ขาด — ห้ามสร้างตอนว่าง`;
+      });
+      warning.innerHTML=`⛔ ห้ามสร้างไฟล์ตอนที่ขาดเพื่ออัปโหลด<br><span style="font-weight:600">${nextByMissing.join('<br>')}<br>ZIP/TXT จะมีเฉพาะตอนที่มีเนื้อหาจริง และคงเลขตอนตามต้นฉบับ</span>`;
+      card.append(warning);
+    }
+    card.append(ta);
+    results.append(card);
+  });
+}
+
+function downloadText(text,filename){
+  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename.replace(/[\\/:*?"<>|]+/g,'_');
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+
+function downloadFilename(item){
+  return `rose_prompt_chapters_${item.from}-${item.to}_${$('roseEra').value}.txt`;
+}
+
+function compressNumberList(nums){
+  const a=[...new Set(nums)].sort((x,y)=>x-y);if(!a.length)return 'ไม่พบ';
+  const out=[];let s=a[0],p=a[0];
+  for(let i=1;i<=a.length;i++){const n=a[i];if(n===p+1){p=n;continue;}out.push(s===p?String(s):`${s}–${p}`);s=n;p=n;}
+  return out.join(', ');
+}
+
+function auditChapters(chapters){
+  const nums=chapters.map(x=>x.num),counts=new Map();nums.forEach(n=>counts.set(n,(counts.get(n)||0)+1));
+  const duplicates=[...counts].filter(([,c])=>c>1).map(([n])=>n);
+  const reversals=[];for(let i=1;i<nums.length;i++)if(nums[i]<nums[i-1])reversals.push(`${nums[i-1]}→${nums[i]}`);
+  const startRaw=$('expectedStart').value.trim(),endRaw=$('expectedEnd').value.trim();
+  const start=startRaw!==''?parseInt(startRaw,10):(nums.length?Math.min(...nums):null);
+  const end=endRaw!==''?parseInt(endRaw,10):(nums.length?Math.max(...nums):null);
+  const set=new Set(nums),missing=[];
+  if(Number.isFinite(start)&&Number.isFinite(end)&&end>=start&&end-start<=200000){for(let n=start;n<=end;n++)if(!set.has(n))missing.push(n);}
+  const outside=nums.filter(n=>(Number.isFinite(start)&&n<start)||(Number.isFinite(end)&&n>end));
+  return {missing,duplicates,reversals,outside:[...new Set(outside)],blocking:!!(missing.length||duplicates.length||reversals.length||outside.length||splitDiagnostics.incomplete.length)};
+}
+
+function renderAudit(a){
+  const box=$('auditBox');box.style.display='block';
+  const rows=[];
+  if(a.missing.length)rows.push(`<strong>ตอนขาด:</strong> ${compressNumberList(a.missing)}`);
+  if(a.duplicates.length)rows.push(`<strong>ตอนซ้ำ:</strong> ${compressNumberList(a.duplicates)}`);
+  if(a.reversals.length)rows.push(`<strong>ย้อนลำดับ:</strong> ${a.reversals.join(', ')}`);
+  if(a.outside.length)rows.push(`<strong>นอกช่วง:</strong> ${compressNumberList(a.outside)}`);
+  if(splitDiagnostics.incomplete.length)rows.push(`<strong>Split-Page ไม่ครบ:</strong> ${splitDiagnostics.incomplete.map(x=>`ตอน ${x.num} ขาด ${x.missing.join(',')}/${x.total}`).join(' • ')}`);
+  const shouldBlock=a.blocking && $('failClosed').checked;
+  box.className='audit-box '+(shouldBlock?'audit-bad':a.blocking?'':'audit-ok');
+  box.innerHTML=a.blocking
+    ? `${shouldBlock?'⛔ FAIL-CLOSED':'⚠️ ตรวจพบจากหัวต้นฉบับ แต่ยังแบ่งชุดต่อได้'} — ${rows.join('<br>')}`
+    : `✅ Chapter Integrity ผ่าน • ไม่พบตอนขาด ซ้ำ ย้อนลำดับ หรือ Split-Page ไม่ครบ`;
+}
+
+function splitNow(){
+  if(!rulePackReady()){
+    statusBox.textContent='RULE_PACK_BLOCKED: ชุดคำสั่งโหลดไม่ครบ ระบบจึงไม่สร้างไฟล์ที่อาจตกกฎ';
+    results.innerHTML='<div class="empty">⛔ Rule Pack โหลดไม่ครบ กรุณารีเฟรชหน้าแล้วลองใหม่</div>';
+    batches=[];
+    return;
+  }
+  const text=sourceText.value;
+  if(!text.trim()){statusBox.textContent='กรุณาวางเนื้อหาก่อน';results.innerHTML='<div class="empty">ยังไม่มีข้อความ</div>';batches=[];return;}
+  const chapters=extractChapters(text);
+  if(!chapters.length){
+    batches=[];
+    statusBox.textContent=splitDiagnostics.incomplete.length?'พบ Split-Page แต่ส่วนยังไม่ครบ จึงหยุดรวม':'ไม่พบหัวตอนที่ผ่านเกณฑ์';
+    results.innerHTML='<div class="empty">ยังไม่พบตอนสมบูรณ์ กรุณาตรวจรูปแบบหัวตอนหรือ Split-Page</div>';
+    const a={missing:[],duplicates:[],reversals:[],outside:[],blocking:splitDiagnostics.incomplete.length>0};renderAudit(a);return;
+  }
+  const audit=auditChapters(chapters);renderAudit(audit);
+  if($('failClosed').checked && audit.blocking){
+    batches=[];results.innerHTML='<div class="empty">⛔ ระบบหยุดการแบ่งชุดเพื่อป้องกันการข้ามตอนเงียบ ๆ กรุณาแก้รายการ Chapter Integrity ก่อน</div>';
+    statusBox.textContent='FAIL-CLOSED: ยังไม่อนุญาตให้รวม/แบ่งชุด';return;
+  }
+  const grouped=makeBatches(chapters);
+  const partial=grouped[grouped.length-1]?.length!==WORK_RANGE_SIZE;
+  if(partial && !$('allowPartialBatch').checked){
+    batches=[];
+    results.innerHTML='<div class="empty">⛔ ปิดการอนุญาตชุดสุดท้ายที่ไม่ครบ 10 ตอนอยู่ กรุณาเปิดตัวเลือกนี้ก่อน</div>';
+    statusBox.textContent=`ADAPTIVE10_BLOCKED_PARTIAL: พบชุดสุดท้าย ${grouped[grouped.length-1].length} ตอน`;
+    return;
+  }
+  render(grouped,audit);
+  const displayNums=chapters.map(x=>x.displayNum||String(x.num));
+  const splitFileJobs=batches.filter(x=>x.deliveryParts.length>1).length;
+  const parts=[`ตรวจพบ ${chapters.length} ตอนจริง ตั้งแต่ตอน ${displayNums[0]} ถึง ${displayNums[displayNums.length-1]}`,`จัดเป็น ${grouped.length} แชท • แชทละช่วง 10 ตอน`,splitFileJobs?`${splitFileJobs} ช่วงยาวและจะถูกแบ่งไฟล์ดาวน์โหลด`:'ทุกช่วงส่งไฟล์เดียวได้ตามเกณฑ์ความยาว'];
+  if(splitDiagnostics.merged.length)parts.push(`รวม Split-Page ${splitDiagnostics.merged.length} ตอน`);
+  statusBox.textContent=parts.join(' • ');
+}
+$('splitBtn').onclick=splitNow;
+
+function fallbackCopyText(text){
+  // วิธีสำรองสำหรับ Android / file:// / เบราว์เซอร์ที่บล็อก Clipboard API
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.setAttribute('readonly','');
+  ta.setAttribute('aria-hidden','true');
+  ta.style.position='fixed';
+  ta.style.left='0';
+  ta.style.top='0';
+  ta.style.width='1px';
+  ta.style.height='1px';
+  ta.style.opacity='0';
+  ta.style.pointerEvents='none';
+  document.body.appendChild(ta);
+
+  ta.focus({preventScroll:true});
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length);
+
+  let ok=false;
+  try{ ok=document.execCommand('copy'); }catch(e){ ok=false; }
+  ta.remove();
+  return ok;
+}
+
+async function copyTextSmart(text){
+  // Clipboard API ใช้ได้ดีบน https/localhost แต่ไฟล์ HTML ที่เปิดตรง ๆ มักถูกบล็อก
+  if(navigator.clipboard && window.isSecureContext){
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){}
+  }
+  return fallbackCopyText(text);
+}
+
+function showCopyOverlay(text, message){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(30,20,50,.72);z-index:99999;padding:14px;display:flex;align-items:center;justify-content:center';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;width:min(900px,100%);max-height:92vh;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px';
+  const msg=document.createElement('div');
+  msg.style.cssText='font-weight:800;line-height:1.6';
+  msg.textContent=(message?message+' — ':'')+'ระบบไม่อนุญาตให้คัดลอกอัตโนมัติ แตะ “เลือกทั้งหมด” แล้วแตะค้างในกล่องเพื่อกดคัดลอกได้ครั้งเดียว';
+  const big=document.createElement('textarea');
+  big.value=text;
+  big.style.cssText='width:100%;min-height:60vh;flex:1';
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+  const selectBtn=document.createElement('button');
+  selectBtn.className='primary';
+  selectBtn.textContent='เลือกทั้งหมด';
+  selectBtn.onclick=()=>{big.focus();big.select();big.setSelectionRange(0,big.value.length)};
+  const retryBtn=document.createElement('button');
+  retryBtn.className='secondary';
+  retryBtn.textContent='ลองคัดลอกอีกครั้ง';
+  retryBtn.onclick=()=>{
+    big.focus();big.select();big.setSelectionRange(0,big.value.length);
+    const copied=fallbackCopyText(big.value);
+    statusBox.textContent=copied?'คัดลอกทั้งหมดแล้ว':'เลือกข้อความทั้งหมดแล้ว กรุณาแตะค้างแล้วกดคัดลอก';
+    if(copied) overlay.remove();
+  };
+  const closeBtn=document.createElement('button');
+  closeBtn.className='danger';
+  closeBtn.textContent='ปิด';
+  closeBtn.onclick=()=>overlay.remove();
+  row.append(selectBtn,retryBtn,closeBtn);
+  box.append(msg,big,row);
+  overlay.append(box);
+  document.body.append(overlay);
+  setTimeout(()=>{big.focus();big.select();big.setSelectionRange(0,big.value.length)},50);
+  statusBox.textContent='เปิดกล่องรวมและเลือกข้อความทั้งหมดให้แล้ว';
+}
+
+$('copyAllBtn').onclick=async()=>{
+  if(!batches.length){statusBox.textContent='กรุณาแบ่งเนื้อหาก่อน';return}
+  const all=batches.map((x,i)=>getBatchOutputByIndex(i)).join('\n\n\n════════════════════════════════\n\n');
+  const ok=await copyTextSmart(all);
+
+  if(ok){
+    statusBox.textContent=`คัดลอกผลลัพธ์ทั้งหมดแล้ว (${batches.length} ชุด) • ${roseEraLabel()} • ${roseModeLabel()}`;
+    const btn=$('copyAllBtn');
+    const oldText=btn.textContent;
+    btn.textContent='✓ คัดลอกทั้งหมดแล้ว';
+    setTimeout(()=>btn.textContent=oldText,1400);
+  }else{
+    showCopyOverlay(all,`รวมทั้งหมด ${batches.length} ชุดไว้ในกล่องเดียวให้แล้ว`);
+  }
+};
+
+$('downloadAllBtn').onclick=()=>{
+  if(!batches.length){statusBox.textContent='กรุณาแบ่งเนื้อหาก่อน';return}
+  batches.forEach((x,i)=>setTimeout(()=>downloadText(getBatchOutputByIndex(i),downloadFilename(x)),i*250));
+};
+
+$('clearBtn').onclick=()=>{
+  sourceText.value='';localStorage.removeItem('novelSplitterV2');
+  txtFileInput.value='';
+  txtFileMeta.textContent='ยังไม่ได้เลือกไฟล์';
+  novelTitle.value='';
+  localStorage.removeItem('novelSplitterNovelTitle');
+  results.innerHTML='<div class="empty">ผลลัพธ์แต่ละชุดจะแสดงตรงนี้</div>';
+  statusBox.textContent='ยังไม่ได้แบ่งเนื้อหา';batches=[];$('auditBox').style.display='none';
+};
+
+sourceText.value=localStorage.getItem('novelSplitterV2')||'';
+novelTitle.value=localStorage.getItem('novelSplitterNovelTitle')||'';
+novelTitle.addEventListener('input',()=>localStorage.setItem('novelSplitterNovelTitle',novelTitle.value));
+sourceText.addEventListener('input',()=>{
+  if($('autoSave').checked) localStorage.setItem('novelSplitterV2',sourceText.value);
+});
+
+// คืนค่าตัวเลือก Rose ล่าสุดในเครื่อง
+$('roseEra').value=localStorage.getItem('novelSplitterRoseEra')||'ancient';
+const savedRoseMode=localStorage.getItem('novelSplitterRoseMode');
+const packUpgradeSeen=localStorage.getItem('novelSplitterRulePackUpgradeV6');
+$('roseCopyMode').value=(packUpgradeSeen && savedRoseMode && savedRoseMode!=='novel') ? savedRoseMode : 'opening';
+localStorage.setItem('novelSplitterRulePackUpgradeV6','seen');
+$('roseEra').addEventListener('change',updateRoseUI);
+$('roseCopyMode').addEventListener('change',updateRoseUI);
+$('batchSize').addEventListener('input',updateRoseUI);
+$('mergeSplit').checked=localStorage.getItem('novelSplitterMergeSplit')!=='off';
+$('mergeSplit').addEventListener('change',()=>{localStorage.setItem('novelSplitterMergeSplit',$('mergeSplit').checked?'on':'off'); if(sourceText.value.trim()) splitNow();});
+
+$('copyRoseBtn').onclick=async()=>{
+  const text=getRoseOpening(parseInt($('batchSize').value||'10',10));
+  const ok=await copyTextSmart(text);
+  if(ok) statusBox.textContent=`คัดลอก Opening Command — ${roseEraLabel()} แล้ว`;
+  else showCopyOverlay(text,`Opening Command — ${roseEraLabel()}`);
+};
+
+$('copyRoseFullBtn').onclick=async()=>{
+  const text=getFullPowerPack();
+  if(!text){statusBox.textContent='RULE_PACK_BLOCKED: ชุดคำสั่งโหลดไม่ครบ';return;}
+  const ok=await copyTextSmart(text);
+  if(ok) statusBox.textContent=`คัดลอก Full Power Pack — ${roseEraLabel()} แล้ว`;
+  else showCopyOverlay(text,`Full Power Pack — ${roseEraLabel()}`);
+};
+
+updateRoseUI();
+</script>
+<script src="./rose-kinship-lock.js"></script>
+<script src="./rose-pronoun-lock-opening.js"></script>
+</body>
+</html>
