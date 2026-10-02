@@ -36,6 +36,8 @@ def fetch(session, url, referer, retries=5):
             if r.ok:
                 r.encoding = r.apparent_encoding or "utf-8"
                 return r.text
+            if r.status_code == 404:
+                return None
             print(f"\n[WARN] HTTP {r.status_code}: {url}")
         except requests.RequestException as e:
             print(f"\n[WARN] {e}")
@@ -87,6 +89,61 @@ def clean(text, title):
     return "\n".join(lines)
 
 
+def get_chapter(session, url, referer, delay):
+    """Download one chapter (following real 下一页 links). Returns (title, text)."""
+    html = fetch(session, url, referer)
+    if html is None:
+        return None, ""
+    title = chapter_title(BeautifulSoup(html, "html.parser"))
+    parts, seen_pages = [], {url}
+    while True:
+        parts.append(clean(extract_text_from_html(html), title))
+        nxt = find_link(BeautifulSoup(html, "html.parser"), url, NEXT_PAGE)
+        if not nxt or nxt in seen_pages:
+            break
+        seen_pages.add(nxt)
+        time.sleep(delay)
+        html = fetch(session, nxt, url)
+        if html is None:
+            break
+        url = nxt
+    return title, "\n".join(parts)
+
+
+def run_numeric(args, book_id, base):
+    """Book index page given: download /book/<id>-N.html for N = 1, 2, 3 ..."""
+    from concurrent.futures import ThreadPoolExecutor
+    os.makedirs(args.output, exist_ok=True)
+    txt_path = os.path.join(args.output, f"book_{book_id}.txt")
+    prog_path = os.path.join(args.output, f"book_{book_id}.progress.json")
+    n = 1
+    if os.path.exists(prog_path):
+        n = json.load(open(prog_path))["next_n"]
+        print(f"[RESUME] ต่อจากตอนที่ {n}")
+    session = requests.Session()
+    batch, misses, total = 10, 0, 0
+    with open(txt_path, "a" if n > 1 else "w", encoding="utf-8") as out:
+        while n <= args.max and misses < 3:
+            nums = list(range(n, n + batch))
+            urls = [f"{base}/book/{book_id}-{i}.html" for i in nums]
+            with ThreadPoolExecutor(max_workers=4) as ex:
+                res = list(ex.map(lambda u: get_chapter(session, u, base, args.delay), urls))
+            for i, (title, text) in zip(nums, res):
+                if len(text.replace(" ", "").replace("\n", "")) < 30:
+                    misses += 1
+                    if misses >= 3:
+                        break
+                    continue
+                misses = 0
+                total += 1
+                out.write(f"{title}\n\n{text}\n\n" + "─" * 40 + "\n\n")
+                print(f"\r[{i}] {title[:40]:<40}", end="", flush=True)
+            out.flush()
+            n += batch
+            json.dump({"next_n": n}, open(prog_path, "w"))
+    print(f"\n✅ จบ: {total} ตอน -> {txt_path}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("url", help="URL of the first chapter to download")
@@ -94,6 +151,10 @@ def main():
     ap.add_argument("--delay", type=float, default=0.5, help="seconds between requests")
     ap.add_argument("--max", type=int, default=100000, help="maximum chapters")
     args = ap.parse_args()
+
+    m = re.match(r"(https?://[^/]+)/chapter/([A-Za-z0-9]+)\.html", args.url)
+    if m:  # this is the book index page, not a chapter
+        return run_numeric(args, m.group(2), m.group(1))
 
     os.makedirs(args.output, exist_ok=True)
     key = hashlib.md5(args.url.encode()).hexdigest()[:8]
