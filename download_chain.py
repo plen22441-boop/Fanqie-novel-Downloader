@@ -29,7 +29,7 @@ NEXT_CHAPTER = ("下一章", "下一节", "下一篇", "下章", "下一话")
 NEXT_PAGE = ("下一页", "下页")
 
 
-def fetch(session, url, referer, retries=5):
+def fetch(session, url, referer, retries=5, notfound=None):
     for attempt in range(retries):
         try:
             r = session.get(url, headers=get_headers(referer), timeout=25)
@@ -37,7 +37,7 @@ def fetch(session, url, referer, retries=5):
                 r.encoding = r.apparent_encoding or "utf-8"
                 return r.text
             if r.status_code == 404:
-                return None
+                return notfound
             print(f"\n[WARN] HTTP {r.status_code}: {url}")
         except requests.RequestException as e:
             print(f"\n[WARN] {e}")
@@ -89,11 +89,19 @@ def clean(text, title):
     return "\n".join(lines)
 
 
+NF = "__404__"
+
+
 def get_chapter(session, url, referer, delay):
-    """Download one chapter (following real 下一页 links). Returns (title, text)."""
-    html = fetch(session, url, referer)
+    """Download one chapter (following real 下一页 links).
+
+    Returns (status, title, text); status is "ok", "nf" (404) or "err" (network).
+    """
+    html = fetch(session, url, referer, notfound=NF)
+    if html == NF:
+        return "nf", None, ""
     if html is None:
-        return None, ""
+        return "err", None, ""
     title = chapter_title(BeautifulSoup(html, "html.parser"))
     parts, seen_pages = [], {url}
     while True:
@@ -105,47 +113,93 @@ def get_chapter(session, url, referer, delay):
         time.sleep(delay)
         html = fetch(session, nxt, url)
         if html is None:
-            break
+            return "err", title, ""
         url = nxt
-    return title, "\n".join(parts)
+    return "ok", title, "\n".join(parts)
 
 
 def run_numeric(args, book_id, base):
-    """Book index page given: download /book/<id>-N.html for N = 1, 2, 3 ..."""
+    """Book index page given: download /book/<id>-N.html for N = 1, 2, 3 ...
+
+    Every downloaded chapter is cached in a .jsonl file, so re-running the same
+    command only fetches what is still missing.
+    """
     from concurrent.futures import ThreadPoolExecutor
     os.makedirs(args.output, exist_ok=True)
     txt_path = os.path.join(args.output, f"book_{book_id}.txt")
-    prog_path = os.path.join(args.output, f"book_{book_id}.progress.json")
-    n = 1
-    if os.path.exists(prog_path):
-        n = json.load(open(prog_path))["next_n"]
-        print(f"[RESUME] ต่อจากตอนที่ {n}")
+    cache_path = os.path.join(args.output, f"book_{book_id}.cache.jsonl")
+
+    chapters = {}
+    if os.path.exists(cache_path):
+        for line in open(cache_path, encoding="utf-8"):
+            d = json.loads(line)
+            chapters[d["n"]] = (d["title"], d["text"])
+        print(f"[RESUME] มีในแคชแล้ว {len(chapters)} ตอน")
+
     session = requests.Session()
     # A chapter number that surely does not exist: whatever the site returns for
     # it (404, redirect, book page...) is the "not found" fingerprint.
-    ref_title, ref_text = get_chapter(session, f"{base}/book/{book_id}-99999.html", base, 0)
-    batch, misses, total = 10, 0, 0
-    with open(txt_path, "a" if n > 1 else "w", encoding="utf-8") as out:
-        while n <= args.max and misses < 3:
-            nums = list(range(n, n + batch))
-            urls = [f"{base}/book/{book_id}-{i}.html" for i in nums]
-            with ThreadPoolExecutor(max_workers=4) as ex:
-                res = list(ex.map(lambda u: get_chapter(session, u, base, args.delay), urls))
-            for i, (title, text) in zip(nums, res):
-                fake = ref_title is not None and (title == ref_title or text == ref_text)
-                if fake or len(text.replace(" ", "").replace("\n", "")) < 30:
-                    misses += 1
-                    if misses >= 3:
-                        break
-                    continue
-                misses = 0
-                total += 1
-                out.write(f"{title}\n\n{text}\n\n" + "─" * 40 + "\n\n")
-                print(f"\r[{i}] {title[:40]:<40}", end="", flush=True)
-            out.flush()
-            n += batch
-            json.dump({"next_n": n}, open(prog_path, "w"))
-    print(f"\n✅ จบ: {total} ตอน -> {txt_path}")
+    _, ref_title, ref_text = get_chapter(session, f"{base}/book/{book_id}-99999.html", base, 0)
+
+    def url_of(i):
+        return f"{base}/book/{book_id}-{i}.html"
+
+    def is_end(status, title, text):
+        fake = ref_title is not None and (title == ref_title or text == ref_text)
+        return status == "nf" or fake or (
+            status == "ok" and len(text.replace(" ", "").replace("\n", "")) < 30)
+
+    cache = open(cache_path, "a", encoding="utf-8")
+
+    def run_batch(nums, workers, delay):
+        """Download nums; returns (failed_numbers, number_of_end_pages)."""
+        todo = [i for i in nums if i not in chapters]
+        failed, ends = [], 0
+        if todo:
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                res = list(ex.map(lambda i: get_chapter(session, url_of(i), base, delay), todo))
+            for i, (status, title, text) in zip(todo, res):
+                if status == "err":
+                    failed.append(i)
+                elif is_end(status, title, text):
+                    ends += 1
+                else:
+                    chapters[i] = (title, text)
+                    cache.write(json.dumps({"n": i, "title": title, "text": text},
+                                           ensure_ascii=False) + "\n")
+                    print(f"\r[{i}] {title[:40]:<40}", end="", flush=True)
+            cache.flush()
+        return failed, ends
+
+    n, failed_all, batch = 1, [], 10
+    while n <= args.max:
+        nums = list(range(n, n + batch))
+        failed, _ = run_batch(nums, 3, args.delay)
+        failed_all += failed
+        n += batch
+        # stop once a whole batch is past the last chapter
+        if not any(i in chapters for i in nums) and not failed:
+            break
+
+    # retry network failures slowly, a few rounds
+    for rnd in range(1, 6):
+        failed_all = [i for i in failed_all if i not in chapters]
+        if not failed_all:
+            break
+        print(f"\n[RETRY {rnd}] ตอนที่ยังขาด {len(failed_all)} ตอน รอ {5 * rnd} วินาที...")
+        time.sleep(5 * rnd)
+        failed_all, _ = run_batch(failed_all, 1, max(args.delay, 2))
+    cache.close()
+
+    nums = sorted(chapters)
+    with open(txt_path, "w", encoding="utf-8") as out:
+        for i in nums:
+            title, text = chapters[i]
+            out.write(f"{title}\n\n{text}\n\n" + "─" * 40 + "\n\n")
+    missing = [i for i in range(1, (nums[-1] if nums else 0) + 1) if i not in chapters]
+    print(f"\n✅ จบ: {len(nums)} ตอน -> {txt_path}")
+    if missing:
+        print(f"⚠️ ยังขาด {len(missing)} ตอน: {missing[:50]}  (รันคำสั่งเดิมอีกครั้งเพื่อโหลดตอนที่ขาด)")
 
 
 def main():
