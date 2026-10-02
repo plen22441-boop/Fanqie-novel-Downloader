@@ -1,0 +1,50 @@
+name: Patch Missing Chapters
+
+on:
+  workflow_dispatch:
+    inputs:
+      book_id:
+        description: "Fanqienovel Book ID (เช่น 7444079991228222526)"
+        required: true
+      workers:
+        description: "Parallel workers"
+        required: false
+        default: "10"
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Download full novel first
+        id: download
+        run: |
+          python download_novel.py "${{ github.event.inputs.book_id }}" \
+            --workers ${{ github.event.inputs.workers }} \
+            --output downloads \
+            --retries 5
+
+      - name: Upload TXT file
+        uses: actions/upload-artifact@v4
+        with:
+          name: novel-${{ github.event.inputs.book_id }}
+          path: downloads/*.txt
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "### ✅ โหลดเสร็จแล้ว" >> $GITHUB_STEP_SUMMARY
+          echo "- Book ID: \`${{ github.event.inputs.book_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ดาวน์โหลดไฟล์ TXT ได้จาก **Artifacts** ด้านบน" >> $GITHUB_STEP_SUMMARY
