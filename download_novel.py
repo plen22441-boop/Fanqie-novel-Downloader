@@ -90,6 +90,7 @@ def fanqie_chapters(session, book_id):
     for url in endpoints:
         try:
             r = session.get(url, headers=get_headers(), timeout=15)
+            print(f"[DEBUG] {url} -> {r.status_code} len={len(r.text)} head={r.text[:300]!r}")
             # Try JSON first
             try:
                 data = r.json()
