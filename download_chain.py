@@ -18,7 +18,7 @@ import os
 import re
 import sys
 import time
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -56,6 +56,20 @@ def find_link(soup, url, words):
         a = soup.select_one("a#next, a#next_url, a.next, a[rel=next]")
         if a and a.get("href") and not a["href"].startswith(("javascript", "#")):
             return urljoin(url, a["href"])
+    return None
+
+
+def guess_next_by_pattern(soup, url, seen):
+    """Fallback: pick the first not-yet-seen link shaped like the current URL."""
+    path = urlparse(url).path
+    shape = re.sub(r"[^/]+$", "", path)           # e.g. /chapter/
+    ext = os.path.splitext(path)[1]               # e.g. .html
+    for a in soup.find_all("a", href=True):
+        full = urljoin(url, a["href"].strip())
+        p = urlparse(full)
+        if (p.netloc == urlparse(url).netloc and p.path.startswith(shape)
+                and p.path.endswith(ext) and p.path != path and full not in seen):
+            return full
     return None
 
 
@@ -129,10 +143,12 @@ def main():
             last = BeautifulSoup(page_html or html, "html.parser")
             nxt = find_link(last, page_url, NEXT_CHAPTER)
             referer = page_url
+            if not nxt:
+                nxt = guess_next_by_pattern(last, page_url, seen)
             url = nxt if nxt and nxt not in seen else None
             if url is None:
                 print("\n[DEBUG] ไม่พบลิงก์ตอนถัดไป ลิงก์ทั้งหมดในหน้านี้:")
-                for a in last.find_all("a", href=True)[:60]:
+                for a in last.find_all("a", href=True)[-25:]:
                     print(f"   {a.get_text(strip=True)[:30]!r} -> {a['href'][:90]}")
             state.update(next=url, seen=sorted(seen))
             json.dump(state, open(progress_path, "w", encoding="utf-8"), ensure_ascii=False)
