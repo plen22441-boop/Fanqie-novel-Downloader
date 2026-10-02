@@ -130,6 +130,10 @@ def main():
             nxt = find_link(last, page_url, NEXT_CHAPTER)
             referer = page_url
             url = nxt if nxt and nxt not in seen else None
+            if url is None:
+                print("\n[DEBUG] ไม่พบลิงก์ตอนถัดไป ลิงก์ทั้งหมดในหน้านี้:")
+                for a in last.find_all("a", href=True)[:60]:
+                    print(f"   {a.get_text(strip=True)[:30]!r} -> {a['href'][:90]}")
             state.update(next=url, seen=sorted(seen))
             json.dump(state, open(progress_path, "w", encoding="utf-8"), ensure_ascii=False)
             print(f"\r[{state['count']}] {title[:40]:<40}", end="", flush=True)
