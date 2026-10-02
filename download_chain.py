@@ -121,6 +121,9 @@ def run_numeric(args, book_id, base):
         n = json.load(open(prog_path))["next_n"]
         print(f"[RESUME] ต่อจากตอนที่ {n}")
     session = requests.Session()
+    # A chapter number that surely does not exist: whatever the site returns for
+    # it (404, redirect, book page...) is the "not found" fingerprint.
+    ref_title, ref_text = get_chapter(session, f"{base}/book/{book_id}-99999.html", base, 0)
     batch, misses, total = 10, 0, 0
     with open(txt_path, "a" if n > 1 else "w", encoding="utf-8") as out:
         while n <= args.max and misses < 3:
@@ -129,7 +132,8 @@ def run_numeric(args, book_id, base):
             with ThreadPoolExecutor(max_workers=4) as ex:
                 res = list(ex.map(lambda u: get_chapter(session, u, base, args.delay), urls))
             for i, (title, text) in zip(nums, res):
-                if len(text.replace(" ", "").replace("\n", "")) < 30:
+                fake = ref_title is not None and (title == ref_title or text == ref_text)
+                if fake or len(text.replace(" ", "").replace("\n", "")) < 30:
                     misses += 1
                     if misses >= 3:
                         break
