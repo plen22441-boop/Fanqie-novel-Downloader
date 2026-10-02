@@ -289,17 +289,23 @@ def main():
             sys.exit(1)
 
         # Step 3: Download chapters in parallel
+        # Pre-create context pool in main thread (Playwright sync API is not thread-safe)
         print(f"[3/3] โหลดเนื้อหา ({args.workers} workers)...")
+        import queue as _queue
+        ctx_pool = _queue.Queue()
+        ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        for _ in range(args.workers):
+            ctx_pool.put(browser.new_context(user_agent=ua, locale="zh-CN"))
+
         results = [None] * len(chapters)
         failed = []
 
         def dl(ch):
-            ctx = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                locale="zh-CN",
-            )
-            res = download_chapter_pw(ctx, ch, ch["index"])
-            ctx.close()
+            ctx = ctx_pool.get()
+            try:
+                res = download_chapter_pw(ctx, ch, ch["index"])
+            finally:
+                ctx_pool.put(ctx)
             return res
 
         with ThreadPoolExecutor(max_workers=args.workers) as ex:
@@ -316,6 +322,12 @@ def main():
                     failed.append(title)
         print()
 
+        # Close all contexts then browser
+        while not ctx_pool.empty():
+            try:
+                ctx_pool.get_nowait().close()
+            except Exception:
+                pass
         browser.close()
 
     # Save
