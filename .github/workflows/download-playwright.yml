@@ -1,0 +1,57 @@
+name: Download Novel (Playwright - รองรับ JS sites)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL นิยาย (รองรับทุกเว็บ รวมถึงเว็บที่ใช้ JavaScript)"
+        required: true
+      workers:
+        description: "Parallel workers (แนะนำ 5 สำหรับเว็บทั่วไป)"
+        required: false
+        default: "5"
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 playwright
+          playwright install chromium --with-deps
+
+      - name: Download novel
+        id: download
+        run: |
+          python download_playwright.py "${{ github.event.inputs.url }}" \
+            --workers ${{ github.event.inputs.workers }} \
+            --output downloads
+
+      - name: Set artifact name
+        id: artifact_name
+        run: |
+          SAFE=$(echo "${{ github.event.inputs.url }}" | grep -oE '[A-Za-z0-9_-]+' | tail -2 | tr '-' '_')
+          echo "name=novel-${SAFE}" >> $GITHUB_OUTPUT
+
+      - name: Upload TXT file
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_name.outputs.name }}
+          path: downloads/*.txt
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "### ✅ โหลดเสร็จแล้ว" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: \`${{ github.event.inputs.url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ดาวน์โหลดไฟล์ TXT ได้จาก **Artifacts** ด้านบน" >> $GITHUB_STEP_SUMMARY
