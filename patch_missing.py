@@ -34,7 +34,8 @@ def fanqie_chapters(session, book_id):
     endpoints = [
         f"https://api5-normal-lf.fqnovel.com/reading/bookapi/search/{book_id}/v",
         f"https://api5-normal-lf.fqnovel.com/reading/bookapi/detail/v/?book_id={book_id}",
-        f"https://api.cengui.cn/api/tomato/book.php?book_id={book_id}",
+        f"https://api.cenguigui.cn/api/tomato/book.php?book_id={book_id}",
+        f"https://fanqienovel.com/page/{book_id}",
     ]
     chapters = []
     for url in endpoints:
@@ -101,7 +102,7 @@ def clean_fanqie_content(raw, title=""):
 def download_fanqie_chapter(session, chapter, max_retries=5):
     for attempt in range(max_retries):
         try:
-            url = f"https://api.cengui.cn/api/tomato/content.php?item_id={chapter['id']}"
+            url = f"https://api.cenguigui.cn/api/tomato/content.php?item_id={chapter['id']}"
             r = session.get(url, headers=get_headers(), timeout=15)
             data = r.json()
             if data.get("code") == 200:

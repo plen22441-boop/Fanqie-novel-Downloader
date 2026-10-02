@@ -148,7 +148,7 @@ class RequestHandler:
         
         while retry_count < max_retries:
             try:
-                api_url = f"https://api.cengui.cn/api/tomato/content.php?item_id={chapter_id}"
+                api_url = f"https://api.cenguigui.cn/api/tomato/content.php?item_id={chapter_id}"
                 response = self.session.get(api_url, timeout=self.config["request_timeout"])
                 data = response.json()
                 
