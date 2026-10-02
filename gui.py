@@ -14,6 +14,7 @@ import sys
 from config import CONFIG, save_user_config
 from request_handler import RequestHandler
 from library import LibraryWindow, add_to_library
+from proofreader import ProofreadWindow
 
 # 设置 CustomTkinter 外观
 ctk.set_appearance_mode("dark")  # 默认使用暗色主题
@@ -170,9 +171,19 @@ class NovelDownloaderGUI(ctk.CTk):
         )
         settings_button.pack(side="left", padx=5)
         
+        # ปุ่มตรวจทานสำนวน
+        proofread_button = ctk.CTkButton(
+            bottom_frame,
+            text="✏ ตรวจทานสำนวน",
+            command=self.open_proofreader,
+            width=130,
+            fg_color="#5a4fcf"
+        )
+        proofread_button.pack(side="left", padx=5)
+
         # 清空日志按钮
         clear_log_button = ctk.CTkButton(
-            bottom_frame, 
+            bottom_frame,
             text="清空日志",
             command=self.clear_log,
             width=100
@@ -357,6 +368,10 @@ class NovelDownloaderGUI(ctk.CTk):
         except Exception as e:
             messagebox.showerror("错误", f"无法打开书库: {str(e)}")
     
+    def open_proofreader(self):
+        """เปิดหน้าต่างตรวจทานสำนวน"""
+        ProofreadWindow(self)
+
     def open_settings(self):
         """打开设置窗口"""
         # 创建设置窗口
