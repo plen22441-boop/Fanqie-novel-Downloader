@@ -31,21 +31,57 @@ def get_headers():
 
 
 def fanqie_chapters(session, book_id):
-    url = f"https://api5-normal-lf.fqnovel.com/reading/bookapi/search/{book_id}/v"
-    r = session.get(url, headers=get_headers(), timeout=15)
-    soup = BeautifulSoup(r.text, "html.parser")
+    endpoints = [
+        f"https://api5-normal-lf.fqnovel.com/reading/bookapi/search/{book_id}/v",
+        f"https://api5-normal-lf.fqnovel.com/reading/bookapi/detail/v/?book_id={book_id}",
+        f"https://api.cengui.cn/api/tomato/book.php?book_id={book_id}",
+    ]
     chapters = []
-    for idx, item in enumerate(soup.select("div.chapter-item")):
-        a = item.find("a")
-        if not a:
+    for url in endpoints:
+        try:
+            r = session.get(url, headers=get_headers(), timeout=15)
+            try:
+                data = r.json()
+                raw_list = (
+                    data.get("data", {}).get("chapter_list")
+                    or data.get("data", {}).get("chapters")
+                    or data.get("chapters")
+                    or (data.get("data") if isinstance(data.get("data"), list) else None)
+                )
+                if raw_list:
+                    for idx, item in enumerate(raw_list):
+                        cid = str(item.get("chapter_id") or item.get("id") or item.get("item_id", ""))
+                        raw_title = item.get("chapter_title") or item.get("title") or f"第{idx+1}章"
+                        if re.match(r"^(番外|特别篇|if线)\s*", raw_title):
+                            title = raw_title
+                        else:
+                            clean = re.sub(r"^第[一二三四五六七八九十百千\d]+章\s*", "", raw_title).strip()
+                            title = f"第{idx+1}章 {clean}" if clean else raw_title
+                        if cid:
+                            chapters.append({"index": idx, "id": cid, "title": title})
+                    if chapters:
+                        return chapters
+            except Exception:
+                pass
+            soup = BeautifulSoup(r.text, "html.parser")
+            items = soup.select("div.chapter-item")
+            if items:
+                for idx, item in enumerate(items):
+                    a = item.find("a")
+                    if not a:
+                        continue
+                    raw = a.get_text(strip=True)
+                    if re.match(r"^(番外|特别篇|if线)\s*", raw):
+                        title = raw
+                    else:
+                        clean = re.sub(r"^第[一二三四五六七八九十百千\d]+章\s*", "", raw).strip()
+                        title = f"第{idx+1}章 {clean}"
+                    chapters.append({"index": idx, "id": a["href"].split("/")[-1], "title": title})
+                if chapters:
+                    return chapters
+        except Exception as e:
+            print(f"[WARN] fanqie_chapters {url}: {e}")
             continue
-        raw = a.get_text(strip=True)
-        if re.match(r"^(番外|特别篇|if线)\s*", raw):
-            title = raw
-        else:
-            clean = re.sub(r"^第[一二三四五六七八九十百千\d]+章\s*", "", raw).strip()
-            title = f"第{idx+1}章 {clean}"
-        chapters.append({"index": idx, "id": a["href"].split("/")[-1], "title": title})
     return chapters
 
 
