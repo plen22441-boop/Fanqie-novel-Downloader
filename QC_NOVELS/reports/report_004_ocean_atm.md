@@ -46,5 +46,5 @@ Editor score สูงสุดในชุดนี้ — Concept ชัด �
 Genre ใหม่ในตลาดไทย = โอกาส first-mover advantage
 
 Priority เทียบกับเรื่องอื่นในชุดนี้:
-#2 (เท่ากับ 003 ด้าน Editor แต่ genre เฉพาะกว่า — รองจาก 005 Wild Elephant)
+#1 (Priority สูงสุด — Overall 9.1 สูงสุดในชุด Editor Score 9.0 สูงที่สุด เหมาะกับ content clean และ pipeline ยาว)
 ====================================
