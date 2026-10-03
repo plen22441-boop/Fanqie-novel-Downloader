@@ -301,6 +301,17 @@ def collect_chapters_all_pages(session, book_url, html, max_pages=300):
     return merged
 
 
+def extract_chapter_title(html, fallback=""):
+    soup = BeautifulSoup(html, "html.parser")
+    for sel in ["h1.chapter-title", "h1.title", ".chapter-title", ".bookname h1", "h1"]:
+        el = soup.select_one(sel)
+        if el:
+            t = el.get_text(strip=True)
+            if t and len(t) < 200 and not t.startswith("http"):
+                return t
+    return fallback
+
+
 def download_web_chapter(session, chapter, book_url, max_retries=5):
     for attempt in range(max_retries):
         try:
@@ -308,8 +319,12 @@ def download_web_chapter(session, chapter, book_url, max_retries=5):
             r.encoding = r.apparent_encoding or "utf-8"
             if r.ok:
                 text = extract_text_from_html(r.text, chapter["url"])
+                title = chapter["title"]
+                if title.startswith("http") or not title:
+                    idx = chapter.get("index", 0)
+                    title = extract_chapter_title(r.text, f"第{idx+1}章")
                 if len(text.replace(" ", "").replace("\n", "")) > 80:
-                    return chapter.get("index", 0), chapter["title"], text
+                    return chapter.get("index", 0), title, text
         except Exception:
             pass
         time.sleep(1.5 * (attempt + 1))
