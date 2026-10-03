@@ -54,7 +54,7 @@ def is_fanqie(url: str) -> bool:
 
 
 def extract_book_id(url: str) -> str:
-    m = re.search(r"\d{6,}", url)
+    m = re.search(r"\d{6,}", url) or re.search(r"\d{4,}", url)
     if not m:
         sys.exit(f"[ERROR] ไม่พบ book ID ใน: {url}")
     return m.group(0)
@@ -227,6 +227,9 @@ def scrape_book_info(session, book_url):
         return "未知书名", "未知作者", ""
 
 
+NAV_TXT = {"下一页", "上一页", "下页", "上页", "下一頁", "上一頁", "首页", "尾页", "末页", "目录", "返回目录", "书页", "返回", "首頁", "尾頁"}
+
+
 def scrape_chapter_list(book_url, html):
     soup = BeautifulSoup(html, "html.parser")
     book_id = extract_book_id(book_url)
@@ -241,6 +244,9 @@ def scrape_chapter_list(book_url, html):
     for a in soup.find_all("a", href=True):
         href = a["href"]
         full = urljoin(base, href)
+        link_txt = a.get_text(strip=True)
+        if link_txt in NAV_TXT or re.search(r"/index[_-]?\d*\.html?$", href):
+            continue
         if any(p in href for p in patterns) and full != book_url:
             if full not in seen:
                 seen[full] = True
@@ -254,6 +260,45 @@ def scrape_chapter_list(book_url, html):
 
     chapters.sort(key=url_num)
     return chapters
+
+
+def collect_chapters_all_pages(session, book_url, html, max_pages=300):
+    """Merge chapter links from every page of a (possibly paginated) TOC."""
+    NEXT_TXT = ("下一页", "下页", "下一頁", "下頁", "next", "Next", ">")
+    merged, seen_urls, visited = [], set(), {book_url}
+    queue, cur_html, cur_url, pages = [], html, book_url, 0
+    while cur_html is not None and pages < max_pages:
+        pages += 1
+        for ch in scrape_chapter_list(cur_url, cur_html):
+            if ch["url"] not in seen_urls:
+                seen_urls.add(ch["url"])
+                merged.append(ch)
+        soup = BeautifulSoup(cur_html, "html.parser")
+        base = f"{urlparse(book_url).scheme}://{urlparse(book_url).netloc}"
+        for a in soup.find_all("a", href=True):
+            txt = a.get_text(strip=True)
+            if (txt in NEXT_TXT or "next" in (a.get("rel") or [])) and not a["href"].startswith(("javascript", "#")):
+                queue.append(urljoin(cur_url, a["href"]))
+        for opt in soup.select("select option[value]"):
+            v = opt["value"]
+            if v and not v.startswith(("javascript", "#")) and (".htm" in v or "/" in v):
+                queue.append(urljoin(cur_url, v))
+        cur_html = None
+        while queue:
+            nxt = queue.pop(0)
+            if nxt in visited or urlparse(nxt).netloc != urlparse(book_url).netloc:
+                continue
+            visited.add(nxt)
+            try:
+                r = session.get(nxt, headers=get_headers(book_url), timeout=25)
+                r.encoding = r.apparent_encoding or "utf-8"
+                if r.ok:
+                    cur_html, cur_url = r.text, nxt
+                    break
+            except Exception:
+                continue
+    print(f"      อ่านสารบัญ {pages} หน้า")
+    return merged
 
 
 def download_web_chapter(session, chapter, book_url, max_retries=5):
@@ -329,7 +374,12 @@ def main():
         print(f"      ชื่อ: {name} | ผู้แต่ง: {author}")
 
         print(f"[2/3] ดึงรายชื่อตอน...")
-        chapters = scrape_chapter_list(book_url, html)
+        chapters = collect_chapters_all_pages(session, book_url, html)
+        chapters.sort(key=lambda ch: int(re.findall(r"\d+", ch["url"].replace(extract_book_id(book_url), "", 1))[-1]) if re.findall(r"\d+", ch["url"].replace(extract_book_id(book_url), "", 1)) else 0)
+        if not chapters:
+            soup_dbg = BeautifulSoup(html, "html.parser")
+            hrefs = [a["href"] for a in soup_dbg.find_all("a", href=True)]
+            print(f"[DEBUG] html len={len(html)} links={len(hrefs)} sample={hrefs[:40]}")
         for i, ch in enumerate(chapters):
             ch["index"] = i
         print(f"      พบ {len(chapters)} ตอน")
