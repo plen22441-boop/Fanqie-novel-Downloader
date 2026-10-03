@@ -494,6 +494,167 @@ body {
 }
 .scroll-top[hidden] { display: none !important; }
 .scroll-top:hover { transform: scale(1.1); }
+
+/* --- Server mode: direct results --- */
+.server-badge {
+  max-width: 720px;
+  margin: 12px auto 0;
+  padding: 8px 14px;
+  background: var(--jade-bg);
+  border: 1px solid color-mix(in srgb, var(--jade) 30%, transparent);
+  border-radius: 8px;
+  font-size: .8rem;
+  color: var(--jade);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.server-badge .dot {
+  width: 8px; height: 8px;
+  background: var(--jade);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.results-section {
+  max-width: 720px;
+  margin: 24px auto 0;
+}
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.results-header h2 {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--heading);
+  margin: 0;
+}
+.results-count {
+  font-size: .82rem;
+  color: var(--text-dim);
+}
+.results-loading {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-dim);
+  font-size: .9rem;
+}
+.spinner {
+  display: inline-block;
+  width: 24px; height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color .15s;
+  min-width: 0;
+}
+.result-card:hover { border-color: var(--jade); }
+.result-card .r-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--heading);
+  word-break: break-all;
+}
+.result-card .r-author {
+  font-size: .82rem;
+  color: var(--text-dim);
+}
+.result-card .r-desc {
+  font-size: .78rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.result-card .r-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.result-card .r-source {
+  font-size: .72rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  background: var(--surface);
+  border-radius: 4px;
+  color: var(--text);
+}
+.result-card .r-actions {
+  display: flex;
+  gap: 6px;
+}
+.result-card .r-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.result-card .r-btn.read {
+  background: var(--jade);
+  color: #fff;
+}
+.result-card .r-btn.read:hover { opacity: .85; }
+.result-card .r-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.no-results {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-dim);
+  font-size: .9rem;
+}
+.search-btn-main {
+  padding: 14px 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  width: 100%;
+  max-width: 720px;
+  display: block;
+  margin: 16px auto 0;
+}
+.search-btn-main:hover { background: var(--accent-hover); }
+.search-btn-main:disabled { opacity: .4; cursor: not-allowed; }
+.search-btn-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 
 <div class="hero">
@@ -506,12 +667,21 @@ body {
     <input type="text" id="q" placeholder="พิมพ์ชื่อนิยาย เช่น 斗破苍穹, 全职高手, 诡秘之主..." autocomplete="off" autofocus>
     <button class="clear-btn" id="clearBtn" hidden aria-label="ล้าง">&times;</button>
   </div>
-  <div class="search-hint">
-    <span>พิมพ์ชื่อภาษาจีน แล้วกดปุ่มค้นหาที่เว็บไหนก็ได้</span>
+  <div class="search-hint" id="searchHint">
+    <span>พิมพ์ชื่อภาษาจีน แล้วกดปุ่มค้นหาที่เว็บไหนก็ได้ — หรือเปิดเซิร์ฟเวอร์เพื่อรับลิงก์ตรง</span>
   </div>
 </div>
 
+<div id="serverBadge" class="server-badge" hidden>
+  <span class="dot"></span>
+  <span>เซิร์ฟเวอร์เชื่อมต่อแล้ว — ค้นหาจะส่งลิงก์ตรงกลับมา</span>
+</div>
+
+<button id="searchBtn" class="search-btn-main" hidden>ค้นหาลิงก์ตรง (Direct Search)</button>
+
 <div class="stats" id="stats"></div>
+
+<div id="directResults" class="results-section" hidden></div>
 
 <div id="historySection" class="history" hidden>
   <h3>ค้นหาล่าสุด</h3>
@@ -850,6 +1020,7 @@ qInput.addEventListener('input', () => {
 
 qInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
+    if (serverConnected) return;
     const query = qInput.value.trim();
     if (query) {
       saveHistory(query);
@@ -917,6 +1088,147 @@ window.addEventListener('scroll', () => {
 scrollTopBtn.addEventListener('click', () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
+
+// --- Server-connected mode (direct search results) ---
+const serverBadge = document.getElementById('serverBadge');
+const searchBtn = document.getElementById('searchBtn');
+const directResults = document.getElementById('directResults');
+const searchHint = document.getElementById('searchHint');
+let serverConnected = false;
+let serverBase = '';
+
+const SERVER_PORTS = [8080, 8000, 8888, 5000];
+
+async function detectServer() {
+  for (const port of SERVER_PORTS) {
+    try {
+      const base = `http://localhost:${port}`;
+      const resp = await fetch(`${base}/api/ping`, { signal: AbortSignal.timeout(2000) });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          serverBase = base;
+          serverConnected = true;
+          serverBadge.hidden = false;
+          searchBtn.hidden = false;
+          searchHint.querySelector('span').textContent =
+            'พิมพ์ชื่อนิยาย แล้วกด "ค้นหาลิงก์ตรง" เพื่อรับลิงก์อ่านฟรีจากหลายเว็บ';
+          return;
+        }
+      }
+    } catch {}
+  }
+}
+
+async function doDirectSearch() {
+  const query = qInput.value.trim();
+  if (!query) return;
+  saveHistory(query);
+
+  searchBtn.disabled = true;
+  searchBtn.textContent = 'กำลังค้นหา...';
+  directResults.hidden = false;
+  directResults.innerHTML = `
+    <div class="results-loading">
+      <div class="spinner"></div>
+      <div>กำลังค้นหาจากหลายเว็บไซต์พร้อมกัน...</div>
+    </div>`;
+
+  try {
+    const resp = await fetch(`${serverBase}/api/search?q=${encodeURIComponent(query)}`);
+    const data = await resp.json();
+    renderDirectResults(data);
+  } catch (e) {
+    directResults.innerHTML = `
+      <div class="no-results">
+        เกิดข้อผิดพลาด: ${e.message}<br>
+        <small>ตรวจสอบว่าเซิร์ฟเวอร์ยังทำงานอยู่</small>
+      </div>`;
+  } finally {
+    searchBtn.disabled = false;
+    searchBtn.textContent = 'ค้นหาลิงก์ตรง (Direct Search)';
+  }
+}
+
+function renderDirectResults(data) {
+  if (!data.results || data.results.length === 0) {
+    directResults.innerHTML = `
+      <div class="no-results">
+        ไม่พบผลลัพธ์สำหรับ "${data.query}"<br>
+        <small>ลองค้นหาด้วยชื่อภาษาจีน หรือใช้ปุ่มค้นหาของแต่ละเว็บด้านล่าง</small>
+      </div>`;
+    return;
+  }
+
+  const noVpn = data.results.filter(r => !r.vpn);
+  const vpn = data.results.filter(r => r.vpn);
+
+  let html = `
+    <div class="results-header">
+      <h2>ผลลัพธ์ลิงก์ตรง</h2>
+      <span class="results-count">${data.total} ผลลัพธ์</span>
+    </div>
+    <div class="results-grid">`;
+
+  const renderCard = (r) => {
+    const tags = [];
+    if (r.free) tags.push('<span class="tag tag-free">ฟรี 100%</span>');
+    if (r.vpn) tags.push('<span class="tag tag-vpn">VPN</span>');
+    else tags.push('<span class="tag tag-novpn">ไม่ต้อง VPN</span>');
+    if (r.status) tags.push(`<span class="tag tag-dl">${r.status}</span>`);
+
+    const authorHtml = r.author ? `<div class="r-author">${r.author}</div>` : '';
+    const descHtml = r.description ? `<div class="r-desc">${r.description}</div>` : '';
+
+    return `
+      <div class="result-card">
+        <div class="r-title">${r.title}</div>
+        ${authorHtml}
+        ${descHtml}
+        <div class="r-meta">
+          <span class="r-source">${r.source}</span>
+          ${tags.join('')}
+        </div>
+        <div class="r-actions">
+          <a class="r-btn read" href="${r.url}" target="_blank" rel="noopener">อ่าน / เปิด</a>
+        </div>
+      </div>`;
+  };
+
+  noVpn.forEach(r => { html += renderCard(r); });
+
+  if (vpn.length > 0) {
+    html += `</div>
+      <div class="results-header" style="margin-top:20px">
+        <h2>ต้องใช้ VPN</h2>
+        <span class="results-count">${vpn.length} ผลลัพธ์</span>
+      </div>
+      <div class="results-grid">`;
+    vpn.forEach(r => { html += renderCard(r); });
+  }
+
+  html += '</div>';
+
+  if (data.errors && data.errors.length > 0) {
+    html += `<div style="margin-top:12px;font-size:.75rem;color:var(--text-dim)">
+      ${data.errors.length} แหล่งข้อมูลมีข้อผิดพลาด (อาจเกิดจากเว็บบล็อกหรือเครือข่าย)
+    </div>`;
+  }
+
+  directResults.innerHTML = html;
+}
+
+searchBtn.addEventListener('click', doDirectSearch);
+
+const origKeydown = qInput.onkeydown;
+qInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && serverConnected) {
+    e.preventDefault();
+    doDirectSearch();
+  }
+});
+
+detectServer();
 
 // Init
 renderCategories();
