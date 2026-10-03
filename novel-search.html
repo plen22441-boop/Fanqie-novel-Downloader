@@ -1,0 +1,925 @@
+<title>ค้นหานิยายจีน</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Dark-first: Chinese literary tool — ink-and-seal palette */
+:root {
+  --bg: #12141a;
+  --surface: #1b1e26;
+  --card: #232731;
+  --card-hover: #2b303c;
+  --border: #303644;
+  --text: #e2dfda;
+  --text-dim: #959aa6;
+  --heading: #f0ede8;
+  --accent: #c24b3f;
+  --accent-hover: #d45a4e;
+  --accent-bg: rgba(194,75,63,.1);
+  --seal: #c24b3f;
+  --jade: #4aab82;
+  --jade-bg: rgba(74,171,130,.12);
+  --amber: #d49a3a;
+  --amber-bg: rgba(212,154,58,.12);
+  --sky: #4a94c4;
+  --sky-bg: rgba(74,148,196,.12);
+  --plum: #a870c4;
+  --plum-bg: rgba(168,112,196,.12);
+  --search-bg: #181b23;
+  --input-bg: #20242e;
+  --shadow: 0 2px 12px rgba(0,0,0,.35);
+  --font-display: 'Noto Serif', 'Songti SC', 'STSong', serif;
+  --font-body: 'Prompt', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f2f0ec;
+    --surface: #e9e6e0;
+    --card: #ffffff;
+    --card-hover: #f7f6f3;
+    --border: #d8d4cc;
+    --text: #2c2e33;
+    --text-dim: #6b6f7a;
+    --heading: #1a1c22;
+    --accent: #a83e34;
+    --accent-hover: #bf4a3e;
+    --accent-bg: rgba(168,62,52,.08);
+    --seal: #a83e34;
+    --jade: #2e8a60;
+    --jade-bg: rgba(46,138,96,.1);
+    --amber: #b07e28;
+    --amber-bg: rgba(176,126,40,.1);
+    --sky: #2e78a8;
+    --sky-bg: rgba(46,120,168,.1);
+    --plum: #8a56a8;
+    --plum-bg: rgba(138,86,168,.1);
+    --search-bg: #e4e1db;
+    --input-bg: #ffffff;
+    --shadow: 0 2px 10px rgba(0,0,0,.08);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f2f0ec;
+  --surface: #e9e6e0;
+  --card: #ffffff;
+  --card-hover: #f7f6f3;
+  --border: #d8d4cc;
+  --text: #2c2e33;
+  --text-dim: #6b6f7a;
+  --heading: #1a1c22;
+  --accent: #a83e34;
+  --accent-hover: #bf4a3e;
+  --accent-bg: rgba(168,62,52,.08);
+  --seal: #a83e34;
+  --jade: #2e8a60;
+  --jade-bg: rgba(46,138,96,.1);
+  --amber: #b07e28;
+  --amber-bg: rgba(176,126,40,.1);
+  --sky: #2e78a8;
+  --sky-bg: rgba(46,120,168,.1);
+  --plum: #8a56a8;
+  --plum-bg: rgba(138,86,168,.1);
+  --search-bg: #e4e1db;
+  --input-bg: #ffffff;
+  --shadow: 0 2px 10px rgba(0,0,0,.08);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  padding-inline: 16px;
+  padding-block: 0;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Hero / Search --- */
+.hero {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 0 24px;
+  text-align: left;
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 700;
+  color: var(--heading);
+  margin: 0 0 4px;
+  letter-spacing: .01em;
+}
+.hero h1 span.seal {
+  color: var(--seal);
+  font-style: italic;
+}
+.hero .subtitle {
+  color: var(--text-dim);
+  font-size: .95rem;
+  margin: 0 0 24px;
+  font-weight: 300;
+}
+.search-wrap {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  background: var(--bg);
+  padding: 12px 0 8px;
+  margin-inline: -16px;
+  padding-inline: 16px;
+}
+.search-box {
+  display: flex;
+  gap: 0;
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.search-box:focus-within {
+  border-color: var(--accent);
+}
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  outline: none;
+}
+.search-box input::placeholder {
+  color: var(--text-dim);
+  opacity: .7;
+}
+.search-box .clear-btn {
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.search-box .clear-btn:hover { color: var(--accent); }
+.search-hint {
+  max-width: 720px;
+  margin: 8px auto 0;
+  font-size: .78rem;
+  color: var(--text-dim);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.search-hint kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-body);
+  font-size: .75rem;
+}
+
+/* --- Stats bar --- */
+.stats {
+  max-width: 720px;
+  margin: 16px auto 0;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: .82rem;
+  color: var(--text-dim);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stats strong { color: var(--text); font-weight: 600; }
+
+/* --- Category --- */
+.category {
+  max-width: 720px;
+  margin: 28px auto 0;
+}
+.cat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cat-header:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
+.cat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cat-icon.red { background: var(--accent-bg); color: var(--accent); }
+.cat-icon.jade { background: var(--jade-bg); color: var(--jade); }
+.cat-icon.amber { background: var(--amber-bg); color: var(--amber); }
+.cat-icon.sky { background: var(--sky-bg); color: var(--sky); }
+.cat-icon.plum { background: var(--plum-bg); color: var(--plum); }
+.cat-title {
+  flex: 1;
+  min-width: 0;
+}
+.cat-title h2 {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--heading);
+  margin: 0;
+  text-wrap: balance;
+}
+.cat-title .cat-desc {
+  font-size: .78rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+.cat-toggle {
+  font-size: .8rem;
+  color: var(--text-dim);
+  transition: transform .25s;
+  flex-shrink: 0;
+}
+.cat-header[aria-expanded="false"] .cat-toggle { transform: rotate(-90deg); }
+.cat-body { padding: 0 0 8px; }
+.cat-body[hidden] { display: none !important; }
+
+.search-all-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.btn-search-all {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-family: var(--font-body);
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.btn-search-all:hover { background: var(--accent-hover); }
+.btn-search-all:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-search-all:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* --- Site cards --- */
+.sites-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 540px) {
+  .sites-grid { grid-template-columns: 1fr 1fr; }
+}
+.site-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background .15s, border-color .15s;
+  min-width: 0;
+}
+.site-card:hover {
+  background: var(--card-hover);
+  border-color: var(--text-dim);
+}
+.site-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.site-name {
+  flex: 1;
+  min-width: 0;
+}
+.site-name .zh {
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--heading);
+  display: block;
+  word-break: break-all;
+}
+.site-name .th {
+  font-size: .78rem;
+  color: var(--text-dim);
+  display: block;
+  margin-top: 1px;
+}
+.site-domain {
+  font-size: .72rem;
+  color: var(--text-dim);
+  opacity: .7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+.tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tag {
+  font-size: .68rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+.tag-vpn { background: var(--amber-bg); color: var(--amber); }
+.tag-free { background: var(--jade-bg); color: var(--jade); }
+.tag-novpn { background: var(--sky-bg); color: var(--sky); }
+.tag-partial { background: var(--plum-bg); color: var(--plum); }
+.tag-dl { background: var(--accent-bg); color: var(--accent); }
+
+.site-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.site-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: all .15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.site-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.site-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.site-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.site-btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* --- History --- */
+.history {
+  max-width: 720px;
+  margin: 20px auto 0;
+}
+.history h3 {
+  font-size: .82rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+.history-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.history-tag {
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: .8rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: all .15s;
+  font-family: var(--font-body);
+}
+.history-tag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.history-clear {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+  font-size: .78rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.history-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+/* --- Footer --- */
+.footer {
+  max-width: 720px;
+  margin: 40px auto 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: .75rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* --- Notice --- */
+.notice {
+  max-width: 720px;
+  margin: 24px auto 0;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 8px 8px 0;
+  font-size: .8rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.notice strong { color: var(--amber); font-weight: 600; }
+
+/* --- Scroll to top --- */
+.scroll-top {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: opacity .2s, transform .2s;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scroll-top[hidden] { display: none !important; }
+.scroll-top:hover { transform: scale(1.1); }
+</style>
+
+<div class="hero">
+  <h1>ค้นหานิยายจีน <span class="seal">搜书</span></h1>
+  <p class="subtitle">รวมแหล่งอ่านและดาวน์โหลดนิยายจีนฟรี ครบทุกเว็บในที่เดียว</p>
+</div>
+
+<div class="search-wrap" id="searchWrap">
+  <div class="search-box">
+    <input type="text" id="q" placeholder="พิมพ์ชื่อนิยาย เช่น 斗破苍穹, 全职高手, 诡秘之主..." autocomplete="off" autofocus>
+    <button class="clear-btn" id="clearBtn" hidden aria-label="ล้าง">&times;</button>
+  </div>
+  <div class="search-hint">
+    <span>พิมพ์ชื่อภาษาจีน แล้วกดปุ่มค้นหาที่เว็บไหนก็ได้</span>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div id="historySection" class="history" hidden>
+  <h3>ค้นหาล่าสุด</h3>
+  <div class="history-tags" id="historyTags"></div>
+</div>
+
+<div id="categories"></div>
+
+<div class="notice">
+  <strong>หมายเหตุ:</strong> เว็บที่มีป้าย VPN ต้องใช้ VPN เชื่อมต่อไปจีนจึงจะเข้าถึงได้ เว็บที่ไม่มีป้าย VPN สามารถเข้าถึงได้โดยตรง โดเมนของเว็บรวมนิยายอาจเปลี่ยนแปลงได้ หากเข้าไม่ได้ ให้ใช้เครื่องมือค้นหาด้านล่างเพื่อหาโดเมนใหม่
+</div>
+
+<div class="footer">
+  ค้นหานิยายจีน 搜书 &middot; Fanqie Novel Downloader<br>
+  เครื่องมือช่วยค้นหานิยายจีนจากหลายแหล่ง
+</div>
+
+<button class="scroll-top" id="scrollTop" hidden aria-label="เลื่อนขึ้น">&uarr;</button>
+
+<script>
+const SITES = [
+  {
+    id: 'free-cn',
+    name: 'แพลตฟอร์มนิยายจีนฟรี 100%',
+    nameZh: '免费小说平台',
+    desc: 'แพลตฟอร์มอย่างเป็นทางการ ฟรีทั้งหมด (ต้องใช้ VPN)',
+    icon: '书', color: 'red',
+    sites: [
+      { zh: '番茄小说', th: 'ฝานเชี่ย - ByteDance ฟรี 100%', domain: 'fanqienovel.com',
+        search: 'https://fanqienovel.com/search?keyword={q}',
+        home: 'https://fanqienovel.com',
+        tags: ['vpn','free'] },
+      { zh: '七猫免费小说', th: 'ชีเมา - ฟรี 100% มีแอป', domain: 'qimao.com',
+        search: 'https://www.qimao.com/search/{q}/',
+        home: 'https://www.qimao.com',
+        tags: ['vpn','free'] },
+      { zh: '书旗小说', th: 'ซูฉี - Alibaba ฟรี 100%', domain: 'shuqi.com',
+        search: 'https://www.google.com/search?q=site:shuqi.com+{q}',
+        home: 'https://www.shuqi.com',
+        tags: ['vpn','free'] },
+      { zh: '疯读小说', th: 'เฟิงตู - ฟรี 100%', domain: 'fengdu.com',
+        search: 'https://www.google.com/search?q=site:fengdu.com+{q}',
+        home: 'https://www.fengdu.com',
+        tags: ['vpn','free'] },
+      { zh: '番茄畅听', th: 'ฝานเชี่ยฟังเสียง - หนังสือเสียงฟรี', domain: 'changting.com',
+        search: 'https://www.google.com/search?q=site:changting.com+{q}',
+        home: 'https://www.changting.com',
+        tags: ['vpn','free'] },
+    ]
+  },
+  {
+    id: 'premium-cn',
+    name: 'แพลตฟอร์มจีนชั้นนำ',
+    nameZh: '主流小说平台',
+    desc: 'เว็บใหญ่ของจีน มีเนื้อหาฟรีบางส่วน (ต้องใช้ VPN)',
+    icon: '阅', color: 'amber',
+    sites: [
+      { zh: '起点中文网', th: 'ฉี่เตี่ยน - เว็บนิยายใหญ่สุดของจีน', domain: 'qidian.com',
+        search: 'https://www.qidian.com/search?kw={q}',
+        home: 'https://www.qidian.com',
+        tags: ['vpn','partial'] },
+      { zh: '纵横中文网', th: 'จงเหิง - นิยายแอคชัน แฟนตาซี', domain: 'zongheng.com',
+        search: 'https://search.zongheng.com/s?keyword={q}',
+        home: 'https://www.zongheng.com',
+        tags: ['vpn','partial'] },
+      { zh: '晋江文学城', th: 'จิ้นเจียง - นิยายผู้หญิง BL GL', domain: 'jjwxc.net',
+        search: 'https://www.jjwxc.net/search.php?kw={q}',
+        home: 'https://www.jjwxc.net',
+        tags: ['vpn','partial'] },
+      { zh: '17K小说网', th: '17K - หลากหลายแนว', domain: '17k.com',
+        search: 'https://www.google.com/search?q=site:17k.com+{q}+小说',
+        home: 'https://www.17k.com',
+        tags: ['vpn','partial'] },
+      { zh: '刺猬猫', th: 'ฉือเว่ยเมา - ไลท์โนเวล อนิเมะ', domain: 'ciweimao.com',
+        search: 'https://www.google.com/search?q=site:ciweimao.com+{q}',
+        home: 'https://www.ciweimao.com',
+        tags: ['vpn','partial'] },
+      { zh: '飞卢小说', th: 'เฟยลู - แฟนฟิค ครอสโอเวอร์', domain: 'faloo.com',
+        search: 'https://www.google.com/search?q=site:faloo.com+{q}',
+        home: 'https://www.faloo.com',
+        tags: ['vpn','partial'] },
+      { zh: '潇湘书院', th: 'เซียวเซียง - นิยายผู้หญิง', domain: 'xxsy.net',
+        search: 'https://www.google.com/search?q=site:xxsy.net+{q}',
+        home: 'https://www.xxsy.net',
+        tags: ['vpn','partial'] },
+      { zh: '红袖添香', th: 'หงซิ่ว - นิยายรักผู้หญิง', domain: 'hongxiu.com',
+        search: 'https://www.google.com/search?q=site:hongxiu.com+{q}',
+        home: 'https://www.hongxiu.com',
+        tags: ['vpn','partial'] },
+    ]
+  },
+  {
+    id: 'aggregator',
+    name: 'เว็บรวมนิยายจีน (ไม่ต้อง VPN)',
+    nameZh: '聚合小说站',
+    desc: 'เข้าถึงได้โดยตรง ไม่ต้องใช้ VPN โดเมนอาจเปลี่ยนแปลง',
+    icon: '聚', color: 'jade',
+    sites: [
+      { zh: '69书吧', th: '69 ซูปา - รวมนิยายครบ อัปเดตเร็ว', domain: '69shuba.cx',
+        search: 'https://www.69shuba.cx/modules/article/search.php?searchkey={q}',
+        home: 'https://www.69shuba.cx',
+        tags: ['novpn','free','dl'] },
+      { zh: '笔趣阁', th: 'ปี้ชวี่เก๋อ - เว็บรวมนิยายเก่าแก่', domain: 'biquge.tw',
+        search: 'https://www.google.com/search?q=笔趣阁+{q}+小说',
+        home: 'https://www.biquge.tw',
+        tags: ['novpn','free'] },
+      { zh: '新笔趣阁', th: 'ปี้ชวี่เก๋อใหม่ - มิเรอร์หลายโดเมน', domain: 'xsbiquge.com',
+        search: 'https://www.google.com/search?q=新笔趣阁+{q}',
+        home: 'https://www.xsbiquge.com',
+        tags: ['novpn','free'] },
+      { zh: '飘天文学', th: 'เพียวเทียน - นิยายอัปเดตเร็ว', domain: 'piaotia.com',
+        search: 'https://www.google.com/search?q=site:piaotia.com+{q}',
+        home: 'https://www.piaotia.com',
+        tags: ['novpn','free'] },
+      { zh: 'UU看书', th: 'UU อ่านหนังสือ - อินเตอร์เฟสดี', domain: 'uukanshu.cc',
+        search: 'https://www.google.com/search?q=site:uukanshu.cc+{q}',
+        home: 'https://www.uukanshu.cc',
+        tags: ['novpn','free'] },
+      { zh: '顶点小说', th: 'ติ่งเตี่ยน - มิเรอร์หลายโดเมน', domain: 'ddxsku.com',
+        search: 'https://www.google.com/search?q=顶点小说+{q}',
+        home: 'https://www.ddxsku.com',
+        tags: ['novpn','free'] },
+      { zh: '全本小说网', th: 'ฉวนเปิ่น - นิยายจบแล้ว', domain: 'quanben.io',
+        search: 'https://www.google.com/search?q=site:quanben.io+{q}',
+        home: 'https://www.quanben.io',
+        tags: ['novpn','free'] },
+      { zh: '乐文小说网', th: 'เล่อเหวิน - รวมนิยายหลายแนว', domain: 'lewenn.com',
+        search: 'https://www.google.com/search?q=乐文小说+{q}',
+        home: 'https://www.lewenn.com',
+        tags: ['novpn','free'] },
+      { zh: '八一中文网', th: 'ปาอี - นิยายทหาร แอคชัน', domain: 'zwdu.com',
+        search: 'https://www.google.com/search?q=八一中文网+{q}',
+        home: 'https://www.zwdu.com',
+        tags: ['novpn','free'] },
+      { zh: '书趣阁', th: 'ซูชวี่เก๋อ - อัปเดตรวดเร็ว', domain: 'shuquge.com',
+        search: 'https://www.google.com/search?q=书趣阁+{q}+小说',
+        home: 'https://www.shuquge.com',
+        tags: ['novpn','free'] },
+    ]
+  },
+  {
+    id: 'english',
+    name: 'นิยายจีนแปลอังกฤษ (ไม่ต้อง VPN)',
+    nameZh: '英文翻译站',
+    desc: 'เว็บนิยายจีนแปลเป็นภาษาอังกฤษ เข้าถึงได้ทั่วโลก',
+    icon: 'EN', color: 'sky',
+    sites: [
+      { zh: 'WebNovel', th: 'Qidian สากล - แปลอย่างเป็นทางการ', domain: 'webnovel.com',
+        search: 'https://www.webnovel.com/search?keywords={q}',
+        home: 'https://www.webnovel.com',
+        tags: ['novpn','partial'] },
+      { zh: 'WuxiaWorld', th: 'อู่เซี่ย - นิยายจีนกำลังภายใน', domain: 'wuxiaworld.com',
+        search: 'https://www.wuxiaworld.com/search?query={q}',
+        home: 'https://www.wuxiaworld.com',
+        tags: ['novpn','partial'] },
+      { zh: 'NovelUpdates', th: 'ฐานข้อมูลนิยายแปล ครบที่สุด', domain: 'novelupdates.com',
+        search: 'https://www.novelupdates.com/?s={q}',
+        home: 'https://www.novelupdates.com',
+        tags: ['novpn','free'] },
+      { zh: 'LightNovelWorld', th: 'ไลท์โนเวลและเว็บโนเวลจีน', domain: 'lightnovelworld.com',
+        search: 'https://www.lightnovelworld.com/search?keyword={q}',
+        home: 'https://www.lightnovelworld.com',
+        tags: ['novpn','free'] },
+      { zh: 'FreeWebNovel', th: 'นิยายจีนแปลฟรี', domain: 'freewebnovel.com',
+        search: 'https://freewebnovel.com/search/?searchkey={q}',
+        home: 'https://freewebnovel.com',
+        tags: ['novpn','free'] },
+      { zh: 'Novel Bin', th: 'รวมนิยายจีนแปลอังกฤษ', domain: 'novelbin.com',
+        search: 'https://novelbin.com/search?keyword={q}',
+        home: 'https://novelbin.com',
+        tags: ['novpn','free'] },
+    ]
+  },
+  {
+    id: 'engines',
+    name: 'เครื่องมือค้นหาเฉพาะนิยาย',
+    nameZh: '搜索引擎',
+    desc: 'ค้นผ่าน Search Engine พร้อมคำค้นเฉพาะนิยายจีน',
+    icon: '搜', color: 'plum',
+    sites: [
+      { zh: 'Google', th: 'ค้นหาทั่วไป + คำค้นนิยาย', domain: 'google.com',
+        search: 'https://www.google.com/search?q={q}+小说+免费阅读+全文',
+        home: 'https://www.google.com',
+        tags: ['novpn'] },
+      { zh: 'Google (site:)', th: 'ค้นเฉพาะเว็บนิยาย', domain: 'google.com',
+        search: 'https://www.google.com/search?q={q}+小说+site:69shuba.cx+OR+site:biquge.tw+OR+site:piaotia.com',
+        home: 'https://www.google.com',
+        tags: ['novpn'] },
+      { zh: '百度 Baidu', th: 'เครื่องมือค้นหาจีน ผลลัพธ์ดีที่สุด', domain: 'baidu.com',
+        search: 'https://www.baidu.com/s?wd={q}+小说+免费+全文+在线阅读',
+        home: 'https://www.baidu.com',
+        tags: ['novpn'] },
+      { zh: '搜狗 Sogou', th: 'เครื่องมือค้นหาจีน ผลต่างจาก Baidu', domain: 'sogou.com',
+        search: 'https://www.sogou.com/web?query={q}+小说+免费阅读',
+        home: 'https://www.sogou.com',
+        tags: ['novpn'] },
+      { zh: 'Bing', th: 'ค้นหาสากล ผลภาษาจีนดี', domain: 'bing.com',
+        search: 'https://www.bing.com/search?q={q}+小说+免费阅读+全文',
+        home: 'https://www.bing.com',
+        tags: ['novpn'] },
+      { zh: 'DuckDuckGo', th: 'ค้นหาเน้นความเป็นส่วนตัว', domain: 'duckduckgo.com',
+        search: 'https://duckduckgo.com/?q={q}+小说+免费阅读',
+        home: 'https://duckduckgo.com',
+        tags: ['novpn'] },
+      { zh: 'Yandex', th: 'เครื่องมือค้นหารัสเซีย ดีกับจีน', domain: 'yandex.com',
+        search: 'https://yandex.com/search/?text={q}+小说+免费阅读',
+        home: 'https://yandex.com',
+        tags: ['novpn'] },
+    ]
+  },
+];
+
+const TAG_LABELS = {
+  vpn: { text: 'VPN', cls: 'tag-vpn' },
+  free: { text: 'ฟรี 100%', cls: 'tag-free' },
+  novpn: { text: 'ไม่ต้อง VPN', cls: 'tag-novpn' },
+  partial: { text: 'บางส่วนฟรี', cls: 'tag-partial' },
+  dl: { text: 'ดาวน์โหลดได้', cls: 'tag-dl' },
+};
+
+const qInput = document.getElementById('q');
+const clearBtn = document.getElementById('clearBtn');
+const categoriesEl = document.getElementById('categories');
+const statsEl = document.getElementById('stats');
+const scrollTopBtn = document.getElementById('scrollTop');
+
+let totalSites = 0;
+let totalEngines = 0;
+SITES.forEach(cat => {
+  if (cat.id === 'engines') totalEngines += cat.sites.length;
+  else totalSites += cat.sites.length;
+});
+statsEl.innerHTML = `รวม <strong>${totalSites}</strong> เว็บไซต์ &middot; <strong>${totalEngines}</strong> เครื่องมือค้นหา &middot; <strong>${SITES.length}</strong> หมวดหมู่`;
+
+function renderCategories() {
+  categoriesEl.innerHTML = '';
+  SITES.forEach(cat => {
+    const section = document.createElement('section');
+    section.className = 'category';
+    section.innerHTML = `
+      <div class="cat-header" role="button" tabindex="0" aria-expanded="true" data-cat="${cat.id}">
+        <div class="cat-icon ${cat.color}">${cat.icon}</div>
+        <div class="cat-title">
+          <h2>${cat.name} <span style="font-weight:400;opacity:.5;font-size:.85em">${cat.nameZh}</span></h2>
+          <p class="cat-desc">${cat.desc}</p>
+        </div>
+        <span class="cat-toggle" aria-hidden="true">&#9662;</span>
+      </div>
+      <div class="cat-body" id="body-${cat.id}">
+        <div class="search-all-row">
+          <button class="btn-search-all" data-cat-id="${cat.id}" disabled>ค้นหาทั้งหมดในหมวดนี้</button>
+        </div>
+        <div class="sites-grid" id="grid-${cat.id}"></div>
+      </div>`;
+    categoriesEl.appendChild(section);
+    renderSites(cat);
+  });
+  attachToggle();
+  attachSearchAll();
+}
+
+function renderSites(cat) {
+  const grid = document.getElementById('grid-' + cat.id);
+  const query = qInput.value.trim();
+  grid.innerHTML = '';
+  cat.sites.forEach((site, i) => {
+    const card = document.createElement('div');
+    card.className = 'site-card';
+    const tagsHtml = site.tags.map(t => {
+      const tl = TAG_LABELS[t];
+      return tl ? `<span class="tag ${tl.cls}">${tl.text}</span>` : '';
+    }).join('');
+    const searchUrl = query ? site.search.replace('{q}', encodeURIComponent(query)) : '';
+    const actionsHtml = query
+      ? `<a class="site-btn primary" href="${searchUrl}" target="_blank" rel="noopener">ค้นหา &rarr;</a>
+         <a class="site-btn" href="${site.home}" target="_blank" rel="noopener">หน้าหลัก</a>`
+      : `<a class="site-btn" href="${site.home}" target="_blank" rel="noopener">ไปที่เว็บไซต์ &rarr;</a>`;
+    card.innerHTML = `
+      <div class="site-top">
+        <div class="site-name">
+          <span class="zh">${site.zh}</span>
+          <span class="th">${site.th}</span>
+        </div>
+        <span class="site-domain">${site.domain}</span>
+      </div>
+      <div class="tags">${tagsHtml}</div>
+      <div class="site-actions">${actionsHtml}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function attachToggle() {
+  document.querySelectorAll('.cat-header').forEach(header => {
+    const handler = () => {
+      const expanded = header.getAttribute('aria-expanded') === 'true';
+      header.setAttribute('aria-expanded', !expanded);
+      const body = header.nextElementSibling;
+      body.hidden = expanded;
+    };
+    header.addEventListener('click', handler);
+    header.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); } });
+  });
+}
+
+function attachSearchAll() {
+  document.querySelectorAll('.btn-search-all').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const query = qInput.value.trim();
+      if (!query) return;
+      const catId = btn.dataset.catId;
+      const cat = SITES.find(c => c.id === catId);
+      if (!cat) return;
+      cat.sites.forEach((site, i) => {
+        setTimeout(() => {
+          window.open(site.search.replace('{q}', encodeURIComponent(query)), '_blank', 'noopener');
+        }, i * 300);
+      });
+    });
+  });
+}
+
+function updateSearch() {
+  const query = qInput.value.trim();
+  clearBtn.hidden = !query;
+  SITES.forEach(cat => renderSites(cat));
+  document.querySelectorAll('.btn-search-all').forEach(btn => {
+    btn.disabled = !query;
+  });
+}
+
+let debounceTimer;
+qInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(updateSearch, 200);
+});
+
+qInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const query = qInput.value.trim();
+    if (query) {
+      saveHistory(query);
+      updateSearch();
+    }
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  qInput.value = '';
+  qInput.focus();
+  updateSearch();
+});
+
+// History
+const HISTORY_KEY = 'novel-search-history';
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch { return []; }
+}
+function saveHistory(q) {
+  try {
+    let hist = loadHistory();
+    hist = hist.filter(h => h !== q);
+    hist.unshift(q);
+    if (hist.length > 12) hist = hist.slice(0, 12);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    renderHistory();
+  } catch {}
+}
+function renderHistory() {
+  const hist = loadHistory();
+  const section = document.getElementById('historySection');
+  const container = document.getElementById('historyTags');
+  if (!hist.length) { section.hidden = true; return; }
+  section.hidden = false;
+  container.innerHTML = '';
+  hist.forEach(q => {
+    const tag = document.createElement('button');
+    tag.className = 'history-tag';
+    tag.textContent = q;
+    tag.addEventListener('click', () => {
+      qInput.value = q;
+      updateSearch();
+      saveHistory(q);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    container.appendChild(tag);
+  });
+  const clearAll = document.createElement('button');
+  clearAll.className = 'history-clear';
+  clearAll.textContent = 'ล้างทั้งหมด';
+  clearAll.addEventListener('click', () => {
+    try { localStorage.removeItem(HISTORY_KEY); } catch {}
+    renderHistory();
+  });
+  container.appendChild(clearAll);
+}
+
+// Scroll to top
+window.addEventListener('scroll', () => {
+  scrollTopBtn.hidden = window.scrollY < 400;
+}, { passive: true });
+scrollTopBtn.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Init
+renderCategories();
+renderHistory();
+updateSearch();
+</script>
