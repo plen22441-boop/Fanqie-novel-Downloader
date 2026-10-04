@@ -11,6 +11,10 @@ import time
 import random
 import argparse
 import requests
+try:
+    import cloudscraper
+except ImportError:
+    cloudscraper = None
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -238,7 +242,7 @@ def scrape_chapter_list(book_url, html):
 
     # ลองดึง link ตอนจาก pattern ต่างๆ
     patterns = [
-        f"/book/{book_id}/", f"/read/{book_id}/",
+        f"/book/{book_id}/", f"/read/{book_id}/", f"/txt/{book_id}/",
         f"/{book_id}/", f"chapter", f"chap",
     ]
     for a in soup.find_all("a", href=True):
@@ -346,6 +350,16 @@ def main():
     session = requests.Session()
     session.headers.update({"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"})
 
+    def maybe_upgrade_session(html):
+        """Switch to cloudscraper if Cloudflare challenge detected."""
+        nonlocal session
+        if cloudscraper and ("Just a moment" in html or "cf-browser-verification" in html):
+            print("      [INFO] Cloudflare detected, switching to cloudscraper...")
+            session = cloudscraper.create_scraper()
+            session.headers.update({"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"})
+            return True
+        return False
+
     # ─ Detect mode
     if is_fanqie(target) or (target.isdigit() and len(target) >= 10):
         # Fanqie novel
@@ -386,6 +400,8 @@ def main():
 
         print(f"[1/3] ดึงข้อมูลหนังสือ...")
         name, author, html = scrape_book_info(session, book_url)
+        if maybe_upgrade_session(html):
+            name, author, html = scrape_book_info(session, book_url)
         print(f"      ชื่อ: {name} | ผู้แต่ง: {author}")
 
         print(f"[2/3] ดึงรายชื่อตอน...")
