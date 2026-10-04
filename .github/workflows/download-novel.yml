@@ -26,7 +26,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 cloudscraper
+        run: |
+          pip install requests beautifulsoup4 cloudscraper playwright
+          python -m playwright install chromium --with-deps
 
       - name: Download novel
         id: download

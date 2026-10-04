@@ -15,6 +15,10 @@ try:
     import cloudscraper
 except ImportError:
     cloudscraper = None
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -170,6 +174,43 @@ def download_fanqie_chapter(session, chapter, max_retries=5):
             pass
         time.sleep(1.5 * (attempt + 1))
     return chapter["index"], chapter["title"], ""
+
+
+# ─── Playwright fallback for Cloudflare ────────────────────────────────────────
+
+def playwright_get_page(url, wait_sec=10):
+    """Use a real browser to bypass Cloudflare, return (html, cookies_dict)."""
+    if not sync_playwright:
+        return None, {}
+    print(f"      [INFO] Using Playwright browser to bypass Cloudflare...")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx = browser.new_context(
+            user_agent=USER_AGENTS[0],
+            locale="zh-CN",
+        )
+        page = ctx.new_page()
+        page.goto(url, wait_until="domcontentloaded")
+        # Wait for Cloudflare to clear
+        for _ in range(wait_sec * 2):
+            title = page.title()
+            if "Just a moment" not in title and "Checking" not in title:
+                break
+            time.sleep(0.5)
+        time.sleep(2)
+        html = page.content()
+        cookies = {c["name"]: c["value"] for c in ctx.cookies()}
+        browser.close()
+    return html, cookies
+
+
+def playwright_session_from_cookies(cookies, base_url=""):
+    """Build a requests.Session carrying cookies from Playwright."""
+    s = requests.Session()
+    s.headers.update(get_headers(base_url))
+    for name, value in cookies.items():
+        s.cookies.set(name, value)
+    return s
 
 
 # ─── Generic web scraping path ─────────────────────────────────────────────────
@@ -350,15 +391,31 @@ def main():
     session = requests.Session()
     session.headers.update({"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"})
 
-    def maybe_upgrade_session(html):
-        """Switch to cloudscraper if Cloudflare challenge detected."""
+    def is_cloudflare(html):
+        return "Just a moment" in html or "cf-browser-verification" in html
+
+    def maybe_upgrade_session(html, url=""):
+        """Try cloudscraper, then Playwright if Cloudflare challenge detected."""
         nonlocal session
-        if cloudscraper and ("Just a moment" in html or "cf-browser-verification" in html):
-            print("      [INFO] Cloudflare detected, switching to cloudscraper...")
+        if not is_cloudflare(html):
+            return False, html
+        if cloudscraper:
+            print("      [INFO] Cloudflare detected, trying cloudscraper...")
             session = cloudscraper.create_scraper()
             session.headers.update({"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"})
-            return True
-        return False
+            try:
+                r = session.get(url, headers=get_headers(), timeout=15)
+                if r.ok and not is_cloudflare(r.text):
+                    return True, r.text
+            except Exception:
+                pass
+        if sync_playwright and url:
+            pw_html, cookies = playwright_get_page(url)
+            if pw_html and not is_cloudflare(pw_html):
+                session = playwright_session_from_cookies(cookies, url)
+                return True, pw_html
+        print("      [WARN] Could not bypass Cloudflare")
+        return True, html
 
     # ─ Detect mode
     if is_fanqie(target) or (target.isdigit() and len(target) >= 10):
@@ -400,8 +457,21 @@ def main():
 
         print(f"[1/3] ดึงข้อมูลหนังสือ...")
         name, author, html = scrape_book_info(session, book_url)
-        if maybe_upgrade_session(html):
-            name, author, html = scrape_book_info(session, book_url)
+        upgraded, html = maybe_upgrade_session(html, book_url)
+        if upgraded:
+            soup = BeautifulSoup(html, "html.parser")
+            for sel in ["h1.book-name", "h1.name", ".book-title h1", "h1"]:
+                el = soup.select_one(sel)
+                if el:
+                    n = el.get_text(strip=True)
+                    if n and "moment" not in n.lower():
+                        name = n
+                        break
+            for sel in [".author", ".book-author", "[class*='author']"]:
+                el = soup.select_one(sel)
+                if el:
+                    author = el.get_text(strip=True)
+                    break
         print(f"      ชื่อ: {name} | ผู้แต่ง: {author}")
 
         print(f"[2/3] ดึงรายชื่อตอน...")
