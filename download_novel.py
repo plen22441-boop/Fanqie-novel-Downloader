@@ -181,6 +181,13 @@ def download_fanqie_chapter(session, chapter, max_retries=5):
 PW_USER_AGENT = USER_AGENTS[0]
 
 
+CHALLENGE_MARKERS = ("Just a moment", "Checking", "正在验证浏览器", "cf-browser-verification")
+
+
+def is_challenge(html):
+    return any(m in html for m in CHALLENGE_MARKERS) and len(html) < 20000
+
+
 def playwright_get_page(url, wait_sec=10):
     """Use a real browser to bypass Cloudflare, return (html, cookies_dict)."""
     if not sync_playwright:
@@ -196,7 +203,7 @@ def playwright_get_page(url, wait_sec=10):
         page.goto(url, wait_until="domcontentloaded")
         for _ in range(wait_sec * 2):
             title = page.title()
-            if "Just a moment" not in title and "Checking" not in title:
+            if not any(m in title for m in CHALLENGE_MARKERS):
                 break
             time.sleep(0.5)
         time.sleep(2)
@@ -204,6 +211,32 @@ def playwright_get_page(url, wait_sec=10):
         cookies = {c["name"]: c["value"] for c in ctx.cookies()}
         browser.close()
     return html, cookies
+
+
+def playwright_fetch_many(urls, wait_sec=10):
+    """Fetch pages one by one in a single real browser. Returns {url: html}."""
+    out = {}
+    if not sync_playwright or not urls:
+        return out
+    print(f"      [INFO] Playwright fallback for {len(urls)} pages...")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx = browser.new_context(user_agent=PW_USER_AGENT, locale="zh-CN")
+        page = ctx.new_page()
+        for i, u in enumerate(urls, 1):
+            try:
+                page.goto(u, wait_until="domcontentloaded")
+                for _ in range(wait_sec * 2):
+                    if not any(m in page.title() for m in CHALLENGE_MARKERS):
+                        break
+                    time.sleep(0.5)
+                out[u] = page.content()
+            except Exception as e:
+                print(f"      [WARN] playwright {u}: {type(e).__name__}")
+            if i % 50 == 0:
+                print(f"      [INFO] playwright {i}/{len(urls)}")
+        browser.close()
+    return out
 
 
 def playwright_session_from_cookies(cookies, base_url=""):
@@ -424,7 +457,7 @@ def main():
     session.headers.update({"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"})
 
     def is_cloudflare(html):
-        return "Just a moment" in html or "cf-browser-verification" in html
+        return is_challenge(html)
 
     def maybe_upgrade_session(html, url=""):
         """Try cloudscraper, then Playwright if Cloudflare challenge detected."""
@@ -522,6 +555,12 @@ def main():
         if not chapters:
             sys.exit("[ERROR] ไม่พบตอนใดๆ — เว็บอาจต้อง login หรือใช้ JavaScript")
 
+        if "ixdzs" in domain:
+            pw_html, pw_cookies = playwright_get_page(chapters[0]["url"])
+            if pw_html and not is_challenge(pw_html):
+                session = playwright_session_from_cookies(pw_cookies, book_url)
+                print(f"      [INFO] ผ่านด่านตรวจเบราว์เซอร์แล้ว cookies: {list(pw_cookies)}")
+
         print(f"[3/3] โหลดเนื้อหา ({args.workers} workers)...")
         results = [None] * len(chapters)
         failed = []
@@ -538,6 +577,23 @@ def main():
                 if not content:
                     failed.append(title)
         print()
+
+        missing = [ch for ch in chapters if not results[ch["index"]][1]]
+        if missing and sync_playwright:
+            pages = playwright_fetch_many([ch["url"] for ch in missing])
+            for ch in missing:
+                html_ch = pages.get(ch["url"])
+                if not html_ch or is_challenge(html_ch):
+                    continue
+                text = extract_text_from_html(html_ch, ch["url"])
+                if len(text.replace(" ", "").replace("\n", "")) <= 80:
+                    continue
+                title = ch["title"]
+                if title.startswith("http") or not title:
+                    pt = BeautifulSoup(html_ch, "html.parser").title
+                    title = pt.string.split("_")[0].strip() if pt and pt.string else f"第{ch['index']+1}章"
+                results[ch["index"]] = (title, text)
+            failed = [r[0] for r in results if not r[1]]
 
     # ─ Save
     name = re.sub(r"(最新章节|最新章節)$", "", name).strip()
