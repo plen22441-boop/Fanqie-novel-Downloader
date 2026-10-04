@@ -178,6 +178,9 @@ def download_fanqie_chapter(session, chapter, max_retries=5):
 
 # ─── Playwright fallback for Cloudflare ────────────────────────────────────────
 
+PW_USER_AGENT = USER_AGENTS[0]
+
+
 def playwright_get_page(url, wait_sec=10):
     """Use a real browser to bypass Cloudflare, return (html, cookies_dict)."""
     if not sync_playwright:
@@ -186,12 +189,11 @@ def playwright_get_page(url, wait_sec=10):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         ctx = browser.new_context(
-            user_agent=USER_AGENTS[0],
+            user_agent=PW_USER_AGENT,
             locale="zh-CN",
         )
         page = ctx.new_page()
         page.goto(url, wait_until="domcontentloaded")
-        # Wait for Cloudflare to clear
         for _ in range(wait_sec * 2):
             title = page.title()
             if "Just a moment" not in title and "Checking" not in title:
@@ -205,9 +207,11 @@ def playwright_get_page(url, wait_sec=10):
 
 
 def playwright_session_from_cookies(cookies, base_url=""):
-    """Build a requests.Session carrying cookies from Playwright."""
+    """Build a requests.Session with the SAME User-Agent Playwright used."""
     s = requests.Session()
-    s.headers.update(get_headers(base_url))
+    h = get_headers(base_url)
+    h["User-Agent"] = PW_USER_AGENT
+    s.headers.update(h)
     for name, value in cookies.items():
         s.cookies.set(name, value)
     return s
@@ -272,7 +276,11 @@ def scrape_book_info(session, book_url):
         return "未知书名", "未知作者", ""
 
 
-NAV_TXT = {"下一页", "上一页", "下页", "上页", "下一頁", "上一頁", "首页", "尾页", "末页", "目录", "返回目录", "书页", "返回", "首頁", "尾頁"}
+NAV_TXT = {
+    "下一页", "上一页", "下页", "上页", "下一頁", "上一頁", "首页", "尾页", "末页",
+    "目录", "返回目录", "书页", "返回", "首頁", "尾頁",
+    "登录", "登陆", "注册", "忘记密码", "找回密码", "退出", "设置",
+}
 
 
 def scrape_chapter_list(book_url, html):
@@ -360,7 +368,8 @@ def extract_chapter_title(html, fallback=""):
 def download_web_chapter(session, chapter, book_url, max_retries=5):
     for attempt in range(max_retries):
         try:
-            r = session.get(chapter["url"], headers=get_headers(book_url), timeout=25)
+            hdrs = {"Referer": book_url} if book_url else {}
+            r = session.get(chapter["url"], headers=hdrs, timeout=25)
             r.encoding = r.apparent_encoding or "utf-8"
             if r.ok:
                 text = extract_text_from_html(r.text, chapter["url"])
