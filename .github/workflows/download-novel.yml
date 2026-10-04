@@ -10,6 +10,10 @@ on:
         description: "จำนวน parallel workers (แนะนำ 20)"
         required: false
         default: "20"
+      probe:
+        description: "true = สำรวจโครงสร้างเว็บเท่านั้น (ไม่โหลดนิยาย)"
+        required: false
+        default: "false"
 
 jobs:
   download:
@@ -30,8 +34,13 @@ jobs:
           pip install requests beautifulsoup4 cloudscraper playwright
           python -m playwright install chromium --with-deps
 
+      - name: Probe site
+        if: github.event.inputs.probe == 'true'
+        run: python probe_site.py "${{ github.event.inputs.book_id }}"
+
       - name: Download novel
         id: download
+        if: github.event.inputs.probe != 'true'
         run: |
           python download_novel.py "${{ github.event.inputs.book_id }}" \
             --workers ${{ github.event.inputs.workers }} \
@@ -39,12 +48,14 @@ jobs:
             --retries 5
 
       - name: Set artifact name
+        if: github.event.inputs.probe != 'true'
         id: artifact_name
         run: |
           SAFE=$(echo "${{ github.event.inputs.book_id }}" | grep -oE '[0-9]+' | tail -1)
           echo "name=novel-${SAFE}" >> $GITHUB_OUTPUT
 
       - name: Upload TXT file
+        if: github.event.inputs.probe != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact_name.outputs.name }}
@@ -52,6 +63,7 @@ jobs:
           retention-days: 7
 
       - name: Push downloaded file to branch
+        if: github.event.inputs.probe != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -60,6 +72,7 @@ jobs:
           git push origin HEAD:${{ github.ref_name }} || true
 
       - name: Summary
+        if: github.event.inputs.probe != 'true'
         run: |
           echo "### ✅ โหลดเสร็จแล้ว" >> $GITHUB_STEP_SUMMARY
           echo "- Book ID: \`${{ github.event.inputs.book_id }}\`" >> $GITHUB_STEP_SUMMARY
