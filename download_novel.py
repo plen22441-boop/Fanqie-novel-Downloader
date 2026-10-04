@@ -33,7 +33,7 @@ USER_AGENTS = [
 ]
 
 CONTENT_SELECTORS = [
-    "#chaptercontent", "#BookText", "#content", "#booktxt", "#htmlContent",
+    "article.page-content", ".page-content", "#chaptercontent", "#BookText", "#content", "#booktxt", "#htmlContent",
     ".chapter-content", ".read-content", ".novel-content", ".chapter-txt",
     ".readcontent", ".duanzhang", ".box_con #content", "article .content",
     "#nr1", "#nr2", ".neirong", ".zuopin_content", "#novelcontent",
@@ -315,6 +315,17 @@ def scrape_chapter_list(book_url, html):
     return chapters
 
 
+def ixdzs_chapter_list(book_url, html):
+    """ixdzs8 loads its TOC via AJAX, but chapters are numbered /read/<id>/p<N>.html."""
+    book_id = extract_book_id(book_url)
+    base = f"{urlparse(book_url).scheme}://{urlparse(book_url).netloc}"
+    nums = [int(n) for n in re.findall(rf"/read/{book_id}/p(\d+)\.html", html)]
+    if not nums:
+        return []
+    return [{"url": f"{base}/read/{book_id}/p{n}.html", "title": f"{base}/read/{book_id}/p{n}.html"}
+            for n in range(1, max(nums) + 1)]
+
+
 def collect_chapters_all_pages(session, book_url, html, max_pages=300):
     """Merge chapter links from every page of a (possibly paginated) TOC."""
     NEXT_TXT = ("下一页", "下页", "下一頁", "下頁", "next", "Next", ">")
@@ -365,7 +376,11 @@ def extract_chapter_title(html, fallback=""):
     return fallback
 
 
+FAIL_REASONS = {}
+
+
 def download_web_chapter(session, chapter, book_url, max_retries=5):
+    reason = "unknown"
     for attempt in range(max_retries):
         try:
             hdrs = {"Referer": book_url} if book_url else {}
@@ -376,12 +391,20 @@ def download_web_chapter(session, chapter, book_url, max_retries=5):
                 title = chapter["title"]
                 if title.startswith("http") or not title:
                     idx = chapter.get("index", 0)
-                    title = extract_chapter_title(r.text, f"第{idx+1}章")
+                    page_title = BeautifulSoup(r.text, "html.parser").title
+                    if "ixdzs" in chapter["url"] and page_title and page_title.string:
+                        title = page_title.string.split("_")[0].strip()
+                    else:
+                        title = extract_chapter_title(r.text, f"第{idx+1}章")
                 if len(text.replace(" ", "").replace("\n", "")) > 80:
                     return chapter.get("index", 0), title, text
-        except Exception:
-            pass
+                reason = f"short text ({len(text)} chars) HTTP {r.status_code} title={BeautifulSoup(r.text, 'html.parser').title}"
+            else:
+                reason = f"HTTP {r.status_code}"
+        except Exception as e:
+            reason = f"{type(e).__name__}: {e}"
         time.sleep(1.5 * (attempt + 1))
+    FAIL_REASONS.setdefault(reason[:160], []).append(chapter["url"])
     return chapter.get("index", 0), chapter["title"], ""
 
 
@@ -484,7 +507,10 @@ def main():
         print(f"      ชื่อ: {name} | ผู้แต่ง: {author}")
 
         print(f"[2/3] ดึงรายชื่อตอน...")
-        chapters = collect_chapters_all_pages(session, book_url, html)
+        if "ixdzs" in domain:
+            chapters = ixdzs_chapter_list(book_url, html)
+        else:
+            chapters = collect_chapters_all_pages(session, book_url, html)
         chapters.sort(key=lambda ch: int(re.findall(r"\d+", ch["url"].replace(extract_book_id(book_url), "", 1))[-1]) if re.findall(r"\d+", ch["url"].replace(extract_book_id(book_url), "", 1)) else 0)
         if not chapters:
             soup_dbg = BeautifulSoup(html, "html.parser")
@@ -514,6 +540,7 @@ def main():
         print()
 
     # ─ Save
+    name = re.sub(r"(最新章节|最新章節)$", "", name).strip()
     safe_name = re.sub(r'[\\/:*?"<>|]', "_", name)
     book_id_safe = re.sub(r"[^\w]", "_", extract_book_id(target))
     out_path = os.path.join(args.output, f"{safe_name}_{book_id_safe}.txt")
@@ -530,6 +557,11 @@ def main():
     print(f"\n✅ บันทึกแล้ว: {out_path}")
     print(f"   ตอนทั้งหมด: {len(results)} | สำเร็จ: {len(results)-len(failed)} | ล้มเหลว: {len(failed)}")
     print(f"   ขนาดรวม: {total_chars:,} ตัวอักษร")
+
+    if FAIL_REASONS:
+        print("\n[DEBUG] สาเหตุที่โหลดไม่ได้:")
+        for rsn, urls in FAIL_REASONS.items():
+            print(f"   {len(urls)} ตอน: {rsn} | ตัวอย่าง {urls[0]}")
 
     if failed:
         print(f"\n⚠️  ตอนที่โหลดไม่ได้ ({len(failed)} ตอน):")
