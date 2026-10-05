@@ -9,14 +9,35 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
 
-def wait_cf(page):
-    for _ in range(30):
-        if "Just a moment" not in page.title():
-            return
+MARKERS = ("Just a moment", "Checking", "正在验证浏览器", "Verify Yourself")
+
+
+def wait_cf(page, secs=40):
+    for _ in range(secs * 2):
+        if not any(m in page.title() for m in MARKERS):
+            return True
         time.sleep(0.5)
+    return False
+
+
+def requests_view(url):
+    import requests
+    from bs4 import BeautifulSoup
+    r = requests.get(url, headers={"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"}, timeout=20)
+    print("--- requests view: HTTP", r.status_code, "len", len(r.text))
+    soup = BeautifulSoup(r.text, "html.parser")
+    print("TITLE:", soup.title.string if soup.title else None)
+    links = [(a.get_text(strip=True)[:30], a["href"]) for a in soup.find_all("a", href=True)]
+    print("links:", len(links))
+    for t, h in links[:40]:
+        print("  ", repr(t), h)
 
 
 def main(url):
+    try:
+        requests_view(url)
+    except Exception as e:
+        print("requests view failed:", type(e).__name__, e)
     with sync_playwright() as p:
         b = p.chromium.launch(headless=True)
         ctx = b.new_context(user_agent=UA, locale="zh-CN")
@@ -24,11 +45,15 @@ def main(url):
         reqs = []
         page.on("request", lambda r: reqs.append((r.method, r.resource_type, r.url)))
         page.goto(url, wait_until="domcontentloaded")
-        wait_cf(page)
+        passed = wait_cf(page)
         time.sleep(4)
         html = page.content()
+        print("PLAYWRIGHT passed verification:", passed)
         print("TITLE:", page.title())
         print("HTML LEN:", len(html))
+        if len(html) < 6000:
+            print("--- raw html ---")
+            print(html)
         print("--- XHR/fetch requests ---")
         for m, t, u in reqs:
             if t in ("xhr", "fetch") or (m != "GET"):
