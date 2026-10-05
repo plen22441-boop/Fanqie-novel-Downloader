@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 2/2 (โหลดตอน+แผงควบคุม)
 // @namespace    fanqie-novel-downloader
-// @version      2.4
+// @version      2.5
 // @description  ส่วนที่ 2 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 1
 // @match        *://*/*
 // @noframes
@@ -28,6 +28,8 @@
   const NAV_LINE = /^(上一[章页頁节節]|下一[章页頁节節]|上[页頁]|下[页頁]|目[录錄]|返回.*|书页|書頁|加入书[架签]|加入書[架籤]|设置|設置|A[+-]|阅读背景|错乱章节催更！?|章节错误|章節錯誤|举报|舉報|收藏|书名[：:]?|作者[：:]?|本章字数[：:]?|更新时间[：:]?|开始阅读|立即阅读|报错|催更|书签|没有了|沒有了|指南)$/;
   const UI_JUNK = /^(.*方向键可?切换章节|左右滑动可?切换章节|不吐不快|后?发表评论|我要评论|点击.{0,6}评论|.*扫码.*|.*二维码.*)$/;
   const REC = /^(猜你喜欢|相关推荐|热门推荐|新书推荐|同类推荐|大家都在看|推荐阅读|相关小说)$/;
+  const URL_LEAD = /(?:速看|点击|点我|访问|登录|收藏|追更|围观|阅读链接|阅读地址|链接|入口在此|直达故事世界|指尖一点|先睹为快|书迷速归|欢迎访问|来|上|看看|探索)[，,：:]?\s*(?:https?:\/{0,2}|\/\/|www\.)[\x21-\x7e]*/g;
+  const URL_BARE = /(?:https?:\/{0,2}|www\.)[\x21-\x7e]*/g;
   const META = /^小说名[：:].*(更新时间|章节字数)|^(更新时间|更新日期|发布时间|更新時間)[：:]\s*\d{4}|^(本章字数|章节字数|字数|字數)[：:]\s*\d+|^.{0,40}更新时间[：:]?\s*\d{4}-\d{1,2}-\d{1,2}.{0,60}$/;
   const CONTENT_SELS = ['#chaptercontent', '#content', '#BookText', '#booktxt', '#htmlContent', '#nr1', '#nr', '#text_area', '#chapterContent', '#acontent', '#novelcontent', '.txtnav', '.chapter-content', '.read-content', '.reader-content', '.page-content', '.chapter-body', '.article-content', '.text-content', '.showtxt', '.novelcontent', '.content', 'article'];
   // ---------- extraction ----------
@@ -106,6 +108,10 @@
   function cleanLines(lines, title, dropped) {
     const out = [];
     const bare = cleanTitle(title);
+    const T = st.meta && st.meta.title && st.meta.title.length >= 4 ? st.meta.title : '';
+    const TOK = '\u0001';
+    const PROMO = /《|》|https?:|www\.|阅读|推荐|收藏|作品|新作|书籍|等你|首发|安利|口碑|好评|免费|追更|书迷|APP|更新|入口|章节|专访/;
+    const isAd = (x) => st.ad.test(x) || (x.includes(TOK) && PROMO.test(x));
     lines = lines.map((x) => x.replace(ZW, '').trim()).filter((x) => x && !UI_JUNK.test(x));
     const ri = lines.findIndex((x, k) => REC.test(x) && k > lines.length * 0.5);
     if (ri >= 0) { dropped.push('[recommend] ' + lines.slice(ri, ri + 3).join(' ').slice(0, 40)); lines = lines.slice(0, ri); }
@@ -117,20 +123,26 @@
       if (META.test(l)) { dropped.push(l.slice(0, 30)); continue; }
       if (NAV_LINE.test(l)) { dropped.push(l); continue; }
       if (!out.length && l.length < 60 && (l === title || l === bare || (bare.length >= 2 && (l.includes(bare) || bare.includes(l))))) { dropped.push(l); continue; }
-      if (st.ad.test(l)) {
-        dropped.push(l.slice(0, 50));
+      l = l.replace(URL_LEAD, '').replace(URL_BARE, '').replace(/([，,、；;])[，,、；;]+/g, '$1').trim();
+      if (!l) { dropped.push('[url-only]'); continue; }
+      const hasT = !!T && l.includes(T);
+      if (hasT) l = l.split(T).join(TOK);
+      if (isAd(l)) {
+        dropped.push(l.slice(0, 50).split(TOK).join('<T>'));
         const sents = l.match(/[^。！？!?]+[。！？!?”」]*/g) || [l];
         const keep = [];
-        for (const s of sents) {
-          if (!st.ad.test(s)) { keep.push(s); continue; }
-          const clauses = s.split(/(?<=[，,、；;：:])/);
-          const bad = clauses.findIndex((c) => st.ad.test(c));
-          const pre = clauses.slice(0, bad).join('');
-          if (pre.length >= 6) keep.push(pre);
-        }
+        sents.forEach((sn, si) => {
+          if (!isAd(sn)) { keep.push(sn); return; }
+          const clauses = sn.split(/(?<=[，,、；;])/);
+          const bad = clauses.findIndex((c) => isAd(c));
+          const pre = clauses.slice(0, Math.max(0, bad)).join('');
+          const realAfter = sents.slice(si + 1).some((x) => !isAd(x));
+          if (pre.length >= 4 && (si > 0 || realAfter)) keep.push(pre);
+        });
         l = keep.join('').trim();
         if (!l) continue;
       }
+      if (hasT) l = l.split(TOK).join(T);
       out.push(l);
     }
     return out;
@@ -166,7 +178,12 @@
       }
       if (!box) throw new Error('ไม่พบส่วนเนื้อหา');
       if (!pages) { declared = dm ? +dm[1] : null; sel = box.sel; mode = m; gotTitle = ttl; }
-      lines = lines.concat(cleanLines(linesOf(box.el), ch.title || gotTitle, dropped));
+      const rawLines = linesOf(box.el);
+      if (!st.meta.author || st.meta.author === '未知作者') {
+        const am = /作者[“"]?([\u4e00-\u9fff]{2,8})[”"]?(?:亲推|最新作品|推荐阅读|说[：:])/.exec(rawLines.join('')) || /大神([\u4e00-\u9fff]{2,8})携新作/.exec(rawLines.join('')) || /([\u4e00-\u9fff]{2,8})笔下的世界/.exec(rawLines.join(''));
+        if (am) st.meta.author = am[1];
+      }
+      lines = lines.concat(cleanLines(rawLines, ch.title || gotTitle, dropped));
       pages++;
       url = nxt;
     }
@@ -224,7 +241,7 @@
     const ch = st.chapters[i], r = st.results[i];
     return cleanTitle(ch.title || (r && r.title) || '');
   }
-  const NUMLEAD = /^[0-9０-９]|^[一二三四五六七八九十百零〇]{1,4}\s*[、．.:：]/;
+  const NUMLEAD = /^[0-9０-９]|^[一二三四五六七八九十百零〇]{1,4}\s*[、．.:：]|^第\s*[0-9０-９一二三四五六七八九十百千零〇两]+\s*[章回节節话話集]/;
   function assemble(idxs) {
     const out = [st.meta.title, '作者：' + st.meta.author, ''];
     (idxs || st.chapters.map((_, i) => i)).forEach((i) => {

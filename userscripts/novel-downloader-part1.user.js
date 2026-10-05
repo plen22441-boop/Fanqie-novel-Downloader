@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 1/2 (สารบัญ+เครือข่าย)
 // @namespace    fanqie-novel-downloader
-// @version      2.4
+// @version      2.5
 // @description  ส่วนที่ 1 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 2
 // @match        *://*/*
 // @noframes
@@ -15,8 +15,8 @@
   const CHALLENGE = /Just a moment|正在进行安全验证|正在驗證|请稍候|cf-challenge|Verify Yourself|身份验证|人机验证|安全验证/;
   const CH_TXT = /第\s*[0-9零〇一二三四五六七八九十百千万两]+\s*[章节節回卷集话話篇]|^(序|楔子|引子|前言|后记|後記|尾声|尾聲|番外|终章|終章|大结局|大結局|完结感言)|^\d{1,5}\s*[.、．\s]|^Chapter\s*\d+/i;
   const NAV_LINK = /^(上一[章页頁节節]|下一[章页頁节節]|上[页頁]|下[页頁]|首[页頁]|尾[页頁]|末[页頁]|目[录錄]|返回.*|书[架页]|書[架頁]|登[录錄]|注册|註冊|排行榜?|分[类類]|全本|更多.*|最新章[节節]|查看.*|点击.*|點擊.*|开始阅读|立即阅读|繁體|简体)$/;
-  const AD_BASE = /https?:\/\/|www\.|[a-z0-9-]{2,}\.(?:com|net|cc|org|cn|info|me|tw|la|vip)\b|最新章[节節]|请收藏|請收藏|手机阅读|手機閱讀|请记住|請記住|天才一秒|APP下载|笔趣阁|筆趣閣|求月票|求推荐票|求订阅|求訂閱|章[节節]更新提醒|书友们都去/i;
-  const VERSION = '2.2'; // cache format: bump only when extraction or cleaning changes
+  const AD_BASE = /https?:|www\.|[a-z0-9-]{2,}\.(?:com|net|cc|org|cn|info|me|tw|la|vip)\b|精彩不容错过|全本放送|免费读全本|章[节節]更新提醒|精彩章[节節]《|下一章更精彩|沉浸阅读|阅读链接|阅读地址|立即解锁|先睹为快|剧情重大转折|探索现代言情|您收到了一个新的章[节節]更新|根据您的阅读历史|我们郑重向您推荐|追书不迷路|书迷速归|入口在此|人人书库|享受阅读时光|万千好书|名列前茅|经典语录频出|宝藏书籍|倾心之作|独家首发|奇妙旅程|文笔惊艳|口碑炸裂|好评如潮|最新章[节節]|请收藏|請收藏|手机阅读|手機閱讀|请记住|請記住|天才一秒|APP下载|笔趣阁|筆趣閣|求月票|求推荐票|求订阅|求訂閱|章[节節]更新提醒|书友们都去/i;
+  const VERSION = '2.5'; // cache format: bump only when extraction or cleaning changes
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let dbp = null;
   const idb = () => dbp || (dbp = new Promise((res, rej) => {
