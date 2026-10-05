@@ -6,10 +6,18 @@
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  const pathParts = location.pathname.replace(/^\//, '').split('/');
-  const novelSlug = pathParts[1] || '';
-  const catalogUrl = `${location.origin}/n/${novelSlug}/`;
-  const isIndexPage = pathParts.length <= 2 || !pathParts[2];
+  // ── Dynamic URL state (SPA-safe) ────────────────────────────────────────────
+  function getUrlState() {
+    const parts = location.pathname.replace(/^\//, '').split('/');
+    const slug = parts[1] || '';
+    return {
+      slug,
+      catalogUrl: `${location.origin}/n/${slug}/`,
+      isIndexPage: parts.length <= 2 || !parts[2],
+      chapterNum: (parts[2] && /^\d+$/.test(parts[2])) ? Number(parts[2]) : null
+    };
+  }
+  let S = getUrlState();
 
   let stopped = false, running = false;
   let catalog = [];
@@ -18,8 +26,9 @@
   const BLOCK_RE = /Just a moment|安全验证|人机验证|Verify|Access Denied|Forbidden/i;
   const NEXT_RE  = /下一[章页]|next chapter/i;
 
-  // ── บล็อกโฆษณา CSS ─────────────────────────────────────────────────────────
+  // ── บล็อกโฆษณา CSS ──────────────────────────────────────────────────────────
   const adCss = document.createElement('style');
+  adCss.id = APP + '-ad';
   adCss.textContent = `
     .ad,.ads,.ad-box,.adbox,.advertisement,.advert,.adv,#adv,
     .ad_div,#ad_div,.ad-wrap,.ad-area,.ad-container,
@@ -30,9 +39,7 @@
     iframe[src*="googlesyndication"],iframe[src*="doubleclick"],
     iframe[src*="adservice"],iframe[src*="yieldmanager"],
     [id^="div-gpt-ad"],[class^="div-gpt-ad"],
-    .notice-wrap,.tips-wrap,.qrcode-wrap,
-    div[style*="z-index:9999"]:not(#${APP}),
-    div[style*="z-index: 9999"]:not(#${APP}) {
+    .notice-wrap,.tips-wrap,.qrcode-wrap {
       display:none!important;
       visibility:hidden!important;
       pointer-events:none!important;
@@ -43,7 +50,7 @@
 
   // ── ฟังก์ชันช่วย ─────────────────────────────────────────────────────────────
   function clean(s) {
-    return String(s || '').replace(/\r/g, '').replace(/ /g, ' ')
+    return String(s || '').replace(/\r/g, '').replace(/ /g, ' ')
       .replace(/[ \t]+/g, ' ').split('\n').map(x => x.trim()).filter(Boolean).join('\n');
   }
   function safeTitle(s) {
@@ -51,19 +58,19 @@
   }
   function novelTitle() {
     const h = document.querySelector('h1, .book-title, .bookname, .title');
-    return safeTitle(h?.textContent) || safeTitle(novelSlug);
+    return safeTitle(h?.textContent) || safeTitle(S.slug);
   }
 
   // ── สแกนสารบัญ ──────────────────────────────────────────────────────────────
   async function fetchCatalog() {
     let doc;
-    if (isIndexPage) {
+    if (S.isIndexPage) {
       doc = document;
     } else {
-      const resp = await fetch(catalogUrl, { credentials: 'include', cache: 'no-store' });
+      const resp = await fetch(S.catalogUrl, { credentials: 'include', cache: 'no-store' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const html = await resp.text();
-      const based = html.replace(/(<head[^>]*>)/i, `$1<base href="${catalogUrl}">`);
+      const based = html.replace(/(<head[^>]*>)/i, `$1<base href="${S.catalogUrl}">`);
       doc = new DOMParser().parseFromString(based, 'text/html');
     }
 
@@ -73,10 +80,10 @@
       const raw = a.getAttribute('href') || '';
       if (!raw) continue;
       let resolved;
-      try { resolved = new URL(raw, catalogUrl); } catch { continue; }
+      try { resolved = new URL(raw, S.catalogUrl); } catch { continue; }
       const p = resolved.pathname;
-      if (!p.startsWith(`/n/${novelSlug}/`)) continue;
-      if (p === `/n/${novelSlug}/` || p === `/n/${novelSlug}`) continue;
+      if (!p.startsWith(`/n/${S.slug}/`)) continue;
+      if (p === `/n/${S.slug}/` || p === `/n/${S.slug}`) continue;
       const href = resolved.href;
       if (seen.has(href)) continue;
       seen.add(href);
@@ -88,7 +95,7 @@
     return entries.sort((a, b) => a.number - b.number);
   }
 
-  // ── ดึงเนื้อหาจาก HTML doc ──────────────────────────────────────────────────
+  // ── ดึงเนื้อหาจาก doc ───────────────────────────────────────────────────────
   function extractContent(doc, pageUrl) {
     const titleEl = doc.querySelector('h1.title, .chapter-title, h1, .chaptertitle');
     const chTitle = clean((titleEl?.textContent || titleEl?.innerText || ''));
@@ -112,10 +119,8 @@
       paras = clean(body?.innerText || body?.textContent || '').split(/\n+/).filter(s => s.length > 10);
     }
 
-    // หาลิงก์ "下一章"
     let nextUrl = null;
-    const allA = [...(doc.querySelectorAll('a[href]') || [])];
-    for (const a of allA) {
+    for (const a of doc.querySelectorAll('a[href]')) {
       const txt = (a.innerText || a.textContent || '').trim();
       if (NEXT_RE.test(txt)) {
         const raw = a.getAttribute('href') || '';
@@ -169,7 +174,6 @@
     });
   }
 
-  // ── ดึงตอน: fetch ก่อน ถ้าพลาดใช้ iframe ────────────────────────────────────
   async function fetchChapter(url, attempt = 1) {
     try {
       const r = await fastFetch(url);
@@ -192,7 +196,7 @@
     <div id="qb-body">
       <div id="qb-info">ตรวจหาสารบัญ…</div>
 
-      <div class="qb-label">ลิงก์ตอนแรก <small>(ถ้าสแกนสารบัญไม่ได้)</small></div>
+      <div class="qb-label">ลิงก์ตอนแรก <small>(ถ้าสแกนสารบัญไม่ได้ หรืออยู่ในตอนนั้นอยู่แล้ว)</small></div>
       <input id="qb-firsturl" type="url" placeholder="https://quanben-xiaoshuo.com/n/.../1/">
 
       <div class="qb-row">
@@ -221,6 +225,7 @@
   document.body.append(panel);
 
   const css = document.createElement('style');
+  css.id = APP + '-css';
   css.textContent = `
     #${APP}{position:fixed;z-index:2147483647;right:10px;bottom:10px;width:min(370px,calc(100vw - 20px));background:#1a1a2e;color:#e0e0f0;border:2px solid #f5a623;border-radius:16px;box-shadow:0 12px 40px #000a;font:14px/1.5 system-ui,sans-serif;overflow:hidden}
     #${APP} *{box-sizing:border-box}
@@ -277,8 +282,16 @@
   });
   panel.querySelector('[data-n="100"]').classList.add('active');
 
-  // ── init ────────────────────────────────────────────────────────────────────
+  // ── init: สแกนสารบัญ + auto-fill URL ────────────────────────────────────────
   async function init() {
+    S = getUrlState();
+
+    // ถ้าอยู่บน chapter page → auto-fill firstUrl ด้วย URL ปัจจุบัน
+    if (!S.isIndexPage && !ui.firstUrl.value) {
+      ui.firstUrl.value = location.href;
+      if (S.chapterNum) ui.from.value = S.chapterNum;
+    }
+
     try {
       setStatus('กำลังสแกนสารบัญ…');
       catalog = await fetchCatalog();
@@ -286,8 +299,8 @@
       ui.info.textContent = `📚 ${novelTitle()} — พบ ${catalog.length} ตอน (1–${last})`;
       setStatus(`พร้อม • ${catalog.length} ตอน • Fast Fetch + iframe Fallback`);
     } catch (e) {
-      ui.info.textContent = `⚠️ สแกนสารบัญไม่ได้ — ใส่ลิงก์ตอนแรกแล้วกด ▶`;
-      setStatus('ใส่ลิงก์ตอนแรกด้านบนแล้วกด ▶ เริ่มเก็บเร็ว');
+      ui.info.textContent = `⚠️ สแกนสารบัญไม่ได้ — ลิงก์ตอนแรกถูก auto-fill แล้ว กด ▶ ได้เลย`;
+      setStatus('กด ▶ เพื่อเริ่มจากลิงก์ตอนแรกด้านบน');
       addLog('สแกนสารบัญล้มเหลว: ' + e.message);
     }
   }
@@ -330,7 +343,7 @@
       } catch (e) {
         results.push({ number: chNum, title: `第${chNum}章`, content: '[โหลดไม่สำเร็จ: ' + e.message + ']', method: 'fail' });
         addLog(`✗ ตอน ${chNum}: ${e.message}`);
-        currentUrl = null; // หยุดเมื่อโหลดไม่สำเร็จ
+        currentUrl = null;
       }
       chNum++;
       ui.prog.value = i + 1;
@@ -348,14 +361,12 @@
     const manualUrl = ui.firstUrl.value.trim();
 
     if (manualUrl) {
-      // Mode B: ใช้ลิงก์ตอนแรกที่ใส่เอง
       addLog('โหมด: ลิงก์ตอนแรก → ตาม 下一章 อัตโนมัติ');
       await runFromUrl(manualUrl);
     } else {
-      // Mode A: ใช้ catalog
       const fromN  = Math.max(1, Number(ui.from.value) || 1);
       const limit  = Math.max(1, Number(ui.limit.value) || 100);
-      let selected = catalog.filter(x => x.number >= fromN).slice(0, limit);
+      const selected = catalog.filter(x => x.number >= fromN).slice(0, limit);
 
       if (!selected.length) {
         setStatus('ไม่พบตอนใน catalog — กรุณาใส่ลิงก์ตอนแรก'); setRunning(false); return;
@@ -401,6 +412,41 @@
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 3000);
   };
+
+  // ── SPA navigation: keep panel alive + re-init on URL change ────────────────
+  let lastHref = location.href;
+
+  // Re-append panel and styles whenever SPA removes them
+  const keepAlive = new MutationObserver(() => {
+    const body = document.body;
+    if (!body) return;
+    if (!body.contains(panel)) body.append(panel);
+    if (!document.head.contains(css)) document.head.append(css);
+    if (!document.head.contains(adCss)) document.head.append(adCss);
+
+    // Detect URL change (SPA pushState)
+    if (location.href !== lastHref) {
+      lastHref = location.href;
+      catalog = [];
+      results = [];
+      ui.firstUrl.value = '';
+      ui.prog.value = 0;
+      ui.copy.disabled = ui.dl.disabled = true;
+      ui.log.textContent = '';
+      init();
+    }
+  });
+  keepAlive.observe(document.documentElement, { childList: true, subtree: false });
+
+  // Also catch popstate (back/forward)
+  window.addEventListener('popstate', () => {
+    if (location.href !== lastHref) {
+      lastHref = location.href;
+      catalog = []; results = [];
+      ui.firstUrl.value = '';
+      init();
+    }
+  });
 
   init();
 })();
