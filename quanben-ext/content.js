@@ -6,16 +6,37 @@
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  // ── Dynamic URL state (SPA-safe) ────────────────────────────────────────────
+  // ── Site detection ───────────────────────────────────────────────────────────
+  const HOST = location.hostname.replace(/^www\./, '');
+  const IS_QUANBEN  = /quanben-xiaoshuo\.(com|net)/.test(HOST);
+  const IS_BOLUOMAO = HOST === 'boluomao1.com';
+
+  // ── Dynamic URL state ────────────────────────────────────────────────────────
   function getUrlState() {
-    const parts = location.pathname.replace(/^\//, '').split('/');
-    const slug = parts[1] || '';
-    return {
-      slug,
-      catalogUrl: `${location.origin}/n/${slug}/`,
-      isIndexPage: parts.length <= 2 || !parts[2],
-      chapterNum: (parts[2] && /^\d+$/.test(parts[2])) ? Number(parts[2]) : null
-    };
+    const path = location.pathname;
+    if (IS_QUANBEN) {
+      const parts = path.replace(/^\//, '').split('/');
+      const slug = parts[1] || '';
+      return {
+        slug,
+        catalogUrl: `${location.origin}/n/${slug}/`,
+        isIndexPage: parts.length <= 2 || !parts[2],
+        chapterNum: (parts[2] && /^\d+$/.test(parts[2])) ? Number(parts[2]) : null
+      };
+    }
+    if (IS_BOLUOMAO) {
+      const bookM  = /\/book\/(\d+)\.html/.exec(path);
+      const readM  = /\/read\/(\d+)\//.exec(path);
+      const bookId = bookM ? bookM[1] : (readM ? readM[1] : null);
+      const chM    = /\/chapter\/(\d+)/.exec(path) || /\/read\/\d+\/(\d+)/.exec(path);
+      return {
+        slug: bookId || '',
+        catalogUrl: bookId ? `${location.origin}/book/${bookId}.html` : null,
+        isIndexPage: !!bookM,
+        chapterNum: chM ? Number(chM[1]) : null
+      };
+    }
+    return { slug: '', catalogUrl: null, isIndexPage: true, chapterNum: null };
   }
   let S = getUrlState();
 
@@ -25,32 +46,23 @@
 
   const BLOCK_RE = /Just a moment|安全验证|人机验证|Verify|Access Denied|Forbidden/i;
   const NEXT_RE  = /下一[章页]|next chapter/i;
-  // Lines to throw away from extracted text
-  const JUNK_RE  = /当前位置|上一章|下一章|回目录|©\s*20\d\d|quanben-xiaoshuo\.(net|com)|document\.domain|this\.location|GoogleAnalytics|function\(i,s,o|ga\("create|ga\("send|\(function\(/i;
+  const JUNK_RE  = /当前位置|上一章|下一章|回目录|©\s*20\d\d|quanben-xiaoshuo\.(net|com)|boluomao1\.com|document\.domain|this\.location|GoogleAnalytics|function\(i,s,o|ga\("create|ga\("send|\(function\(/i;
 
-  // ── บล็อกโฆษณา CSS ──────────────────────────────────────────────────────────
+  // ── Ad block CSS ─────────────────────────────────────────────────────────────
   const adCss = document.createElement('style');
   adCss.id = APP + '-ad';
   adCss.textContent = `
     .ad,.ads,.ad-box,.adbox,.advertisement,.advert,.adv,#adv,
     .ad_div,#ad_div,.ad-wrap,.ad-area,.ad-container,
     .adsbygoogle,ins.adsbygoogle,[class*="google-ad"],[id*="google-ad"],
-    [class*="ad-banner"],[id*="ad-banner"],[class*="gg-"],[id*="gg-"],
     .float-ad,.pop-ad,.popup-ad,.overlay-ad,.modal-ad,
     .banner-ad,.sidebar-ad,.header-ad,.footer-ad,.top-ad,
     iframe[src*="googlesyndication"],iframe[src*="doubleclick"],
-    iframe[src*="adservice"],iframe[src*="yieldmanager"],
     [id^="div-gpt-ad"],[class^="div-gpt-ad"],
-    .notice-wrap,.tips-wrap,.qrcode-wrap {
-      display:none!important;
-      visibility:hidden!important;
-      pointer-events:none!important;
-      height:0!important;
-      overflow:hidden!important;
-    }`;
+    .notice-wrap,.tips-wrap,.qrcode-wrap { display:none!important; height:0!important; overflow:hidden!important; }`;
   document.head.append(adCss);
 
-  // ── ฟังก์ชันช่วย ─────────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────────
   function clean(s) {
     return String(s || '').replace(/\r/g, '').replace(/ /g, ' ')
       .replace(/[ \t]+/g, ' ').split('\n').map(x => x.trim()).filter(Boolean).join('\n');
@@ -59,86 +71,51 @@
     return String(s || '').replace(/[\\/:*?"<>|]/g, '_').trim().slice(0, 120) || 'novel';
   }
   function novelTitle() {
-    const h = document.querySelector('h1, .book-title, .bookname, .title');
+    const h = document.querySelector('h1,.book-title,.bookname,.title');
     return safeTitle(h?.textContent) || safeTitle(S.slug);
   }
-
-  // ── สแกนสารบัญ ──────────────────────────────────────────────────────────────
-  async function fetchCatalog() {
-    let doc;
-    if (S.isIndexPage) {
-      doc = document;
-    } else {
-      const resp = await fetch(S.catalogUrl, { credentials: 'include', cache: 'no-store' });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const html = await resp.text();
-      const based = html.replace(/(<head[^>]*>)/i, `$1<base href="${S.catalogUrl}">`);
-      doc = new DOMParser().parseFromString(based, 'text/html');
-    }
-
-    const seen = new Set();
-    const entries = [];
-    for (const a of doc.querySelectorAll('a[href]')) {
-      const raw = a.getAttribute('href') || '';
-      if (!raw) continue;
-      let resolved;
-      try { resolved = new URL(raw, S.catalogUrl); } catch { continue; }
-      const p = resolved.pathname;
-      if (!p.startsWith(`/n/${S.slug}/`)) continue;
-      if (p === `/n/${S.slug}/` || p === `/n/${S.slug}`) continue;
-      const href = resolved.href;
-      if (seen.has(href)) continue;
-      seen.add(href);
-      const numMatch = /\/(\d+)(?:\.html)?\/?$/.exec(p);
-      const number   = numMatch ? Number(numMatch[1]) : entries.length + 1;
-      entries.push({ number, title: clean(a.textContent) || `第${number}章`, url: href });
-    }
-    if (!entries.length) throw new Error('ไม่พบลิงก์ตอนในสารบัญ');
-    return entries.sort((a, b) => a.number - b.number);
+  function chNumFromText(text) {
+    const m = /第\s*([0-9０-９]+)\s*[章节回]/i.exec(String(text || ''));
+    if (!m) return null;
+    return Number(String(m[1]).replace(/[０-９]/g, c => c.charCodeAt(0) - 0xFF10));
   }
 
-  // Remove script/style/nav noise from a parsed doc so textContent is clean
+  // ── Clean fetched doc before text extraction ─────────────────────────────────
   function cleanDoc(doc) {
-    const rm = 'script,style,noscript,nav,header,footer,aside,.breadcrumb,#breadcrumb,.chapter-nav,.page-path,.nav-btn,.copyright,[class*="ad"],[id*="ad"]';
-    doc.querySelectorAll(rm).forEach(el => el.remove());
+    doc.querySelectorAll('script,style,noscript,nav,header,footer,aside,.breadcrumb,#breadcrumb,.chapter-nav,.page-path,.nav-btn,.copyright').forEach(el => el.remove());
   }
 
-  // Extract paragraphs from an element, handling <p>, <br>, and 　　 indents
+  // ── Paragraph extractor ──────────────────────────────────────────────────────
   function parseParagraphs(box) {
-    // Try <p> tags first
     const ps = [...box.querySelectorAll('p')]
       .map(p => clean(p.textContent || p.innerText || ''))
       .filter(s => s.length > 1 && !JUNK_RE.test(s));
     if (ps.length >= 3) return ps;
 
-    // Replace <br> with newline then get textContent
     const tmpHtml = (box.innerHTML || '').replace(/<br\s*\/?>/gi, '\n');
     const tmp = box.ownerDocument.createElement('div');
     tmp.innerHTML = tmpHtml;
     const raw = tmp.textContent || box.textContent || box.innerText || '';
 
-    // Try newline split first, then 　　 (Chinese paragraph indent)
     let lines = clean(raw).split(/\n+/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
     if (lines.length >= 3) return lines;
 
-    lines = clean(raw).split(/　　/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
-    return lines;
+    return clean(raw).split(/　　/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
   }
 
-  // ── ดึงเนื้อหาจาก doc ───────────────────────────────────────────────────────
+  // ── Extract content from a doc ───────────────────────────────────────────────
   function extractContent(doc, pageUrl) {
-    // Strip scripts/nav before any text extraction
     cleanDoc(doc);
 
-    const titleEl = doc.querySelector('h1.title, .chapter-title, h1, .chaptertitle');
-    const chTitle = clean((titleEl?.textContent || titleEl?.innerText || ''));
+    const titleEl = doc.querySelector('h1.title,.chapter-title,h1,.chaptertitle');
+    const chTitle = clean(titleEl?.textContent || titleEl?.innerText || '');
 
     const contentSels = [
-      '#chaptercontent', '#chapter-content', '.chapter-content',
-      '#readcontent', '.readcontent', '.read-content',
-      '#content', '.content', '.article-content',
-      '.novel-content', '.text-content', '.chapterBody', '#chapterBody',
-      'article', '.article'
+      '#chaptercontent','#chapter-content','.chapter-content',
+      '#readcontent','.readcontent','.read-content',
+      '#content','.content','.article-content',
+      '.novel-content','.text-content','.chapterBody','#chapterBody',
+      'article','.article'
     ];
     let paras = [];
     for (const sel of contentSels) {
@@ -148,15 +125,13 @@
       if (ps.length >= 2) { paras = ps; break; }
     }
     if (!paras.length) {
-      // Last resort: all <p> tags in the document with substantial Chinese text
       const allP = [...doc.querySelectorAll('p')]
         .map(p => clean(p.textContent || ''))
         .filter(s => s.length > 10 && /[一-鿿]/.test(s) && !JUNK_RE.test(s));
       if (allP.length >= 3) paras = allP;
     }
     if (!paras.length) {
-      const body = doc.body;
-      const raw = body?.textContent || body?.innerText || '';
+      const raw = doc.body?.textContent || doc.body?.innerText || '';
       paras = clean(raw).split(/\n+|　　/).map(s => s.trim())
         .filter(s => s.length > 10 && !JUNK_RE.test(s));
     }
@@ -194,22 +169,18 @@
       frame.style.cssText = 'position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;opacity:.01;pointer-events:none';
       let done = false;
       const timer = setTimeout(() => finish(new Error('timeout')), 25000);
-
       function finish(err) {
         if (done) return; done = true; clearTimeout(timer);
         try {
           if (err) { frame.remove(); reject(err); return; }
           const doc = frame.contentDocument;
           if (!doc) { frame.remove(); reject(new Error('no doc')); return; }
-          if (BLOCK_RE.test((doc.body?.innerText || '').slice(0, 1000))) {
-            frame.remove(); reject(new Error('blocked')); return;
-          }
+          if (BLOCK_RE.test((doc.body?.innerText || '').slice(0, 1000))) { frame.remove(); reject(new Error('blocked')); return; }
           frame.remove();
           resolve({ ...extractContent(doc, url), method: 'iframe' });
         } catch (e) { frame.remove(); reject(e); }
       }
-
-      frame.onload = () => setTimeout(() => finish(null), 700);
+      frame.onload = () => setTimeout(() => finish(null), 800);
       frame.onerror = () => finish(new Error('load error'));
       frame.src = url;
       document.body.append(frame);
@@ -230,17 +201,96 @@
     }
   }
 
+  // ── Catalog: quanben-xiaoshuo ────────────────────────────────────────────────
+  async function fetchQuanbenCatalog() {
+    let doc;
+    if (S.isIndexPage) {
+      doc = document;
+    } else {
+      const resp = await fetch(S.catalogUrl, { credentials: 'include', cache: 'no-store' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+      const based = html.replace(/(<head[^>]*>)/i, `$1<base href="${S.catalogUrl}">`);
+      doc = new DOMParser().parseFromString(based, 'text/html');
+    }
+    const seen = new Set(); const entries = [];
+    for (const a of doc.querySelectorAll('a[href]')) {
+      const raw = a.getAttribute('href') || '';
+      if (!raw) continue;
+      let resolved;
+      try { resolved = new URL(raw, S.catalogUrl); } catch { continue; }
+      const p = resolved.pathname;
+      if (!p.startsWith(`/n/${S.slug}/`)) continue;
+      if (p === `/n/${S.slug}/` || p === `/n/${S.slug}`) continue;
+      const href = resolved.href;
+      if (seen.has(href)) continue;
+      seen.add(href);
+      const numMatch = /\/(\d+)(?:\.html)?\/?$/.exec(p);
+      const number   = numMatch ? Number(numMatch[1]) : entries.length + 1;
+      entries.push({ number, title: clean(a.textContent) || `第${number}章`, url: href });
+    }
+    if (!entries.length) throw new Error('ไม่พบลิงก์ตอนในสารบัญ');
+    return entries.sort((a, b) => a.number - b.number);
+  }
+
+  // ── Catalog: boluomao1 ───────────────────────────────────────────────────────
+  async function fetchBoluomaoCatalog() {
+    if (!S.catalogUrl) throw new Error('ไม่พบ URL สารบัญ — กรุณาเปิดหน้าสารบัญ (/book/XXXXX.html) ก่อน');
+    let doc;
+    if (S.isIndexPage) {
+      doc = document;
+    } else {
+      const resp = await fetch(S.catalogUrl, { credentials: 'include', cache: 'no-store' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+      doc = new DOMParser().parseFromString(html, 'text/html');
+    }
+    const chSels = [
+      '#chapter-list a','.chapter-list a','.chapter_list a',
+      '#chapterList a','.chapterList a','.list-chapter a',
+      '.catalog-list a','#catalog a','.volume-list a',
+      'a[href*="/chapter/"]','a[href*="/read/"]'
+    ];
+    let links = [];
+    for (const sel of chSels) {
+      links = [...doc.querySelectorAll(sel)].filter(a => /\/(chapter|read)\//.test(a.href || a.getAttribute('href') || ''));
+      if (links.length > 2) break;
+    }
+    if (!links.length) throw new Error('ไม่พบลิงก์ตอนในสารบัญ');
+    const seen = new Set(); const entries = [];
+    let idx = 0;
+    for (const a of links) {
+      const href = a.href || new URL(a.getAttribute('href') || '', S.catalogUrl).href;
+      // skip multi-page parts (chapter/12345-2.html)
+      if (/-\d+\.html$/.test(href)) continue;
+      if (seen.has(href)) continue;
+      seen.add(href);
+      const titleTxt = clean(a.textContent);
+      const numFromTitle = chNumFromText(titleTxt);
+      const number = numFromTitle || (idx + 1);
+      entries.push({ number, title: titleTxt || `第${number}章`, url: href });
+      idx++;
+    }
+    if (!entries.length) throw new Error('ไม่พบตอนในสารบัญ');
+    return entries.sort((a, b) => a.number - b.number);
+  }
+
+  async function fetchCatalog() {
+    if (IS_QUANBEN)  return fetchQuanbenCatalog();
+    if (IS_BOLUOMAO) return fetchBoluomaoCatalog();
+    throw new Error('ไม่รองรับเว็บนี้');
+  }
+
   // ── UI ───────────────────────────────────────────────────────────────────────
+  const siteName = IS_BOLUOMAO ? '菠萝猫' : '全本小说网';
   const panel = document.createElement('section');
   panel.id = APP;
   panel.innerHTML = `
-    <div class="qb-head"><span>⚡ โหลดนิยาย</span><button id="qb-min">−</button></div>
+    <div class="qb-head"><span>⚡ โหลดนิยาย <small style="opacity:.7;font-weight:400">${siteName}</small></span><button id="qb-min">−</button></div>
     <div id="qb-body">
       <div id="qb-info">ตรวจหาสารบัญ…</div>
-
-      <div class="qb-label">ลิงก์ตอนแรก <small>(ถ้าสแกนสารบัญไม่ได้ หรืออยู่ในตอนนั้นอยู่แล้ว)</small></div>
-      <input id="qb-firsturl" type="url" placeholder="https://quanben-xiaoshuo.com/n/.../1/">
-
+      <div class="qb-label">ลิงก์ตอนแรก <small>(ถ้าสแกนสารบัญไม่ได้)</small></div>
+      <input id="qb-firsturl" type="url" placeholder="URL ตอนที่ 1…">
       <div class="qb-row">
         <button class="qb-cnt" data-n="50">50</button>
         <button class="qb-cnt" data-n="100">100</button>
@@ -308,7 +358,7 @@
   function setStatus(msg) { ui.status.textContent = msg; addLog(msg); }
   function setRunning(v) { running = v; ui.run.disabled = v; ui.stop.disabled = !v; }
   function finishRun() {
-    const ok   = results.filter(r => r.method !== 'fail').length;
+    const ok = results.filter(r => r.method !== 'fail').length;
     const fail = results.length - ok;
     setStatus(`เสร็จ ${ok} ตอน${fail ? ` (ล้มเหลว ${fail})` : ''} — พร้อมดาวน์โหลด`);
     ui.copy.disabled = ui.dl.disabled = !results.length;
@@ -324,21 +374,17 @@
   });
   panel.querySelector('[data-n="100"]').classList.add('active');
 
-  // ── init: สแกนสารบัญ + auto-fill URL ────────────────────────────────────────
+  // ── init ────────────────────────────────────────────────────────────────────
   async function init() {
     S = getUrlState();
 
-    // ถ้าอยู่บน chapter page → auto-fill firstUrl + ย่อ panel ไว้ก่อน
     if (!S.isIndexPage) {
       if (!ui.firstUrl.value) {
         ui.firstUrl.value = location.href;
         if (S.chapterNum) ui.from.value = S.chapterNum;
       }
-      // Minimize by default on chapter pages so it doesn't block reading
-      if (ui.body.style.display !== 'none') {
-        ui.body.style.display = 'none';
-        ui.min.textContent = '+';
-      }
+      ui.body.style.display = 'none';
+      ui.min.textContent = '+';
     } else {
       ui.body.style.display = '';
       ui.min.textContent = '−';
@@ -350,14 +396,15 @@
       const last = catalog.at(-1)?.number || '?';
       ui.info.textContent = `📚 ${novelTitle()} — พบ ${catalog.length} ตอน (1–${last})`;
       setStatus(`พร้อม • ${catalog.length} ตอน • Fast Fetch + iframe Fallback`);
+      if (!S.isIndexPage) { ui.body.style.display = ''; ui.min.textContent = '−'; }
     } catch (e) {
-      ui.info.textContent = `⚠️ สแกนสารบัญไม่ได้ — ลิงก์ตอนแรกถูก auto-fill แล้ว กด ▶ ได้เลย`;
-      setStatus('กด ▶ เพื่อเริ่มจากลิงก์ตอนแรกด้านบน');
-      addLog('สแกนสารบัญล้มเหลว: ' + e.message);
+      ui.info.textContent = `⚠️ สแกนสารบัญไม่ได้ — ใส่ลิงก์ตอนแรกแล้วกด ▶`;
+      setStatus('ใส่ลิงก์ตอนแรกด้านบนแล้วกด ▶');
+      addLog('catalog: ' + e.message);
     }
   }
 
-  // ── Mode A: โหลดจาก catalog ─────────────────────────────────────────────────
+  // ── Mode A: catalog ──────────────────────────────────────────────────────────
   async function runFromCatalog(selected) {
     ui.prog.max = selected.length; ui.prog.value = 0;
     for (let i = 0; i < selected.length && !stopped; i++) {
@@ -376,21 +423,19 @@
     }
   }
 
-  // ── Mode B: โหลดจากลิงก์ตอนแรก ตาม "下一章" ────────────────────────────────
+  // ── Mode B: follow 下一章 ────────────────────────────────────────────────────
   async function runFromUrl(startUrl) {
     const limit = Math.max(1, Number(ui.limit.value) || 100);
     const delay = Math.max(200, Number(ui.delay.value) || 500);
     ui.prog.max = limit; ui.prog.value = 0;
-
     let currentUrl = startUrl;
     let chNum = Math.max(1, Number(ui.from.value) || 1);
-
     for (let i = 0; i < limit && !stopped && currentUrl; i++) {
       setStatus(`โหลดตอน ${chNum} (${i + 1}/${limit})`);
       try {
         const data = await fetchChapter(currentUrl);
         results.push({ number: chNum, title: data.title || `第${chNum}章`, content: data.paras.join('\n\n'), method: data.method });
-        addLog(`✓ ตอน ${chNum} [${data.method}] ${data.paras.length} ย่อหน้า — ถัดไป: ${data.nextUrl ? '✓' : '✗'}`);
+        addLog(`✓ ตอน ${chNum} [${data.method}] — ถัดไป: ${data.nextUrl ? '✓' : '✗'}`);
         currentUrl = data.nextUrl || null;
       } catch (e) {
         results.push({ number: chNum, title: `第${chNum}章`, content: '[โหลดไม่สำเร็จ: ' + e.message + ']', method: 'fail' });
@@ -401,7 +446,7 @@
       ui.prog.value = i + 1;
       if (i < limit - 1 && !stopped && currentUrl) await sleep(delay);
     }
-    if (!currentUrl && !stopped) addLog('ถึงตอนสุดท้ายที่มีแล้ว');
+    if (!currentUrl && !stopped) addLog('ถึงตอนสุดท้ายแล้ว');
   }
 
   // ── main run ────────────────────────────────────────────────────────────────
@@ -409,19 +454,16 @@
     if (running) return;
     stopped = false; results = []; setRunning(true);
     ui.copy.disabled = ui.dl.disabled = true;
-
     const manualUrl = ui.firstUrl.value.trim();
-
     if (manualUrl) {
-      addLog('โหมด: ลิงก์ตอนแรก → ตาม 下一章 อัตโนมัติ');
+      addLog('โหมด: ลิงก์ตอนแรก → ตาม 下一章');
       await runFromUrl(manualUrl);
     } else {
       const fromN  = Math.max(1, Number(ui.from.value) || 1);
       const limit  = Math.max(1, Number(ui.limit.value) || 100);
       const selected = catalog.filter(x => x.number >= fromN).slice(0, limit);
-
       if (!selected.length) {
-        setStatus('ไม่พบตอนใน catalog — กรุณาใส่ลิงก์ตอนแรก'); setRunning(false); return;
+        setStatus('ไม่พบตอนใน catalog — ใส่ลิงก์ตอนแรก'); setRunning(false); return;
       }
       addLog(`โหมด: catalog (${selected.length} ตอน)`);
       await runFromCatalog(selected);
@@ -465,16 +507,12 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 3000);
   };
 
-  // ── SPA navigation: keep panel alive + re-init on URL change ────────────────
+  // ── SPA keep-alive (poll every 1.5s) ────────────────────────────────────────
   let lastHref = location.href;
-
-  // Poll every 1.5s: re-add panel/styles if SPA removed them, detect URL change
   setInterval(() => {
-    const body = document.body;
-    if (body && !body.contains(panel)) body.append(panel);
+    if (document.body && !document.body.contains(panel)) document.body.append(panel);
     if (document.head && !document.head.contains(css)) document.head.append(css);
     if (document.head && !document.head.contains(adCss)) document.head.append(adCss);
-
     if (location.href !== lastHref) {
       lastHref = location.href;
       if (!running) {
