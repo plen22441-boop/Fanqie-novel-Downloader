@@ -62,7 +62,7 @@
           const d = f.contentDocument;
           if (d && d.body) {
             const html = d.documentElement.outerHTML;
-            if (!isChallenge(html) && d.body.textContent.trim().length > 300) { clearInterval(iv); f.remove(); res(html); return; }
+            if (!isChallenge(html) && d.body.textContent.trim().length > 100) { clearInterval(iv); f.remove(); res(html); return; }
           }
         } catch (e) { /* keep waiting */ }
         if (Date.now() - t0 > 60000) { clearInterval(iv); f.remove(); rej(new Error('ด่านตรวจไม่ผ่านภายใน 60 วินาที')); }
@@ -303,7 +303,7 @@
     return null;
   }
 
-  function autoBest(doc) {
+  function autoBest(doc, minLen) {
     let best = null, score = 0;
     doc.querySelectorAll('div,article,section,main,td').forEach((el) => {
       let own = 0;
@@ -313,17 +313,18 @@
       });
       if (own > score) { score = own; best = el; }
     });
-    return best && score >= 150 ? { el: best, score, sel: 'auto:' + best.tagName.toLowerCase() + (best.id ? '#' + best.id : '') + (best.className ? '.' + String(best.className).trim().split(/\s+/).join('.') : '') } : null;
+    return best && score >= minLen ? { el: best, score, sel: 'auto:' + best.tagName.toLowerCase() + (best.id ? '#' + best.id : '') + (best.className ? '.' + String(best.className).trim().split(/\s+/).join('.') : '') } : null;
   }
 
-  function pickContainer(doc) {
+  function pickContainer(doc, minLen) {
+    minLen = minLen || 200;
     doc.querySelectorAll('script,style,noscript,iframe,nav,header,footer,form,button,select,ins,.ad,.ads,.adsbygoogle').forEach((e) => e.remove());
     let known = null;
     for (const s of CONTENT_SELS) {
       const el = doc.querySelector(s);
-      if (el) { const len = el.textContent.trim().length; if (len > 200) { known = { el, sel: s, len }; break; } }
+      if (el) { const len = el.textContent.trim().length; if (len > minLen) { known = { el, sel: s, len }; break; } }
     }
-    const auto = autoBest(doc);
+    const auto = autoBest(doc, Math.min(150, minLen));
     if (known && (!auto || known.len >= auto.score * 0.6)) return known;
     return auto || known;
   }
@@ -397,8 +398,9 @@
       let nxt = nextPageOf(doc, first, url, pages + 1);
       const dm = doc.body && /(?:本章|章节)?字数[：:]?\s*(\d+)/.exec(doc.body.textContent);
       let ttl = titleFromDoc(doc);
-      let box = pickContainer(parseHtml(html));
-      if (!box || box.el.textContent.trim().length < 150) {
+      let box = pickContainer(parseHtml(html), pages ? 20 : 200);
+      if (pages && !box) break;
+      if (!pages && (!box || box.el.textContent.trim().length < 150)) {
         html = await ifrQueue(() => viaIframe(url));
         m = 'iframe';
         doc = parseHtml(html);
