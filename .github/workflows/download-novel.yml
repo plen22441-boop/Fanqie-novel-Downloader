@@ -36,7 +36,11 @@ jobs:
 
       - name: Probe site
         if: github.event.inputs.probe == 'true'
-        run: python probe_site.py "${{ github.event.inputs.book_id }}"
+        env:
+          PROBE_URLS: ${{ github.event.inputs.book_id }}
+        run: |
+          set -f
+          python probe_site.py $PROBE_URLS
 
       - name: Download novel
         id: download
