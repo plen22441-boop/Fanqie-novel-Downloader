@@ -28,40 +28,49 @@
     return safeTitle(h?.textContent) || safeTitle(novelSlug);
   }
 
+  // pathParts[2] มีค่า = อยู่หน้าตอน, ไม่มี = อยู่หน้าสารบัญ
+  const isIndexPage = pathParts.length <= 2 || pathParts[2] === '';
+
   async function fetchCatalog() {
-    const resp = await fetch(catalogUrl, { credentials: 'include', cache: 'no-store' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const html = await resp.text();
-    const doc  = new DOMParser().parseFromString(html, 'text/html');
-
-    const selectors = [
-      '.chapter-list a', '#chapter-list a', '.list-chapter a',
-      '.catalog-list a', '#catalog a', '.directory a',
-      'ul.list a', '.list a', `a[href*="/${novelSlug}/"]`
-    ];
-
-    let links = [];
-    for (const sel of selectors) {
-      links = [...doc.querySelectorAll(sel)].filter(a => {
-        try {
-          const p = new URL(a.href, location.origin).pathname;
-          return p.startsWith(`/n/${novelSlug}/`) && p !== `/n/${novelSlug}/`;
-        } catch { return false; }
-      });
-      if (links.length > 2) break;
+    let doc;
+    if (isIndexPage) {
+      // อยู่หน้าสารบัญอยู่แล้ว ใช้ DOM ปัจจุบันได้เลย (เร็วกว่า + ไม่มีปัญหา URL)
+      doc = document;
+    } else {
+      // อยู่หน้าตอน → fetch หน้าสารบัญ และ inject <base> เพื่อ resolve relative URL
+      const resp = await fetch(catalogUrl, { credentials: 'include', cache: 'no-store' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+      const based = html.replace(/(<head[^>]*>)/i, `$1<base href="${catalogUrl}">`);
+      doc = new DOMParser().parseFromString(based, 'text/html');
     }
-    if (!links.length) throw new Error('ไม่พบลิงก์ตอนในสารบัญ');
 
+    // ดึง <a> ทั้งหมด แล้วกรองเอาเฉพาะลิงก์ตอนโดยใช้ getAttribute (ปลอดภัยกว่า a.href ใน parsed doc)
     const seen = new Set();
     const entries = [];
-    links.forEach((a, i) => {
-      const href = new URL(a.href, location.origin).href;
-      if (seen.has(href)) return;
+
+    for (const a of doc.querySelectorAll('a[href]')) {
+      const raw = a.getAttribute('href') || '';
+      if (!raw) continue;
+      let resolved;
+      try { resolved = new URL(raw, catalogUrl); } catch { continue; }
+
+      const p = resolved.pathname;
+      // ต้องอยู่ใน /n/<slug>/ และต้องไม่ใช่หน้าสารบัญเอง
+      if (!p.startsWith(`/n/${novelSlug}/`)) continue;
+      if (p === `/n/${novelSlug}/` || p === `/n/${novelSlug}`) continue;
+
+      const href = resolved.href;
+      if (seen.has(href)) continue;
       seen.add(href);
-      const numMatch = /\/(\d+)(?:\.html)?$/.exec(new URL(a.href, location.origin).pathname);
-      const number   = numMatch ? Number(numMatch[1]) : i + 1;
+
+      // เลขตอน: รองรับ /1/, /1.html, /1 (trailing slash หรือไม่ก็ได้)
+      const numMatch = /\/(\d+)(?:\.html)?\/?$/.exec(p);
+      const number   = numMatch ? Number(numMatch[1]) : entries.length + 1;
       entries.push({ number, title: clean(a.textContent) || `第${number}章`, url: href });
-    });
+    }
+
+    if (!entries.length) throw new Error('ไม่พบลิงก์ตอนในสารบัญ');
     return entries.sort((a, b) => a.number - b.number);
   }
 
