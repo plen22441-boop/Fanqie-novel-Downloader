@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spudnovel TXT Downloader
 // @namespace    fanqie-novel-downloader
-// @version      1.0
+// @version      1.1
 // @description  โหลดนิยายจาก spudnovel.com เป็นไฟล์ .txt (ผ่านด่านตรวจด้วยเบราว์เซอร์ของคุณเอง)
 // @match        https://spudnovel.com/site/detail*
 // @match        https://www.spudnovel.com/site/detail*
@@ -17,6 +17,8 @@
   const CHALLENGE = /Just a moment|正在进行安全验证|请稍候|cf-challenge|Verify Yourself|身份验证/;
   const NAV = /^(上一[章页頁]|下一[章页頁]|目录|目錄|返回|书页|加入书架|加入书签|设置|A[+-]|背景|阅读背景|错乱章节催更！?|章节错误|举报|收藏|书名：?|作者：?|本章字数：?|更新时间：?|开始阅读|立即阅读)$/;
   const AD = /https?:\/\/|www\.|spudnovel|土豆小说|\.(?:com|net|cc|org)\b|最新章节|请收藏|手机阅读|APP/i;
+  const ZW = /[\u200b-\u200f\u2060\ufeff\u00ad]/g;
+  const META = /^小说名：.*(更新时间|章节字数)|^更新时间：\d{4}-\d{2}-\d{2}/;
   const NUMLEAD = /^[0-9０-９]|^[一二三四五六七八九十百零〇]{1,4}\s*[、．.:：]/;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const st = { chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false };
@@ -26,20 +28,22 @@
   const cleanTitle = (t) => t.replace(/^第\s*[0-9一二三四五六七八九十百千零〇]+\s*章\s*/, '').trim();
 
   // ---------- TOC ----------
-  function buildToc() {
-    const anchors = [...document.querySelectorAll('a[href*="/site/chapter?id="]')];
+  function buildToc(src) {
+    const root = src || document;
+    const anchors = [...root.querySelectorAll('a[href*="/site/chapter?id="]')];
     const label = /^(开始阅读|立即阅读|最新章节|继续阅读)/;
     const byId = new Map();
     anchors.forEach((a) => {
-      const id = +new URL(a.href).searchParams.get('id');
+      const href = new URL(a.getAttribute('href'), location.href).href;
+      const id = +new URL(href).searchParams.get('id');
       const t = a.textContent.trim().replace(/\s+/g, ' ');
       const cur = byId.get(id);
-      if (!cur || (label.test(cur.title) && !label.test(t))) byId.set(id, { id, url: a.href, title: t });
+      if (!cur || (label.test(cur.title) && !label.test(t))) byId.set(id, { id, url: href, title: t });
     });
     const total = byId.size;
     const sets = new Map();
     anchors.forEach((a) => {
-      const id = +new URL(a.href).searchParams.get('id');
+      const id = +new URL(a.getAttribute('href'), location.href).searchParams.get('id');
       for (let e = a.parentElement; e; e = e.parentElement) {
         if (!sets.has(e)) sets.set(e, new Set());
         sets.get(e).add(id);
@@ -55,7 +59,7 @@
     const inBox = [];
     const seen = new Set();
     (box ? [...box.querySelectorAll('a[href*="/site/chapter?id="]')] : anchors).forEach((a) => {
-      const id = +new URL(a.href).searchParams.get('id');
+      const id = +new URL(a.getAttribute('href'), location.href).searchParams.get('id');
       if (!seen.has(id)) { seen.add(id); inBox.push(byId.get(id)); }
     });
     const nums = inBox.map((c) => (c.title.match(/第\s*(\d+)\s*章/) || [])[1]).filter(Boolean).map(Number);
@@ -63,17 +67,29 @@
     if (nums.length > 2 && nums[0] > nums[nums.length - 1]) { inBox.reverse(); reversed = true; }
     const extra = [...byId.values()].filter((c) => !seen.has(c.id)).sort((a, b) => a.id - b.id);
     const list = inBox.concat(extra);
-    const hint = (document.body.textContent.match(/共\s*(\d+)\s*章/) || [])[1];
-    st.toc = { total, inBox: inBox.length, extra: extra.length, reversed, hint: hint ? +hint : null,
+    const hint = (root.body.textContent.match(/共\s*(\d+)\s*章/) || [])[1];
+    st.toc = { source: src ? 'fetched' : 'live-dom', total, inBox: inBox.length, extra: extra.length, reversed, hint: hint ? +hint : null,
       box: box ? box.tagName.toLowerCase() + (box.id ? '#' + box.id : '') + (box.className ? '.' + String(box.className).trim().split(/\s+/).join('.') : '') : null };
-    const h1 = document.querySelector('h1');
-    st.meta.title = ((h1 && h1.textContent.trim()) || document.title.split('全文')[0].split('_')[0]).trim();
-    const au = document.querySelector('a[href*="/site/list?q="]');
+    const h1 = root.querySelector('h1');
+    st.meta.title = ((h1 && h1.textContent.trim()) || (root.title || '').split('全文')[0].split('_')[0]).trim();
+    const au = root.querySelector('a[href*="/site/list?q="]');
     st.meta.author = au ? au.textContent.trim() : '未知作者';
     st.meta.bookId = new URL(location.href).searchParams.get('id') || 'book';
     st.chapters = list;
     st.results = new Array(list.length).fill(null);
     return list;
+  }
+
+  async function loadToc() {
+    try {
+      const r = await fetch(location.href, { credentials: 'include' });
+      const t = await r.text();
+      if (r.ok && !isChallenge(t)) {
+        const doc = parseHtml(t);
+        if (doc.querySelector('a[href*="/site/chapter?id="]')) return buildToc(doc);
+      }
+    } catch (e) { /* fall back to live DOM */ }
+    return buildToc();
   }
 
   // ---------- fetching ----------
@@ -169,9 +185,12 @@
   function cleanLines(lines, title, dropped) {
     const out = [];
     const bare = cleanTitle(title);
+    const cut = lines.findIndex((x, k) => /^[*＊※]+$/.test(x.replace(ZW, '').trim()) && k >= lines.length - 8);
+    if (cut >= 0) { dropped.push('[author-note] ' + lines.slice(cut).join(' ').slice(0, 60)); lines = lines.slice(0, cut); }
     for (let l of lines) {
-      l = l.trim();
+      l = l.replace(ZW, '').trim();
       if (!l) continue;
+      if (META.test(l)) { dropped.push(l.slice(0, 30)); continue; }
       if (NAV.test(l)) { dropped.push(l); continue; }
       if (!out.length && (l === title || l === bare || (/^第\s*\d+\s*章/.test(l) && l.length < 40))) { dropped.push(l); continue; }
       if (AD.test(l)) {
@@ -273,7 +292,7 @@
   const safeName = () => (st.meta.title + '_' + st.meta.bookId).replace(/[\\/:*?"<>|]/g, '_');
 
   async function runTest(ui) {
-    if (!st.chapters.length) buildToc();
+    if (!st.chapters.length) await loadToc();
     const n = st.chapters.length;
     const idxs = [...new Set([0, Math.min(1, n - 1), n - 1])];
     await runBatch(idxs, ui);
@@ -282,7 +301,7 @@
   }
 
   async function runAll(ui) {
-    if (!st.chapters.length) buildToc();
+    if (!st.chapters.length) await loadToc();
     let lock = null;
     try { lock = await navigator.wakeLock.request('screen'); } catch (e) { /* optional */ }
     const idxs = st.chapters.map((_, i) => i).filter((i) => !st.results[i]);
@@ -297,7 +316,7 @@
     const box = document.createElement('div');
     box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;background:#fff;border:2px solid #c2185b;border-radius:10px;padding:8px;font:14px sans-serif;color:#222;box-shadow:0 2px 12px rgba(0,0,0,.35)';
     const msg = document.createElement('div');
-    msg.textContent = 'พร้อมแล้ว: ผ่านด่านตรวจของเว็บก่อน แล้วกดทดสอบ 3 ตอน';
+    msg.textContent = 'พร้อมแล้ว: ปิดการแปลหน้าเว็บ ผ่านด่านตรวจก่อน แล้วกดทดสอบ 3 ตอน';
     msg.style.marginBottom = '6px';
     box.appendChild(msg);
     const ui = (s) => { msg.textContent = s; };
@@ -320,6 +339,6 @@
     document.body.appendChild(box);
   }
 
-  if (TEST) window.__SPUD = { buildToc, runTest, runAll, st, assemble, downloadChapter };
+  if (TEST) window.__SPUD = { buildToc, loadToc, runTest, runAll, st, assemble, downloadChapter };
   else mountUi();
 })();
