@@ -343,7 +343,8 @@ def main():
         result = scrape_chapter(item, args.delay)
         results.append(result)
         status_icon = {"ok": "✓", "suspicious": "⚠", "failed": "✗"}.get(result["status"], "?")
-        print(f"  {status_icon} {result['status']} — {result['error'] or '; '.join(result['warnings']) or f\"{len(result['pages'])} page(s)\"}")
+        detail = result["error"] or "; ".join(result["warnings"]) or "{} page(s)".format(len(result["pages"]))
+        print(f"  {status_icon} {result['status']} — {detail}")
         if i < len(selected) - 1:
             time.sleep(max(0.25, args.delay / 1000))
 
