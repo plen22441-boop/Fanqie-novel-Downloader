@@ -50,8 +50,8 @@
   // "next page" within same chapter (same chapter split into multiple pages)
   const NEXT_PG_RE = /下一页|next\s*page/i;
   const JUNK_RE  = /当前位置|上一章|下一章|回目录|©\s*20\d\d|document\.domain|this\.location|GoogleAnalytics|function\(i,s,o|ga\("create|ga\("send|\(function\(/i;
-  // Filter out lines that are just novel recommendation titles 《...》
-  const RECOMMEND_RE = /^《[^》]+》\s*$/;
+  // Filter out lines that are just novel recommendation titles 《...》 (with optional surrounding whitespace/tabs)
+  const RECOMMEND_RE = /^\s*《[^》]{1,60}》\s*$/;
 
   // ── Text helpers ─────────────────────────────────────────────────────────────
   function clean(s) {
@@ -85,18 +85,37 @@
     '#chp_content', '.chp-content', '.chapter_content',
   ];
 
+  // Score an element: higher = more likely real novel content.
+  // Penalizes elements whose lines are mostly 《book recommendations》.
+  function contentScore(el) {
+    const raw = (el.textContent || '').trim();
+    if (raw.length < 50) return 0;
+    const lines = raw.split(/\n+/).map(s => s.trim()).filter(s => s.length > 1);
+    if (!lines.length) return 0;
+    const junkLines = lines.filter(s => RECOMMEND_RE.test(s) || isJunkLine(s)).length;
+    const junkRatio = junkLines / lines.length;
+    // Discount heavily if more than 30% junk
+    const score = raw.length * (1 - junkRatio * 2);
+    return score;
+  }
+
   function findContentBox(doc) {
+    // Try known selectors first — pick the one with best score
+    let bestSel = null, bestSelScore = 0;
     for (const sel of CONTENT_SELS) {
       const el = doc.querySelector(sel);
-      if (el && (el.textContent || '').trim().length > 100) return el;
+      if (!el) continue;
+      const sc = contentScore(el);
+      if (sc > bestSelScore) { bestSelScore = sc; bestSel = el; }
     }
-    // Fallback: find the largest text block
-    let best = null, bestLen = 0;
+    if (bestSel && bestSelScore > 200) return bestSel;
+
+    // Fallback: score all divs, pick the best
+    let best = null, bestScore = 0;
     doc.querySelectorAll('div,section,article').forEach(el => {
-      const t = (el.textContent || '').trim();
-      if (t.length > bestLen && t.length > 200) {
-        best = el; bestLen = t.length;
-      }
+      // Skip containers that are ancestors of a better candidate
+      const sc = contentScore(el);
+      if (sc > bestScore) { bestScore = sc; best = el; }
     });
     return best;
   }
