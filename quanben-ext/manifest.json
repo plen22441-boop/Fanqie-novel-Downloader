@@ -1,22 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Novel Downloader — quanben + boluomao1",
-  "version": "1.1.0",
-  "description": "ดาวน์โหลดนิยายจาก quanben-xiaoshuo.com และ boluomao1.com — ปุ่มลอย, Fast Fetch + iframe Fallback",
+  "name": "Novel Downloader — Universal",
+  "version": "2.0.0",
+  "description": "ดาวน์โหลดนิยายจากทุกเว็บ — ปุ่มลอย, Fast Fetch, ไล่ตอนอัตโนมัติ",
   "content_scripts": [
     {
-      "matches": [
-        "https://www.quanben-xiaoshuo.com/n/*",
-        "https://quanben-xiaoshuo.com/n/*",
-        "https://www.quanben-xiaoshuo.net/n/*",
-        "https://quanben-xiaoshuo.net/n/*",
-        "https://www.boluomao1.com/book/*",
-        "https://boluomao1.com/book/*",
-        "https://www.boluomao1.com/chapter/*",
-        "https://boluomao1.com/chapter/*",
-        "https://www.boluomao1.com/read/*/*",
-        "https://boluomao1.com/read/*/*"
-      ],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["content.js"],
       "run_at": "document_idle",
       "all_frames": false
