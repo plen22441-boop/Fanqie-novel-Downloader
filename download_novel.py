@@ -63,9 +63,12 @@ def is_fanqie(url: str) -> bool:
 
 def extract_book_id(url: str) -> str:
     m = re.search(r"\d{6,}", url) or re.search(r"\d{4,}", url)
-    if not m:
-        sys.exit(f"[ERROR] ไม่พบ book ID ใน: {url}")
-    return m.group(0)
+    if m:
+        return m.group(0)
+    segs = [x for x in urlparse(url).path.split("/") if x]
+    if segs:
+        return re.sub(r"\.html?$", "", segs[-1])
+    sys.exit(f"[ERROR] ไม่พบ book ID ใน: {url}")
 
 
 # ─── Fanqie API path ───────────────────────────────────────────────────────────
