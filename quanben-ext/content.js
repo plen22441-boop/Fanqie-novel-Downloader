@@ -232,7 +232,7 @@
       // Stop if: no next-page link, or next-page is the same as next-chapter (i.e., no real pagination)
       if (nextPage && nextPage !== nextChapter && nextPage !== currentUrl) {
         currentUrl = nextPage;
-        await sleep(150);
+        await sleep(80);
       } else {
         // No more pages — return with next chapter URL
         return { title, paras: allParas, nextUrl: nextChapter };
@@ -299,7 +299,7 @@
 
   // ── Parallel fetch pool ───────────────────────────────────────────────────────
   // Fetches entries[] concurrently (CONCURRENCY at a time), preserving order.
-  const CONCURRENCY = 5;
+  const CONCURRENCY = 8;
 
   async function fetchPool(entries, fromN) {
     const ordered = new Array(entries.length);
@@ -322,8 +322,7 @@
         }
         done++;
         ui.prog.value = done;
-        // Small delay to avoid hammering the server
-        await sleep(150);
+        await sleep(80);
       }
     }
 
@@ -439,7 +438,7 @@
 
 /* ── Body ── */
 #${APP} .nd-body{
-  background:#fff;
+  background:linear-gradient(160deg,#FF0080 0%,#c4005e 100%);
   border:2px solid #FF0080;border-top:none;
   border-radius:0 0 14px 14px;
   padding:12px;
@@ -448,18 +447,19 @@
 
 /* ── Info / status ── */
 #${APP} .nd-info{
-  font-size:11.5px;color:#333;
-  background:#fff0f7;border:1px solid #ffc0e0;
+  font-size:11.5px;color:#fff;
+  background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.2);
   border-radius:8px;padding:6px 9px;line-height:1.4;
 }
 #${APP} .nd-status{
-  font-size:11.5px;font-weight:600;
-  color:#FF0080;text-align:center;
+  font-size:12px;font-weight:700;
+  color:#fff;text-align:center;
+  text-shadow:0 1px 4px rgba(0,0,0,.3);
 }
 
 /* ── Section label ── */
 #${APP} .nd-label{
-  font-size:10.5px;font-weight:700;color:#999;
+  font-size:10.5px;font-weight:700;color:rgba(255,255,255,.75);
   text-transform:uppercase;letter-spacing:.6px;
   margin-bottom:2px;
 }
@@ -474,100 +474,106 @@
 #${APP} input[type=text]{
   width:100%;box-sizing:border-box;
   padding:7px 10px;
-  border:1.5px solid #e0e0e0;border-radius:8px;
-  font-size:12px;color:#222;
+  background:rgba(255,255,255,.9);
+  border:1.5px solid rgba(255,255,255,.4);border-radius:8px;
+  font-size:12px;color:#1a1a1a;
   transition:border-color .2s;
   outline:none;
 }
-#${APP} input[type=text]:focus{border-color:#FF0080;}
-#${APP} .nd-clear-btn{
-  flex-shrink:0;
-  width:32px;height:32px;
-  background:#f0f0f0;border:1.5px solid #e0e0e0;
-  border-radius:8px;color:#888;font-size:14px;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:all .15s;padding:0;line-height:1;
-}
-#${APP} .nd-clear-btn:hover{background:#FF0080;border-color:#FF0080;color:#fff;}
+#${APP} input[type=text]:focus{border-color:#fff;background:#fff;}
 
 /* ── Chapter range row ── */
 #${APP} .nd-range{
   display:flex;align-items:center;gap:6px;
 }
 #${APP} .nd-range label{
-  font-size:11px;color:#666;white-space:nowrap;
+  font-size:11px;color:rgba(255,255,255,.85);white-space:nowrap;
 }
 #${APP} .nd-range input[type=number]{
   width:52px;padding:5px 6px;
-  border:1.5px solid #e0e0e0;border-radius:7px;
-  font-size:12px;text-align:center;outline:none;
+  background:rgba(255,255,255,.9);
+  border:1.5px solid rgba(255,255,255,.4);border-radius:7px;
+  font-size:12px;text-align:center;outline:none;color:#1a1a1a;
   transition:border-color .2s;
 }
-#${APP} .nd-range input[type=number]:focus{border-color:#FF0080;}
+#${APP} .nd-range input[type=number]:focus{border-color:#fff;}
 
 /* ── Quick-count pills ── */
 #${APP} .nd-pills{display:flex;gap:5px;}
 #${APP} .nd-pill{
   flex:1;padding:5px 0;
-  background:#f5f5f5;border:1.5px solid #e0e0e0;
-  border-radius:20px;font-size:12px;font-weight:600;
-  color:#555;cursor:pointer;text-align:center;
+  background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.35);
+  border-radius:20px;font-size:12px;font-weight:700;
+  color:#fff;cursor:pointer;text-align:center;
   transition:all .15s;
 }
 #${APP} .nd-pill:hover,#${APP} .nd-pill.active{
-  background:#FF0080;border-color:#FF0080;color:#fff;
+  background:#fff;border-color:#fff;color:#FF0080;
 }
 
 /* ── Action buttons ── */
 #${APP} .nd-actions{display:flex;gap:6px;}
 #${APP} .nd-btn-run{
   flex:1;padding:9px 0;
-  background:linear-gradient(135deg,#FF0080,#c0006a);
+  background:#1a1a1a;
   border:none;border-radius:10px;
   color:#fff;font-size:13px;font-weight:700;letter-spacing:.3px;
   cursor:pointer;transition:opacity .2s;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
 }
-#${APP} .nd-btn-run:hover{opacity:.88;}
+#${APP} .nd-btn-run:hover{opacity:.82;}
 #${APP} .nd-btn-stop{
-  padding:9px 12px;
-  background:#1a1a1a;border:none;border-radius:10px;
+  padding:9px 14px;
+  background:rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.3);
+  border-radius:10px;
   color:#fff;font-size:13px;cursor:pointer;transition:opacity .2s;
 }
-#${APP} .nd-btn-stop:hover{opacity:.75;}
+#${APP} .nd-btn-stop:hover{background:rgba(0,0,0,.55);}
 
 /* ── Save buttons ── */
 #${APP} .nd-saves{display:flex;gap:6px;}
 #${APP} .nd-btn-save{
   flex:1;padding:8px 0;
-  background:#fff;border:1.5px solid #FF0080;
-  border-radius:10px;color:#FF0080;
+  background:rgba(255,255,255,.9);border:none;
+  border-radius:10px;color:#c4005e;
   font-size:12px;font-weight:700;cursor:pointer;
   transition:all .15s;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
 }
-#${APP} .nd-btn-save:hover:not(:disabled){background:#FF0080;color:#fff;}
+#${APP} .nd-btn-save:hover:not(:disabled){background:#fff;color:#FF0080;}
 #${APP} .nd-btn-save:disabled{
-  border-color:#e0e0e0;color:#bbb;cursor:not-allowed;
+  background:rgba(255,255,255,.3);color:rgba(255,255,255,.5);cursor:not-allowed;
 }
 
 /* ── Progress bar ── */
 #${APP} .nd-prog-wrap{
-  background:#f0f0f0;border-radius:99px;height:6px;overflow:hidden;
+  background:rgba(0,0,0,.25);border-radius:99px;height:7px;overflow:hidden;
 }
 #${APP} .nd-prog-bar{
   height:100%;border-radius:99px;
-  background:linear-gradient(90deg,#FF0080,#ff66b3);
-  width:0%;transition:width .3s;
+  background:linear-gradient(90deg,#fff,rgba(255,255,255,.7));
+  width:0%;transition:width .25s;
 }
 
 /* ── Log ── */
 #${APP} .nd-log{
-  max-height:72px;overflow-y:auto;
-  font-size:11px;color:#444;
-  background:#fafafa;border:1px solid #f0e0e8;
+  max-height:68px;overflow-y:auto;
+  font-size:11px;
+  background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);
   border-radius:8px;padding:5px 8px;line-height:1.6;
 }
-#${APP} .nd-log .ok{color:#d4006a;}
-#${APP} .nd-log .err{color:#888;}
+#${APP} .nd-log .ok{color:#fff;}
+#${APP} .nd-log .err{color:rgba(255,255,255,.55);}
+
+/* ── Clear button ── */
+#${APP} .nd-clear-btn{
+  flex-shrink:0;width:32px;height:32px;
+  background:rgba(0,0,0,.25);border:1.5px solid rgba(255,255,255,.3);
+  border-radius:8px;color:#fff;font-size:14px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;padding:0;line-height:1;
+}
+#${APP} .nd-clear-btn:hover{background:rgba(0,0,0,.5);}
 
 /* ── Minimized state ── */
 #${APP}.nd-minimized .nd-body{display:none;}
