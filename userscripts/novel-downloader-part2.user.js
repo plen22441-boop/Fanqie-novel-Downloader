@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 2/2 (โหลดตอน+แผงควบคุม)
 // @namespace    fanqie-novel-downloader
-// @version      2.8
+// @version      2.9
 // @description  ส่วนที่ 2 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 1
 // @match        *://*/*
 // @noframes
@@ -22,7 +22,7 @@
       if (typeof GM_registerMenuCommand === 'function') GM_registerMenuCommand('เปิดแผงโหลดนิยาย', () => alert('ไม่พบส่วนที่ 1 กรุณาติดตั้ง "ส่วนที่ 1/2" และเปิดใช้งานทั้งสองส่วน'));
       return;
     }
-    const { st, VERSION, cleanTitle, detect, idbClear, idbGet, idbSet, ifrQueue, loadHtml, parseHtml, scan, sleep, textOf, viaIframe, fetchText, isChallenge } = A;
+    const { st, VERSION, cleanTitle, detect, idbClear, idbGet, idbSet, ifrQueue, loadHtml, parseHtml, scan, sleep, textOf, viaIframe, fetchText, isChallenge, addPage } = A;
   const ZW = /[​-‏⁠﻿­]/g;
   const SEP = '─'.repeat(40);
   const NAV_LINE = /^(上一[章页頁节節]|下一[章页頁节節]|上[页頁]|下[页頁]|目[录錄]|返回.*|书页|書頁|加入书[架签]|加入書[架籤]|设置|設置|A[+-]|阅读背景|错乱章节催更！?|章节错误|章節錯誤|举报|舉報|收藏|书名[：:]?|作者[：:]?|本章字数[：:]?|更新时间[：:]?|开始阅读|立即阅读|报错|催更|书签|没有了|沒有了|指南)$/;
@@ -376,6 +376,7 @@
       panel.appendChild(b);
     };
     mk('สแกนสารบัญ', () => scan(ui));
+    mk('เพิ่มสารบัญหน้านี้', () => addPage(ui));
     mk('ทดสอบ 4 ตอน', () => runTest(ui));
     mk('โหลดทั้งเรื่อง', () => runAll(ui));
     mk('ลองตอนที่ล้มซ้ำ', () => runAll(ui));

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader (universal)
 // @namespace    fanqie-novel-downloader
-// @version      2.8
+// @version      2.9
 // @description  โหลดนิยายจากเว็บนิยายจีนทั่วไปเป็นไฟล์ .txt ผ่านเบราว์เซอร์ของคุณเอง
 // @match        *://*/*
 // @noframes
@@ -204,6 +204,17 @@
     return null;
   }
 
+  function tap(el) {
+    const o = { bubbles: true, cancelable: true, view: window };
+    ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'].forEach((t) => {
+      let ev;
+      try { ev = t.startsWith('touch') ? new TouchEvent(t, o) : t.startsWith('pointer') ? new PointerEvent(t, o) : new MouseEvent(t, o); } catch (e) { ev = new Event(t, o); }
+      el.dispatchEvent(ev);
+    });
+    const jq = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window).jQuery;
+    if (jq) { try { jq(el).trigger('click'); } catch (e) { /* ignore */ } }
+  }
+
   // TOC pages switched by JavaScript (select change / "next" button without a real URL)
   async function harvestLive(key, ui) {
     const cur = () => boxItems(anchorsOf(document, location.href).filter((i) => shapeKey(i.url) === key)).out.map((i) => ({ url: i.url, title: i.title }));
@@ -224,6 +235,8 @@
           sel.selectedIndex = k;
           sel.dispatchEvent(new Event('input', { bubbles: true }));
           sel.dispatchEvent(new Event('change', { bubbles: true }));
+          const jq = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window).jQuery;
+          if (jq) { try { jq(sel).val(sel.value).trigger('change'); } catch (e) { /* ignore */ } }
           changed = await waitChange(before);
         }
         if (!changed) { if (!gained && k === (start === 0 ? 1 : 0)) break; continue; }
@@ -247,9 +260,9 @@
       const nx = findNext();
       if (!nx) break;
       const before = sig(cur());
-      nx.click();
+      tap(nx);
       let moved = await waitChange(before);
-      if (!moved) { nx.click(); moved = await waitChange(before); }
+      if (!moved) { tap(nx); moved = await waitChange(before); }
       if (!moved) break;
       if (!add(cur())) break;
       ui('สแกนสารบัญ (กดหน้าถัดไป) พบเพิ่ม ' + out.length + ' ตอน');
@@ -295,6 +308,25 @@
       }
     }
     return { out: [], tried };
+  }
+
+  async function addPage(ui) {
+    const d = detect(document, location.href);
+    if (!d) { ui('ไม่พบรายชื่อตอนในหน้านี้'); return false; }
+    const key = st.toc && st.toc.key ? st.toc.key : d.key;
+    const items = boxItems(anchorsOf(document, location.href).filter((i) => shapeKey(i.url) === key)).out.map((i) => ({ url: i.url, title: i.title }));
+    const have = new Set(st.chapters.map((c) => c.url));
+    let added = 0;
+    const list = st.chapters.map((c) => ({ url: c.url, title: c.title }));
+    items.forEach((c) => { if (!have.has(c.url)) { have.add(c.url); list.push(c); added++; } });
+    const nums = list.map((c) => numOf(c.title));
+    if (nums.every((n) => n !== null) && list.length > 4) list.sort((a, b) => numOf(a.title) - numOf(b.title));
+    st.chapters = list.map((c, i) => ({ i, url: c.url, title: c.title }));
+    st.results = new Array(list.length).fill(null);
+    if (!st.meta.title) st.meta = metaOf(document);
+    st.toc = Object.assign({ key, paging: 'manual', dbg: {} }, st.toc, { count: list.length });
+    ui('รวมแล้ว ' + list.length + ' ตอน (เพิ่มจากหน้านี้ ' + added + ') | แรก: ' + (list[0].title || '').slice(0, 14) + ' | ท้าย: ' + (list[list.length - 1].title || '').slice(0, 14) + ' | เปลี่ยนไปหน้าถัดไปแล้วกดอีกครั้ง');
+    return true;
   }
 
   const numOf = (t) => { const m = /第\s*(\d+)\s*[章节節回]/.exec(t) || /^(\d{1,5})\s*[.、．]/.exec(t); return m ? +m[1] : null; };
@@ -771,6 +803,7 @@
       panel.appendChild(b);
     };
     mk('สแกนสารบัญ', () => scan(ui));
+    mk('เพิ่มสารบัญหน้านี้', () => addPage(ui));
     mk('ทดสอบ 4 ตอน', () => runTest(ui));
     mk('โหลดทั้งเรื่อง', () => runAll(ui));
     mk('ลองตอนที่ล้มซ้ำ', () => runAll(ui));
