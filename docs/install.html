@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โหลดนิยาย Boluomao1 — ติดตั้งสำเร็จรูป</title>
+<style>
+  :root {
+    --green: #2e7d52;
+    --light: #f0faf4;
+    --card: #fff;
+    --border: #b2dfc0;
+    --text: #1a2b1a;
+    --muted: #5a7a5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 16px/1.6 system-ui, sans-serif; background: var(--light); color: var(--text); padding: 16px; }
+  h1 { font-size: 1.35rem; color: var(--green); margin-bottom: 4px; }
+  p.sub { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 1rem; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .badge { background: var(--green); color: #fff; border-radius: 99px; font-size: .72rem; padding: 2px 9px; font-weight: 700; }
+  .badge.alt { background: #1565c0; }
+  .badge.opt { background: #888; }
+  ol, ul { padding-left: 20px; }
+  li { margin-bottom: 6px; font-size: .95rem; }
+  a.btn {
+    display: block; text-align: center; background: var(--green); color: #fff;
+    border-radius: 14px; padding: 14px 16px; font-size: 1.05rem; font-weight: 700;
+    text-decoration: none; margin-top: 12px; letter-spacing: .02em;
+  }
+  a.btn.blue { background: #1565c0; }
+  .code { background: #edf7f1; border-radius: 8px; padding: 10px 12px; font: 13px/1.5 monospace; word-break: break-all; color: #1a2b1a; margin-top: 8px; }
+  .note { background: #fff8e1; border-left: 3px solid #f9a825; padding: 10px 12px; border-radius: 0 8px 8px 0; font-size: .88rem; color: #5d4037; margin-top: 12px; }
+  details summary { cursor: pointer; font-weight: 700; color: var(--green); padding: 4px 0; }
+  details p { font-size: .9rem; margin-top: 6px; color: var(--muted); }
+  hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
+  .step-num { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; background: var(--green); color: #fff; font-size: .78rem; font-weight: 700; align-items: center; justify-content: center; margin-right: 6px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<h1>📚 โหลดนิยาย Boluomao1</h1>
+<p class="sub">ใช้ได้บนมือถือ · ไม่ต้องติดตั้งแอปเพิ่ม · ฟรี 100%</p>
+
+<!-- ── วิธีที่ 1: Bookmarklet (ไม่ต้องลง extension) ── -->
+<div class="card">
+  <h2><span class="badge">แนะนำ</span> วิธีที่ 1 — Bookmarklet (ไม่ต้องลง extension)</h2>
+  <ol>
+    <li>กดปุ่ม <strong>"เพิ่ม Bookmarklet"</strong> ด้านล่างค้างไว้แล้วเลือก <strong>"เปิดในแท็บใหม่"</strong> หรือ <strong>Copy link</strong></li>
+    <li>บันทึก link นั้นเป็น Bookmark (ชื่อ <em>โหลดนิยาย</em>)</li>
+    <li>เปิดหน้า <strong>boluomao1.com/read/…</strong> หรือ <strong>/book/…</strong> แล้วกด Bookmark นั้น</li>
+    <li>กด <strong>1. สแกนสารบัญ</strong> → <strong>2. เริ่มโหลด</strong> → <strong>ZIP</strong></li>
+  </ol>
+  <a class="btn" id="bm-btn" href="#">📌 เพิ่ม Bookmarklet</a>
+  <div class="note">💡 บน iPhone Safari: กด Share → เพิ่มใน Bookmark → แก้ URL ด้วยโค้ดด้านล่าง</div>
+  <div class="code" id="bm-code">กำลังโหลด…</div>
+</div>
+
+<!-- ── วิธีที่ 2: Tampermonkey ── -->
+<div class="card">
+  <h2><span class="badge alt">Tampermonkey</span> วิธีที่ 2 — Kiwi Browser (Android)</h2>
+  <ol>
+    <li>ดาวน์โหลด <strong>Kiwi Browser</strong> จาก Play Store</li>
+    <li>ใน Kiwi กด เมนู → Extensions → เปิดใช้ Extensions</li>
+    <li>ค้นหา <strong>Tampermonkey</strong> ใน Chrome Web Store แล้วติดตั้ง</li>
+    <li>กดปุ่มด้านล่างเพื่อติดตั้งสคริปต์</li>
+  </ol>
+  <a class="btn blue" href="https://raw.githubusercontent.com/plen22441-boop/Fanqie-novel-Downloader/claude/github-free-web-download-9dkdse/boluomao1-downloader.user.js">
+    ⬇️ ติดตั้งสคริปต์ (Tampermonkey)
+  </a>
+  <div class="note">💡 ถ้ากดแล้วไม่ขึ้นหน้า Install ให้คัดลอก URL ไปเปิดใน Kiwi Browser ที่ติดตั้ง Tampermonkey ไว้แล้ว</div>
+</div>
+
+<!-- ── วิธีใช้ ── -->
+<div class="card">
+  <h2>วิธีใช้งาน</h2>
+  <ol>
+    <li>เปิดหน้าสารบัญหรือหน้าตอนของ boluomao1.com</li>
+    <li>กด <strong>1. สแกนสารบัญ</strong> — รอสักครู่</li>
+    <li>เลือกตอนเริ่ม–จบ (ถ้าต้องการ)</li>
+    <li>กด <strong>2. เริ่มโหลด</strong></li>
+    <li>เมื่อเสร็จกด <strong>ZIP + รายตอน</strong> เพื่อบันทึกไฟล์</li>
+  </ol>
+  <div class="note">⚠️ ถ้าขึ้น "ยังไม่ผ่าน QC" ให้เปิดไฟล์ QC_REPORT.txt ดูว่าตอนไหนโหลดไม่สำเร็จ</div>
+</div>
+
+<details>
+  <summary>URL ที่รองรับ</summary>
+  <p>
+    https://www.boluomao1.com/book/XXXXX.html (หน้าสารบัญ)<br>
+    https://www.boluomao1.com/read/XXXXX/YYYYYYY.html (หน้าตอน)
+  </p>
+</details>
+
+<script>
+// สร้าง bookmarklet จาก raw script
+const RAW = 'https://raw.githubusercontent.com/plen22441-boop/Fanqie-novel-Downloader/claude/github-free-web-download-9dkdse/boluomao1-downloader.user.js';
+
+const bm = `javascript:(async()=>{` +
+  `if(document.getElementById('blm1-downloader')){alert('สคริปต์ทำงานอยู่แล้วค่ะ');return;}` +
+  `const r=await fetch('${RAW}?t='+Date.now(),{cache:'no-store'});` +
+  `const t=await r.text();` +
+  `const code=t.replace(/\\/\\/ ==UserScript==[\\s\\S]*?\\/\\/ ==\\/UserScript==/,'');` +
+  `new Function(code)();` +
+`})();`;
+
+document.getElementById('bm-btn').href = bm;
+document.getElementById('bm-code').textContent = bm;
+</script>
+</body>
+</html>
