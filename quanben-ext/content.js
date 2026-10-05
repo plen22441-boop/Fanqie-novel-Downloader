@@ -44,7 +44,8 @@
   let catalog = [];
   let results = [];
 
-  const BLOCK_RE = /Just a moment|安全验证|人机验证|Verify you are human|Access Denied|Forbidden/i;
+  const BLOCK_RE    = /Just a moment|安全验证|人机验证|Verify you are human|Access Denied|Forbidden/i;
+  const RATELIMIT_RE = /访问过于频繁|检测到异常请求|请稍后再试|too many requests|rate.?limit/i;
   // Match "next CHAPTER" only — not "next page" (避免跟着分页链接走)
   const NEXT_CH_RE = /下一[章节回篇]|next\s*chapter/i;
   // "next page" within same chapter (same chapter split into multiple pages)
@@ -198,7 +199,11 @@
     let doc;
     try { doc = await fastFetch(url); }
     catch (_) { doc = await iframeFetch(url); }
-    if (BLOCK_RE.test(doc.title || '')) throw new Error('ถูก block — CAPTCHA/WAF');
+    const titleText = doc.title || '';
+    const bodyText  = doc.body?.innerText || '';
+    if (RATELIMIT_RE.test(titleText) || RATELIMIT_RE.test(bodyText.slice(0, 300)))
+      throw new Error('访问过于频繁 — rate limited');
+    if (BLOCK_RE.test(titleText)) throw new Error('ถูก block — CAPTCHA/WAF');
     return doc;
   }
 
@@ -298,35 +303,51 @@
   }
 
   // ── Parallel fetch pool ───────────────────────────────────────────────────────
-  // Fetches entries[] concurrently (CONCURRENCY at a time), preserving order.
-  const CONCURRENCY = 16;
+  // Site-adaptive concurrency: strict sites get fewer workers + longer delay
+  const CONCURRENCY = IS_BOLUOMAO ? 3 : 16;
+  const POOL_DELAY  = IS_BOLUOMAO ? 400 : 30;
 
   async function fetchPool(entries, fromN) {
     const ordered = new Array(entries.length);
     let nextIdx = 0;
     let done = 0;
 
-    async function worker() {
+    async function worker(workerIdx) {
+      // stagger worker start to avoid burst
+      await sleep(workerIdx * (IS_BOLUOMAO ? 300 : 20));
       while (!stopped) {
         const idx = nextIdx++;
         if (idx >= entries.length) return;
         const ch = entries[idx];
         setStatus(`กำลังโหลด ${done + 1}/${entries.length} (${CONCURRENCY} คู่ขนาน)…`);
-        try {
-          const { title, paras } = await extractChapter(ch.url);
-          ordered[idx] = `\n\n第${ch.number}章 ${title || ch.title}\n\n` + paras.join('\n\n');
-          addLog(`✓ ${ch.number}. ${title || ch.title}`);
-        } catch (e) {
-          ordered[idx] = `\n\n第${ch.number}章 ${ch.title}\n\n[โหลดไม่สำเร็จ: ${e.message}]`;
-          addLog(`✗ ตอน ${ch.number}: ${e.message}`);
+        let retries = 0;
+        while (retries < 4) {
+          try {
+            const { title, paras } = await extractChapter(ch.url);
+            ordered[idx] = `\n\n第${ch.number}章 ${title || ch.title}\n\n` + paras.join('\n\n');
+            addLog(`✓ ${ch.number}. ${title || ch.title}`);
+            break;
+          } catch (e) {
+            if (RATELIMIT_RE.test(e.message) && retries < 3) {
+              retries++;
+              const wait = 3000 * retries;
+              addLog(`⚠ ถูก rate-limit ตอน ${ch.number} — รอ ${wait/1000}s แล้วลองใหม่…`);
+              await sleep(wait);
+            } else {
+              ordered[idx] = `\n\n第${ch.number}章 ${ch.title}\n\n[โหลดไม่สำเร็จ: ${e.message}]`;
+              addLog(`✗ ตอน ${ch.number}: ${e.message}`);
+              break;
+            }
+          }
         }
         done++;
         ui.prog.value = done;
-        await sleep(30);
+        // jitter: base delay ± 30%
+        await sleep(POOL_DELAY + Math.random() * POOL_DELAY * 0.6);
       }
     }
 
-    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    await Promise.all(Array.from({ length: CONCURRENCY }, (_, i) => worker(i)));
     return ordered.filter(Boolean);
   }
 
