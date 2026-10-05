@@ -1,20 +1,33 @@
-name: Download Novel
+name: Download Novel — Boluomao1
 
 on:
   workflow_dispatch:
     inputs:
-      book_id:
-        description: "Book ID หรือ URL (เช่น 7143038691940959460)"
+      book_url:
+        description: "URL หนังสือ หรือ book_id (เช่น https://www.boluomao1.com/book/850578.html หรือแค่ 850578)"
         required: true
-      workers:
-        description: "จำนวน parallel workers (แนะนำ 20)"
+        type: string
+      start_chapter:
+        description: "ตอนเริ่มต้น (ค่าเริ่มต้น 1)"
         required: false
-        default: "20"
+        default: "1"
+        type: string
+      end_chapter:
+        description: "ตอนสุดท้าย (ว่างไว้ = โหลดทุกตอน)"
+        required: false
+        default: ""
+        type: string
+      delay_ms:
+        description: "หน่วงเวลาระหว่างตอน (ms) ค่าเริ่มต้น 700"
+        required: false
+        default: "700"
+        type: string
 
 jobs:
   download:
+    name: Download chapters
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
 
     steps:
       - name: Checkout
@@ -23,35 +36,29 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4
+        run: |
+          pip install -q requests beautifulsoup4 playwright
+          playwright install chromium --with-deps
 
       - name: Download novel
-        id: download
         run: |
-          python download_novel.py "${{ github.event.inputs.book_id }}" \
-            --workers ${{ github.event.inputs.workers }} \
-            --output downloads \
-            --retries 5
+          END_ARG=""
+          if [ -n "${{ inputs.end_chapter }}" ]; then
+            END_ARG="--end ${{ inputs.end_chapter }}"
+          fi
+          python scraper/boluomao1.py \
+            "${{ inputs.book_url }}" \
+            --start "${{ inputs.start_chapter }}" \
+            $END_ARG \
+            --delay "${{ inputs.delay_ms }}"
 
-      - name: Set artifact name
-        id: artifact_name
-        run: |
-          SAFE=$(echo "${{ github.event.inputs.book_id }}" | grep -oE '[0-9]+' | tail -1)
-          echo "name=novel-${SAFE}" >> $GITHUB_OUTPUT
-
-      - name: Upload TXT file
+      - name: Upload result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact_name.outputs.name }}
-          path: downloads/*.txt
+          name: novel-${{ inputs.book_url }}-ch${{ inputs.start_chapter }}-${{ inputs.end_chapter || 'end' }}
+          path: output/
           retention-days: 7
-
-      - name: Summary
-        run: |
-          echo "### ✅ โหลดเสร็จแล้ว" >> $GITHUB_STEP_SUMMARY
-          echo "- Book ID: \`${{ github.event.inputs.book_id }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Workers: ${{ github.event.inputs.workers }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ดาวน์โหลดไฟล์ TXT ได้จาก **Artifacts** ด้านบน" >> $GITHUB_STEP_SUMMARY
