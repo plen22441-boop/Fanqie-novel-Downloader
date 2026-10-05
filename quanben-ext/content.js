@@ -25,6 +25,8 @@
 
   const BLOCK_RE = /Just a moment|安全验证|人机验证|Verify|Access Denied|Forbidden/i;
   const NEXT_RE  = /下一[章页]|next chapter/i;
+  // Lines to throw away from extracted text
+  const JUNK_RE  = /当前位置|上一章|下一章|回目录|©\s*20\d\d|quanben-xiaoshuo\.(net|com)|document\.domain|this\.location|GoogleAnalytics|function\(i,s,o|ga\("create|ga\("send|\(function\(/i;
 
   // ── บล็อกโฆษณา CSS ──────────────────────────────────────────────────────────
   const adCss = document.createElement('style');
@@ -95,28 +97,68 @@
     return entries.sort((a, b) => a.number - b.number);
   }
 
+  // Remove script/style/nav noise from a parsed doc so textContent is clean
+  function cleanDoc(doc) {
+    const rm = 'script,style,noscript,nav,header,footer,aside,.breadcrumb,#breadcrumb,.chapter-nav,.page-path,.nav-btn,.copyright,[class*="ad"],[id*="ad"]';
+    doc.querySelectorAll(rm).forEach(el => el.remove());
+  }
+
+  // Extract paragraphs from an element, handling <p>, <br>, and 　　 indents
+  function parseParagraphs(box) {
+    // Try <p> tags first
+    const ps = [...box.querySelectorAll('p')]
+      .map(p => clean(p.textContent || p.innerText || ''))
+      .filter(s => s.length > 1 && !JUNK_RE.test(s));
+    if (ps.length >= 3) return ps;
+
+    // Replace <br> with newline then get textContent
+    const tmpHtml = (box.innerHTML || '').replace(/<br\s*\/?>/gi, '\n');
+    const tmp = box.ownerDocument.createElement('div');
+    tmp.innerHTML = tmpHtml;
+    const raw = tmp.textContent || box.textContent || box.innerText || '';
+
+    // Try newline split first, then 　　 (Chinese paragraph indent)
+    let lines = clean(raw).split(/\n+/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
+    if (lines.length >= 3) return lines;
+
+    lines = clean(raw).split(/　　/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
+    return lines;
+  }
+
   // ── ดึงเนื้อหาจาก doc ───────────────────────────────────────────────────────
   function extractContent(doc, pageUrl) {
+    // Strip scripts/nav before any text extraction
+    cleanDoc(doc);
+
     const titleEl = doc.querySelector('h1.title, .chapter-title, h1, .chaptertitle');
     const chTitle = clean((titleEl?.textContent || titleEl?.innerText || ''));
 
     const contentSels = [
       '#chaptercontent', '#chapter-content', '.chapter-content',
-      '#content', '.content', '.article-content', '.readcontent',
-      '.novel-content', '.text-content', '.chapterBody', '#chapterBody'
+      '#readcontent', '.readcontent', '.read-content',
+      '#content', '.content', '.article-content',
+      '.novel-content', '.text-content', '.chapterBody', '#chapterBody',
+      'article', '.article'
     ];
     let paras = [];
     for (const sel of contentSels) {
       const box = doc.querySelector(sel);
       if (!box) continue;
-      const txt = box.innerText || box.textContent || '';
-      paras = [...(box.querySelectorAll('p') || [])].map(p => clean(p.innerText || p.textContent)).filter(Boolean);
-      if (!paras.length) paras = clean(txt).split(/\n+/).filter(s => s.length > 2);
-      if (paras.length) break;
+      const ps = parseParagraphs(box);
+      if (ps.length >= 2) { paras = ps; break; }
+    }
+    if (!paras.length) {
+      // Last resort: all <p> tags in the document with substantial Chinese text
+      const allP = [...doc.querySelectorAll('p')]
+        .map(p => clean(p.textContent || ''))
+        .filter(s => s.length > 10 && /[一-鿿]/.test(s) && !JUNK_RE.test(s));
+      if (allP.length >= 3) paras = allP;
     }
     if (!paras.length) {
       const body = doc.body;
-      paras = clean(body?.innerText || body?.textContent || '').split(/\n+/).filter(s => s.length > 10);
+      const raw = body?.textContent || body?.innerText || '';
+      paras = clean(raw).split(/\n+|　　/).map(s => s.trim())
+        .filter(s => s.length > 10 && !JUNK_RE.test(s));
     }
 
     let nextUrl = null;
