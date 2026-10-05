@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Boluomao1 Full Novel Downloader
 // @namespace    fanfan-novel-downloader
-// @version      1.0.0
+// @version      1.1.0
 // @description  ดาวน์โหลดทุกตอนจาก boluomao1.com รวมตอนหลายหน้า ตรวจตกหล่น และส่งออก TXT/ZIP UTF-8
 // @author       Fanfan
 // @match        https://www.boluomao1.com/book/*.html
 // @match        https://boluomao1.com/book/*.html
 // @match        https://www.boluomao1.com/chapter/*.html
 // @match        https://boluomao1.com/chapter/*.html
-// @match        https://www.boluomao1.com/read/*.html
-// @match        https://boluomao1.com/read/*.html
+// @match        https://www.boluomao1.com/read/*/*.html
+// @match        https://boluomao1.com/read/*/*.html
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -29,6 +29,9 @@
 
   // ตรวจว่าอยู่หน้าไหน
   const isBookPage = /\/book\/[0-9]+\.html/.test(location.pathname);
+  // ดึง book_id จาก /read/{book_id}/{chapter_id}.html
+  const readMatch = /\/read\/([0-9]+)\//.exec(location.pathname);
+  const bookIdFromRead = readMatch ? readMatch[1] : null;
 
   function asciiDigits(v) {
     return String(v || '').replace(/[０-９]/g, c => String(c.charCodeAt(0) - 0xFF10));
@@ -118,11 +121,17 @@
       if (isBookPage) {
         html = document.documentElement.innerHTML;
       } else {
-        // พยายามหา link ไปหน้าสารบัญจาก DOM ปัจจุบัน
-        const bookLink = document.querySelector('a[href*="/book/"]');
-        if (!bookLink) throw new Error('ไม่พบลิงก์ไปหน้าหนังสือ — กรุณาเปิดหน้าสารบัญ (boluomao1.com/book/XXXXX.html) แล้วลองใหม่');
-        status('กำลังโหลดสารบัญจาก ' + bookLink.href);
-        const resp = await fetch(bookLink.href, { credentials: 'include', cache: 'no-store' });
+        // สร้าง URL สารบัญจาก book_id ที่ดึงจาก path หรือหา link ใน DOM
+        let bookUrl = null;
+        if (bookIdFromRead) {
+          bookUrl = `${location.origin}/book/${bookIdFromRead}.html`;
+        } else {
+          const bookLink = document.querySelector('a[href*="/book/"]');
+          if (bookLink) bookUrl = bookLink.href;
+        }
+        if (!bookUrl) throw new Error('ไม่พบ URL สารบัญ — กรุณาเปิดหน้าสารบัญ (boluomao1.com/book/XXXXX.html) แล้วลองใหม่');
+        status('กำลังโหลดสารบัญจาก ' + bookUrl);
+        const resp = await fetch(bookUrl, { credentials: 'include', cache: 'no-store' });
         if (!resp.ok) throw new Error(`โหลดสารบัญไม่สำเร็จ HTTP ${resp.status}`);
         html = await resp.text();
       }
@@ -327,5 +336,9 @@
     download(`${base}.zip`, zipBlob(files));
   };
 
-  log(isBookPage ? 'อยู่หน้าสารบัญ กด "1. สแกนสารบัญ" เลย' : 'อยู่หน้าตอน — แนะนำให้เปิดหน้าสารบัญ (/book/XXXXX.html) ก่อน');
+  log(isBookPage
+    ? 'อยู่หน้าสารบัญ กด "1. สแกนสารบัญ" เลย'
+    : bookIdFromRead
+      ? `ตรวจพบ book_id=${bookIdFromRead} — กด "1. สแกนสารบัญ" ได้เลย`
+      : 'อยู่หน้าตอน — แนะนำให้เปิดหน้าสารบัญ (/book/XXXXX.html) ก่อน');
 })();
