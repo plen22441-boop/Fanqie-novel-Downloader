@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader (universal)
 // @namespace    fanqie-novel-downloader
-// @version      2.0
+// @version      2.1
 // @description  โหลดนิยายจากเว็บนิยายจีนทั่วไปเป็นไฟล์ .txt ผ่านเบราว์เซอร์ของคุณเอง
 // @match        *://*/*
 // @noframes
@@ -19,6 +19,8 @@
   const CH_TXT = /第\s*[0-9零〇一二三四五六七八九十百千万两]+\s*[章节節回卷集话話篇]|^(序|楔子|引子|前言|后记|後記|尾声|尾聲|番外|终章|終章|大结局|大結局|完结感言)|^\d{1,5}\s*[.、．\s]|^Chapter\s*\d+/i;
   const NAV_LINK = /^(上一[章页頁节節]|下一[章页頁节節]|上[页頁]|下[页頁]|首[页頁]|尾[页頁]|末[页頁]|目[录錄]|返回.*|书[架页]|書[架頁]|登[录錄]|注册|註冊|排行榜?|分[类類]|全本|更多.*|最新章[节節]|查看.*|点击.*|點擊.*|开始阅读|立即阅读|繁體|简体)$/;
   const NAV_LINE = /^(上一[章页頁节節]|下一[章页頁节節]|上[页頁]|下[页頁]|目[录錄]|返回.*|书页|書頁|加入书[架签]|加入書[架籤]|设置|設置|A[+-]|阅读背景|错乱章节催更！?|章节错误|章節錯誤|举报|舉報|收藏|书名[：:]?|作者[：:]?|本章字数[：:]?|更新时间[：:]?|开始阅读|立即阅读|报错|催更|书签|没有了|沒有了|指南)$/;
+  const UI_JUNK = /^(.*方向键可?切换章节|左右滑动可?切换章节|不吐不快|后?发表评论|我要评论|点击.{0,6}评论|.*扫码.*|.*二维码.*)$/;
+  const REC = /^(猜你喜欢|相关推荐|热门推荐|新书推荐|同类推荐|大家都在看|推荐阅读|相关小说)$/;
   const META = /^小说名[：:].*(更新时间|章节字数)|^(更新时间|更新日期|发布时间|更新時間)[：:]\s*\d{4}|^(本章字数|章节字数|字数|字數)[：:]\s*\d+|^.{0,40}更新时间[：:]?\s*\d{4}-\d{1,2}-\d{1,2}.{0,60}$/;
   const AD_BASE = /https?:\/\/|www\.|[a-z0-9-]{2,}\.(?:com|net|cc|org|cn|info|me|tw|la|vip)\b|最新章[节節]|请收藏|請收藏|手机阅读|手機閱讀|请记住|請記住|天才一秒|APP下载|笔趣阁|筆趣閣|求月票|求推荐票|求订阅|求訂閱|章[节節]更新提醒|书友们都去/i;
   const CONTENT_SELS = ['#chaptercontent', '#content', '#BookText', '#booktxt', '#htmlContent', '#nr1', '#nr', '#text_area', '#chapterContent', '#acontent', '#novelcontent', '.txtnav', '.chapter-content', '.read-content', '.reader-content', '.page-content', '.chapter-body', '.article-content', '.text-content', '.showtxt', '.novelcontent', '.content', 'article'];
@@ -353,6 +355,9 @@
   function cleanLines(lines, title, dropped) {
     const out = [];
     const bare = cleanTitle(title);
+    lines = lines.map((x) => x.replace(ZW, '').trim()).filter((x) => x && !UI_JUNK.test(x));
+    const ri = lines.findIndex((x, k) => REC.test(x) && k > lines.length * 0.5);
+    if (ri >= 0) { dropped.push('[recommend] ' + lines.slice(ri, ri + 3).join(' ').slice(0, 40)); lines = lines.slice(0, ri); }
     const cut = lines.findIndex((x, k) => /^[*＊※]+$/.test(x.replace(ZW, '').trim()) && k >= lines.length - 8);
     if (cut >= 0) { dropped.push('[author-note] ' + lines.slice(cut).join(' ').slice(0, 60)); lines = lines.slice(0, cut); }
     for (let l of lines) {
