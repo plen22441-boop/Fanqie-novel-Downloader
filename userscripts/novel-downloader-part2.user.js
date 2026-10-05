@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 2/2 (โหลดตอน+แผงควบคุม)
 // @namespace    fanqie-novel-downloader
-// @version      2.6
+// @version      2.7
 // @description  ส่วนที่ 2 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 1
 // @match        *://*/*
 // @noframes
@@ -340,6 +340,11 @@
     spd.onclick = () => { st.workers = speeds[(speeds.indexOf(st.workers) + 1) % speeds.length]; spd.textContent = label(); };
     panel.appendChild(spd);
     mk('ล้างแคช', async () => { await idbClear(); st.results = new Array(st.chapters.length).fill(null); ui('ล้างแคชแล้ว'); });
+    mk('ข้อมูลดีบัก', async () => {
+      const sl = document.querySelector('select');
+      saveText('debug_' + location.hostname + '.txt', JSON.stringify(st.toc, null, 1) + '\n\nURL: ' + location.href + '\n\nSELECT PARENT:\n' + (sl && sl.parentElement ? sl.parentElement.outerHTML.slice(0, 3000) : 'none'));
+      ui('บันทึกไฟล์ดีบักแล้ว ส่งให้ผู้ช่วยได้');
+    });
     mk('บันทึกไฟล์ตอนนี้', async () => { saveText(safeName() + '_partial.txt', assemble()); ui('บันทึกไฟล์บางส่วนแล้ว'); });
     mk('ปิด', async () => { panel.style.display = 'none'; });
     document.body.appendChild(panel);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader (universal)
 // @namespace    fanqie-novel-downloader
-// @version      2.6
+// @version      2.7
 // @description  โหลดนิยายจากเว็บนิยายจีนทั่วไปเป็นไฟล์ .txt ผ่านเบราว์เซอร์ของคุณเอง
 // @match        *://*/*
 // @noframes
@@ -208,7 +208,8 @@
     const sig = (a) => (a.length ? a[0].url + '|' + a[a.length - 1].url + '|' + a.length : '');
     const out = [], have = new Set(cur().map((c) => c.url));
     const add = (arr) => { let n = 0; arr.forEach((c) => { if (!have.has(c.url)) { have.add(c.url); out.push(c); n++; } }); return n; };
-    const waitChange = async (before) => { for (let k = 0; k < 160; k++) { await sleep(150); const x = sig(cur()); if (x && x !== before) return true; } return false; };
+    const nres = () => performance.getEntriesByType('resource').length;
+    const waitChange = async (before) => { const r0 = nres(); for (let k = 0; k < 160; k++) { await sleep(150); if (k === 20 && nres() === r0) return false; const x = sig(cur()); if (x && x !== before) return true; } return false; };
     const sels = [...document.querySelectorAll('select')].filter((e) => e.options.length >= 2 && e.options.length <= 400 && ![...e.options].every((o) => /^(javascript|#)/i.test(o.value)));
     for (const sel of sels) {
       const start = sel.selectedIndex;
@@ -223,7 +224,7 @@
           sel.dispatchEvent(new Event('change', { bubbles: true }));
           changed = await waitChange(before);
         }
-        if (!changed) continue;
+        if (!changed) { if (!gained && k === (start === 0 ? 1 : 0)) break; continue; }
         gained += add(cur());
         ui('สแกนสารบัญ หน้า ' + (k + 1) + '/' + sel.options.length + ' (พบเพิ่ม ' + out.length + ' ตอน)');
       }
@@ -252,6 +253,46 @@
       ui('สแกนสารบัญ (กดหน้าถัดไป) พบเพิ่ม ' + out.length + ' ตอน');
     }
     return { out, mode: out.length ? 'click-next' : 'none' };
+  }
+
+  // Guess page URLs (?page=N, _N, /N ...) when the page selector exists but does nothing visible
+  async function guessPages(key, firstSet) {
+    const sel = [...document.querySelectorAll('select')].find((e) => e.options.length >= 2 && e.options.length <= 400 && [...e.options].every((o) => /^\d+$/.test(o.value)));
+    if (!sel) return { out: [], tried: [] };
+    const vals = [...sel.options].map((o) => o.value);
+    const u = new URL(location.href);
+    const ext = (u.pathname.match(/\.(?:html?|shtml|php)$/i) || [''])[0];
+    const stem = u.pathname.replace(/\.(?:html?|shtml|php)$/i, '').replace(/[_\-\/]\d+$/, '').replace(/\/$/, '');
+    const gens = [];
+    ['page', 'p', 'pg', 'pn'].forEach((k) => gens.push((v) => { const x = new URL(u.href); x.searchParams.set(k, v); return x.href; }));
+    ['_', '-', '/'].forEach((sep) => gens.push((v) => u.origin + stem + sep + v + ext + u.search));
+    gens.push((v) => u.origin + stem + '/' + v + '/' + u.search);
+    if (/\d+(?=(\.\w+)?\/?$)/.test(u.pathname)) gens.push((v) => u.origin + u.pathname.replace(/\d+(?=(\.\w+)?\/?$)/, v) + u.search);
+    const grab = async (url) => {
+      try {
+        const r = await fetchText(url);
+        if (!r.ok || isChallenge(r.text)) return null;
+        const its = anchorsOf(parseHtml(r.text), url).filter((i) => shapeKey(i.url) === key);
+        return boxItems(its).out.map((i) => ({ url: i.url, title: i.title }));
+      } catch (e) { return null; }
+    };
+    const tried = [];
+    const probe = vals[1];
+    for (let g = 0; g < gens.length; g++) {
+      const url = gens[g](probe);
+      const got = await grab(url);
+      tried.push(url.replace(location.origin, '') + ' -> ' + (got ? got.length : 'x'));
+      if (got && got.length >= 5 && !firstSet.has(got[0].url)) {
+        const out = [];
+        for (const v of vals) {
+          if (v === vals[0]) continue;
+          const pg = await grab(gens[g](v));
+          if (pg) pg.forEach((c) => { if (!firstSet.has(c.url)) { firstSet.add(c.url); out.push(c); } });
+        }
+        return { out, tried, mode: 'guess' };
+      }
+    }
+    return { out: [], tried };
   }
 
   const numOf = (t) => { const m = /第\s*(\d+)\s*[章节節回]/.exec(t) || /^(\d{1,5})\s*[.、．]/.exec(t); return m ? +m[1] : null; };
@@ -353,6 +394,12 @@
         paging = h.mode;
       }
     }
+    let guessTried = [];
+    if (pagesN === 1 && paging === 'none') {
+      const g = await guessPages(det.key, new Set(list.map((c) => c.url)));
+      guessTried = g.tried;
+      if (g.out.length) { list = list.concat(g.out); paging = 'guess'; }
+    }
     const dbgSel = [...document.querySelectorAll('select')].slice(0, 2).map((e) => e.outerHTML.slice(0, 220));
     const dbgNext = [...document.querySelectorAll('a,button,span,div,li')].filter((e) => /^(下一[页頁]|下[页頁])$/.test((e.textContent || '').replace(/\s+/g, ''))).slice(0, 2).map((e) => e.outerHTML.slice(0, 160));
     const nums = list.map((c) => numOf(c.title)).filter((n) => n !== null);
@@ -369,7 +416,7 @@
     st.chapters = list.map((c, i) => ({ i, url: c.url, title: c.title }));
     st.results = new Array(list.length).fill(null);
     st.meta = metaOf(src || document);
-    st.toc = { paging, dbg: { sel: dbgSel, next: dbgNext }, key: det.key, count: list.length, hint: det.hint, box: det.box, reversed, pages: pagesN, filled: fs.filled, src: det === fromSrc ? 'source' : 'live' };
+    st.toc = { paging, dbg: { sel: dbgSel, next: dbgNext, guess: guessTried }, key: det.key, count: list.length, hint: det.hint, box: det.box, reversed, pages: pagesN, filled: fs.filled, src: det === fromSrc ? 'source' : 'live' };
     const first = list[0], last = list[list.length - 1];
     const ctl = dbgSel[0] || dbgNext[0] || '';
     const diag = ' | หน้า: ' + paging + (paging === 'none' && ctl ? ' (เจอตัวควบคุมหน้าแต่เปลี่ยนไม่ได้: ' + ctl.replace(/\s+/g, ' ').slice(0, 110) + ')' : '');
@@ -686,6 +733,11 @@
     spd.onclick = () => { st.workers = speeds[(speeds.indexOf(st.workers) + 1) % speeds.length]; spd.textContent = label(); };
     panel.appendChild(spd);
     mk('ล้างแคช', async () => { await idbClear(); st.results = new Array(st.chapters.length).fill(null); ui('ล้างแคชแล้ว'); });
+    mk('ข้อมูลดีบัก', async () => {
+      const sl = document.querySelector('select');
+      saveText('debug_' + location.hostname + '.txt', JSON.stringify(st.toc, null, 1) + '\n\nURL: ' + location.href + '\n\nSELECT PARENT:\n' + (sl && sl.parentElement ? sl.parentElement.outerHTML.slice(0, 3000) : 'none'));
+      ui('บันทึกไฟล์ดีบักแล้ว ส่งให้ผู้ช่วยได้');
+    });
     mk('บันทึกไฟล์ตอนนี้', async () => { saveText(safeName() + '_partial.txt', assemble()); ui('บันทึกไฟล์บางส่วนแล้ว'); });
     mk('ปิด', async () => { panel.style.display = 'none'; });
     document.body.appendChild(panel);
