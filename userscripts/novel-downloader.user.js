@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader (universal)
 // @namespace    fanqie-novel-downloader
-// @version      2.2
+// @version      2.3
 // @description  โหลดนิยายจากเว็บนิยายจีนทั่วไปเป็นไฟล์ .txt ผ่านเบราว์เซอร์ของคุณเอง
 // @match        *://*/*
 // @noframes
@@ -24,7 +24,7 @@
   const META = /^小说名[：:].*(更新时间|章节字数)|^(更新时间|更新日期|发布时间|更新時間)[：:]\s*\d{4}|^(本章字数|章节字数|字数|字數)[：:]\s*\d+|^.{0,40}更新时间[：:]?\s*\d{4}-\d{1,2}-\d{1,2}.{0,60}$/;
   const AD_BASE = /https?:\/\/|www\.|[a-z0-9-]{2,}\.(?:com|net|cc|org|cn|info|me|tw|la|vip)\b|最新章[节節]|请收藏|請收藏|手机阅读|手機閱讀|请记住|請記住|天才一秒|APP下载|笔趣阁|筆趣閣|求月票|求推荐票|求订阅|求訂閱|章[节節]更新提醒|书友们都去/i;
   const CONTENT_SELS = ['#chaptercontent', '#content', '#BookText', '#booktxt', '#htmlContent', '#nr1', '#nr', '#text_area', '#chapterContent', '#acontent', '#novelcontent', '.txtnav', '.chapter-content', '.read-content', '.reader-content', '.page-content', '.chapter-body', '.article-content', '.text-content', '.showtxt', '.novelcontent', '.content', 'article'];
-  const VERSION = '2.2';
+  const VERSION = '2.3';
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let dbp = null;
   const idb = () => dbp || (dbp = new Promise((res, rej) => {
@@ -42,7 +42,7 @@
   async function idbClear() {
     try { const db = await idb(); await new Promise((res) => { const t = db.transaction('c', 'readwrite'); t.objectStore('c').clear(); t.oncomplete = () => res(); t.onerror = () => res(); }); } catch (e) { /* ignore */ }
   }
-  const st = { workers: 6, limit: 6, restored: 0, chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false, ad: AD_BASE };
+  const st = { stat: { fetch: 0, iframe: 0, p429: 0, p403: 0, ms: 0, n: 0, okStreak: 0, lastCut: 0 }, workers: 6, limit: 6, restored: 0, chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false, ad: AD_BASE };
 
   const isChallenge = (h) => h.length < 30000 && CHALLENGE.test(h);
   const parseHtml = (h) => new DOMParser().parseFromString(h, 'text/html');
@@ -89,11 +89,22 @@
     });
   }
 
+  function cut() {
+    const t = Date.now();
+    if (t - st.stat.lastCut < 5000) return;
+    st.stat.lastCut = t;
+    st.stat.okStreak = 0;
+    st.limit = Math.max(Math.min(3, st.workers), st.limit - 2);
+  }
+
   async function loadHtml(url) {
     const r = await fetchText(url);
-    if (r.status === 429) { st.limit = Math.max(2, Math.floor(st.limit / 2)); await sleep(6000); throw new Error('HTTP 429'); }
-    if (r.status === 403 || r.status === 503 || isChallenge(r.text)) st.limit = Math.max(2, Math.floor(st.limit / 2));
-    if (r.status === 403 || r.status === 503 || isChallenge(r.text)) return { html: await ifrQueue(() => viaIframe(url)), mode: 'iframe' };
+    if (r.status === 429) { st.stat.p429++; cut(); await sleep(4000); throw new Error('HTTP 429'); }
+    if (r.status === 403 || r.status === 503 || isChallenge(r.text)) {
+      st.stat.p403++; cut(); st.stat.iframe++;
+      return { html: await ifrQueue(() => viaIframe(url)), mode: 'iframe' };
+    }
+    st.stat.fetch++;
     return { html: r.text, mode: 'fetch' };
   }
 
@@ -444,16 +455,21 @@
 
   async function runBatch(idxs, ui) {
     let next = 0, done = 0;
+    const T0 = Date.now();
     st.limit = st.workers;
+    st.stat.okStreak = 0;
     const worker = async (id) => {
       for (;;) {
         while (id >= st.limit && next < idxs.length) await sleep(500);
         const k = next++;
         if (k >= idxs.length) return;
         const i = idxs[k];
+        const t0 = Date.now();
         for (let a = 0; a < 4; a++) {
           try {
             const r = await downloadChapter(st.chapters[i]);
+            st.stat.n++; st.stat.ms += Date.now() - t0;
+            if (++st.stat.okStreak >= 8 && st.limit < st.workers) { st.limit++; st.stat.okStreak = 0; }
             st.results[i] = r;
             st.failed.delete(i);
             idbSet(st.chapters[i].url, Object.assign({ v: VERSION }, r));
@@ -461,7 +477,9 @@
           } catch (e) { st.errors[i] = String(e.message || e); if (a === 3) st.failed.add(i); else await sleep(1000 * 2 ** a); }
         }
         done++;
-        ui('กำลังโหลด ' + done + '/' + idxs.length + ' (ล้มเหลว ' + st.failed.size + ', ขนาน ' + Math.min(st.limit, st.workers) + ')');
+        const el = (Date.now() - T0) / 1000, left = Math.round(((idxs.length - done) * el / done) / 60);
+        ui(done + '/' + idxs.length + ' | ล้ม ' + st.failed.size + ' | ขนาน ' + Math.min(st.limit, st.workers) + '/' + st.workers +
+          ' | เฉลี่ย ' + (st.stat.n ? (st.stat.ms / st.stat.n / 1000).toFixed(1) : '-') + ' วิ/ตอน | เหลือ ~' + left + ' นาที | 429:' + st.stat.p429 + ' 403:' + st.stat.p403 + ' iframe:' + st.stat.iframe);
         if (!document.hidden) await sleep(30 + Math.random() * 120);
       }
     };
@@ -576,7 +594,7 @@
     mk('ลองตอนที่ล้มซ้ำ', () => runAll(ui));
     mk('กลับลำดับ', async () => { st.chapters.reverse(); st.chapters.forEach((c, i) => { c.i = i; }); st.results.reverse(); ui('กลับลำดับแล้ว แรก: ' + (st.chapters[0].title || st.chapters[0].url).slice(0, 20)); });
     const spd = document.createElement('button');
-    const speeds = [3, 6, 10];
+    const speeds = [3, 6, 10, 16];
     const label = () => 'ความเร็ว: ' + st.workers;
     spd.textContent = label();
     spd.style.cssText = 'margin:2px;padding:8px 10px;border:0;border-radius:6px;background:#455a64;color:#fff;font-size:14px';
