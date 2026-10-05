@@ -213,7 +213,7 @@
       // Stop if: no next-page link, or next-page is the same as next-chapter (i.e., no real pagination)
       if (nextPage && nextPage !== nextChapter && nextPage !== currentUrl) {
         currentUrl = nextPage;
-        await sleep(400);
+        await sleep(150);
       } else {
         // No more pages — return with next chapter URL
         return { title, paras: allParas, nextUrl: nextChapter };
@@ -278,6 +278,40 @@
     return entries.sort((a, b) => a.number - b.number);
   }
 
+  // ── Parallel fetch pool ───────────────────────────────────────────────────────
+  // Fetches entries[] concurrently (CONCURRENCY at a time), preserving order.
+  const CONCURRENCY = 3;
+
+  async function fetchPool(entries, fromN) {
+    const ordered = new Array(entries.length);
+    let nextIdx = 0;
+    let done = 0;
+
+    async function worker() {
+      while (!stopped) {
+        const idx = nextIdx++;
+        if (idx >= entries.length) return;
+        const ch = entries[idx];
+        setStatus(`กำลังโหลด ${done + 1}/${entries.length} (${CONCURRENCY} คู่ขนาน)…`);
+        try {
+          const { title, paras } = await extractChapter(ch.url);
+          ordered[idx] = `\n\n第${ch.number}章 ${title || ch.title}\n\n` + paras.join('\n\n');
+          addLog(`✓ ${ch.number}. ${title || ch.title}`);
+        } catch (e) {
+          ordered[idx] = `\n\n第${ch.number}章 ${ch.title}\n\n[โหลดไม่สำเร็จ: ${e.message}]`;
+          addLog(`✗ ตอน ${ch.number}: ${e.message}`);
+        }
+        done++;
+        ui.prog.value = done;
+        // Small delay to avoid hammering the server
+        await sleep(150);
+      }
+    }
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    return ordered.filter(Boolean);
+  }
+
   // ── Download runner ───────────────────────────────────────────────────────────
   async function runDownload() {
     if (running) return;
@@ -285,19 +319,23 @@
     results = [];
     ui.copy.disabled = ui.dl.disabled = true;
 
-    const fromN  = parseInt(ui.from.value, 10) || 1;
-    const count  = parseInt(ui.cnt.value,  10) || 50;
+    const fromN     = parseInt(ui.from.value, 10) || 1;
+    const count     = parseInt(ui.cnt.value,  10) || 50;
     const manualUrl = ui.firstUrl.value.trim();
 
     let entries = [];
-
     if (catalog.length) {
       entries = catalog.filter(c => c.number >= fromN).slice(0, count);
     }
 
-    // Mode B: follow "下一章" links
-    if (!entries.length && manualUrl) {
-      addLog('ไม่มีสารบัญ — ไล่ลิงก์ตอนต่อไปจาก URL ที่ระบุ');
+    // Mode A: catalog known — parallel fetch
+    if (entries.length) {
+      ui.prog.max = entries.length;
+      results = await fetchPool(entries, fromN);
+
+    // Mode B: no catalog — follow next-chapter links (sequential, can't parallelize)
+    } else if (manualUrl) {
+      addLog('ไม่มีสารบัญ — ไล่ลิงก์ตอนต่อไป…');
       let url = manualUrl;
       for (let i = 0; i < count && url && !stopped; i++) {
         ui.prog.value = i;
@@ -310,27 +348,11 @@
           ui.prog.value = i + 1;
           url = nextUrl || null;
           if (!url) { addLog('ไม่พบลิงก์ตอนต่อไปแล้ว'); break; }
-          await sleep(800);
+          await sleep(200);
         } catch (e) {
           addLog(`✗ ตอน ${fromN + i}: ${e.message}`);
-          await sleep(2000);
+          await sleep(1500);
         }
-      }
-    } else if (entries.length) {
-      ui.prog.max = entries.length;
-      for (let i = 0; i < entries.length && !stopped; i++) {
-        const ch = entries[i];
-        setStatus(`กำลังโหลด ${i + 1}/${entries.length} — ตอน ${ch.number}…`);
-        try {
-          const { title, paras } = await extractChapter(ch.url);
-          results.push(`\n\n第${ch.number}章 ${title || ch.title}\n\n` + paras.join('\n\n'));
-          addLog(`✓ ${ch.number}. ${title || ch.title}`);
-        } catch (e) {
-          addLog(`✗ ตอน ${ch.number}: ${e.message}`);
-          await sleep(2000);
-        }
-        ui.prog.value = i + 1;
-        await sleep(500);
       }
     } else {
       setStatus('ใส่ลิงก์ตอนแรกด้านบน แล้วกด ▶');
