@@ -144,7 +144,7 @@
     if (!best) return null;
     const { out, box } = boxItems(best.items);
     const hint = (root.body.textContent.match(/共\s*(\d+)\s*[章节節]/) || [])[1];
-    return { key: best.key, items: out, hint: hint ? +hint : null,
+    return { key: best.key, items: out, all: best.items.map((i) => i.url), hint: hint ? +hint : null,
       box: box ? box.tagName.toLowerCase() + (box.id ? '#' + box.id : '') + (box.className ? '.' + String(box.className).trim().split(/\s+/).join('.') : '') : null };
   }
 
@@ -171,12 +171,12 @@
 
   const numOf = (t) => { const m = /第\s*(\d+)\s*[章节節回]/.exec(t) || /^(\d{1,5})\s*[.、．]/.exec(t); return m ? +m[1] : null; };
 
-  function fillSequential(list) {
+  function fillSequential(list, all) {
     if (list.length < 3 || list.length > 80) return { list, filled: false };
     const key = shapeKey(list[0].url);
     if (!list.every((c) => shapeKey(c.url) === key)) return { list, filled: false };
     const re = /(\d+)(\D*)$/;
-    const nums = list.map((c) => { const u = new URL(c.url); const m = re.exec(u.pathname + u.search); return m ? +m[1] : null; });
+    const nums = (all && all.length ? all : list.map((c) => c.url)).map((cu) => { const u = new URL(cu); const m = re.exec(u.pathname + u.search); return m ? +m[1] : null; });
     if (nums.some((n) => n === null)) return { list, filled: false };
     const max = Math.max(...nums), min = Math.min(...nums);
     if (min !== 1 || max > 5000 || list.length >= max * 0.5) return { list, filled: false };
@@ -261,7 +261,7 @@
     for (let i = 1; i < nums.length; i++) { if (nums[i] < nums[i - 1]) rev++; else if (nums[i] > nums[i - 1]) inc++; }
     let reversed = false;
     if (nums.length > 4 && rev > inc * 2) { list.reverse(); reversed = true; }
-    const fs = fillSequential(list);
+    const fs = fillSequential(list, det.all);
     list = fs.list;
     if (src && det !== fromSrc) {
       const map = new Map((fromSrc ? fromSrc.items : []).map((i) => [i.url, i.title]));
@@ -317,14 +317,14 @@
   }
 
   function pickContainer(doc, minLen) {
-    minLen = minLen || 200;
+    minLen = minLen || 80;
     doc.querySelectorAll('script,style,noscript,iframe,nav,header,footer,form,button,select,ins,.ad,.ads,.adsbygoogle').forEach((e) => e.remove());
     let known = null;
     for (const s of CONTENT_SELS) {
       const el = doc.querySelector(s);
       if (el) { const len = el.textContent.trim().length; if (len > minLen) { known = { el, sel: s, len }; break; } }
     }
-    const auto = autoBest(doc, Math.min(150, minLen));
+    const auto = autoBest(doc, Math.min(80, minLen));
     if (known && (!auto || known.len >= auto.score * 0.6)) return known;
     return auto || known;
   }
@@ -398,9 +398,9 @@
       let nxt = nextPageOf(doc, first, url, pages + 1);
       const dm = doc.body && /(?:本章|章节)?字数[：:]?\s*(\d+)/.exec(doc.body.textContent);
       let ttl = titleFromDoc(doc);
-      let box = pickContainer(parseHtml(html), pages ? 20 : 200);
+      let box = pickContainer(parseHtml(html), pages ? 20 : 80);
       if (pages && !box) break;
-      if (!pages && (!box || box.el.textContent.trim().length < 150)) {
+      if (!pages && (!box || box.el.textContent.trim().length < 80)) {
         html = await ifrQueue(() => viaIframe(url));
         m = 'iframe';
         doc = parseHtml(html);
