@@ -232,7 +232,7 @@
       // Stop if: no next-page link, or next-page is the same as next-chapter (i.e., no real pagination)
       if (nextPage && nextPage !== nextChapter && nextPage !== currentUrl) {
         currentUrl = nextPage;
-        await sleep(80);
+        await sleep(30);
       } else {
         // No more pages — return with next chapter URL
         return { title, paras: allParas, nextUrl: nextChapter };
@@ -299,7 +299,7 @@
 
   // ── Parallel fetch pool ───────────────────────────────────────────────────────
   // Fetches entries[] concurrently (CONCURRENCY at a time), preserving order.
-  const CONCURRENCY = 8;
+  const CONCURRENCY = 16;
 
   async function fetchPool(entries, fromN) {
     const ordered = new Array(entries.length);
@@ -322,12 +322,43 @@
         }
         done++;
         ui.prog.value = done;
-        await sleep(80);
+        await sleep(30);
       }
     }
 
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     return ordered.filter(Boolean);
+  }
+
+  // ── Wake Lock ─────────────────────────────────────────────────────────────────
+  let wakeLock = null;
+  async function acquireWakeLock() {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  }
+
+  // ── Done sound (loud beep via Web Audio API) ──────────────────────────────────
+  function playDoneSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const beep = (freq, start, dur) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freq;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0.9, ctx.currentTime + start);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        o.start(ctx.currentTime + start);
+        o.stop(ctx.currentTime + start + dur + 0.05);
+      };
+      beep(880, 0,    0.18);
+      beep(1100, 0.2, 0.18);
+      beep(1320, 0.4, 0.30);
+      setTimeout(() => ctx.close(), 1200);
+    } catch (_) {}
   }
 
   // ── Download runner ───────────────────────────────────────────────────────────
@@ -336,6 +367,7 @@
     running = true; stopped = false;
     results = [];
     ui.copy.disabled = ui.dl.disabled = true;
+    await acquireWakeLock();
 
     const fromN     = parseInt(ui.from.value, 10) || 1;
     const count     = parseInt(ui.cnt.value,  10) || 50;
@@ -377,10 +409,14 @@
       running = false; return;
     }
 
+    releaseWakeLock();
     if (results.length) {
       ui.copy.disabled = false;
       ui.dl.disabled = false;
-      setStatus(`เสร็จ ${results.length} ตอน — กด DL หรือ Copy`);
+      // Pre-fill filename field with novel title
+      if (ui.fname && !ui.fname.value) ui.fname.value = novelTitle();
+      setStatus(`✅ เสร็จ ${results.length} ตอน — กด 💾 หรือ 📋`);
+      playDoneSound();
     } else {
       setStatus('ไม่ได้ข้อมูลเลย — ลองใส่ URL ตอนแรก');
     }
@@ -391,11 +427,17 @@
     return '﻿' + novelTitle() + '\n\n' + results.join('\n');
   }
 
+  function getFileName() {
+    const f = panel.querySelector(`#${APP}-fname`);
+    const name = (f && f.value.trim()) ? f.value.trim() : novelTitle();
+    return name.replace(/[\\/:*?"<>|]/g, '_');
+  }
+
   function doDownload() {
     const blob = new Blob([buildText()], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${novelTitle()}.txt`;
+    a.download = `${getFileName()}.txt`;
     a.click();
   }
 
@@ -530,6 +572,9 @@
 }
 #${APP} .nd-btn-stop:hover{background:rgba(0,0,0,.55);}
 
+/* ── Filename row ── */
+#${APP} .nd-fname-wrap{margin-bottom:2px;}
+
 /* ── Save buttons ── */
 #${APP} .nd-saves{display:flex;gap:6px;}
 #${APP} .nd-btn-save{
@@ -640,6 +685,14 @@ ins.adsbygoogle { display:none!important; }
   <div class="nd-prog-wrap"><div class="nd-prog-bar" id="${APP}-progbar"></div></div>
   <div class="nd-status" id="${APP}-status">พร้อมใช้งาน</div>
 
+  <div class="nd-fname-wrap">
+    <div class="nd-label">📝 ชื่อไฟล์</div>
+    <div class="nd-url-wrap">
+      <input type="text" id="${APP}-fname" placeholder="ชื่อไฟล์ (ไม่ต้องใส่ .txt)" />
+      <button class="nd-clear-btn" id="${APP}-clearFname" title="ล้างชื่อ">✕</button>
+    </div>
+  </div>
+
   <div class="nd-saves">
     <button class="nd-btn-save" id="${APP}-dl" disabled>💾 บันทึก .txt</button>
     <button class="nd-btn-save" id="${APP}-copy" disabled>📋 คัดลอก</button>
@@ -661,6 +714,7 @@ ins.adsbygoogle { display:none!important; }
     stop:     panel.querySelector(`#${APP}-stop`),
     copy:     panel.querySelector(`#${APP}-copy`),
     dl:       panel.querySelector(`#${APP}-dl`),
+    fname:    panel.querySelector(`#${APP}-fname`),
     progbar:  panel.querySelector(`#${APP}-progbar`),
     status:   panel.querySelector(`#${APP}-status`),
     log:      panel.querySelector(`#${APP}-log`),
@@ -722,6 +776,11 @@ ins.adsbygoogle { display:none!important; }
   panel.querySelector(`#${APP}-clearUrl`).onclick = () => {
     ui.firstUrl.value = '';
     ui.firstUrl.focus();
+  };
+
+  panel.querySelector(`#${APP}-clearFname`).onclick = () => {
+    ui.fname.value = '';
+    ui.fname.focus();
   };
 
   ui.run.onclick  = runDownload;
