@@ -299,7 +299,7 @@
 
   // ── Parallel fetch pool ───────────────────────────────────────────────────────
   // Fetches entries[] concurrently (CONCURRENCY at a time), preserving order.
-  const CONCURRENCY = 3;
+  const CONCURRENCY = 5;
 
   async function fetchPool(entries, fromN) {
     const ordered = new Array(entries.length);
@@ -464,7 +464,13 @@
   margin-bottom:2px;
 }
 
-/* ── URL input ── */
+/* ── URL input row ── */
+#${APP} .nd-url-wrap{
+  display:flex;align-items:center;gap:6px;
+}
+#${APP} .nd-url-wrap input[type=text]{
+  flex:1;min-width:0;
+}
 #${APP} input[type=text]{
   width:100%;box-sizing:border-box;
   padding:7px 10px;
@@ -474,6 +480,15 @@
   outline:none;
 }
 #${APP} input[type=text]:focus{border-color:#FF0080;}
+#${APP} .nd-clear-btn{
+  flex-shrink:0;
+  width:32px;height:32px;
+  background:#f0f0f0;border:1.5px solid #e0e0e0;
+  border-radius:8px;color:#888;font-size:14px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;padding:0;line-height:1;
+}
+#${APP} .nd-clear-btn:hover{background:#FF0080;border-color:#FF0080;color:#fff;}
 
 /* ── Chapter range row ── */
 #${APP} .nd-range{
@@ -585,7 +600,10 @@ ins.adsbygoogle { display:none!important; }
 
   <div>
     <div class="nd-label">🔗 URL ตอนแรก (สำหรับเว็บไม่มีสารบัญ)</div>
-    <input type="text" id="${APP}-firstUrl" placeholder="วาง URL ตอนที่ 1 ที่นี่" />
+    <div class="nd-url-wrap">
+      <input type="text" id="${APP}-firstUrl" placeholder="วาง URL ตอนที่ 1 ที่นี่" />
+      <button class="nd-clear-btn" id="${APP}-clearUrl" title="ล้าง URL">✕</button>
+    </div>
   </div>
 
   <div>
@@ -694,6 +712,11 @@ ins.adsbygoogle { display:none!important; }
   panel.querySelector(`#${APP}-q200`).onclick = () => setPill(200);
   panel.querySelector(`#${APP}-q300`).onclick = () => setPill(300);
   setPill(50); // default highlight
+
+  panel.querySelector(`#${APP}-clearUrl`).onclick = () => {
+    ui.firstUrl.value = '';
+    ui.firstUrl.focus();
+  };
 
   ui.run.onclick  = runDownload;
   ui.stop.onclick = () => { stopped = true; setStatus('⏹ หยุดแล้ว'); };
