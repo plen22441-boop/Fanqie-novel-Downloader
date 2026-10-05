@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Boluomao1 Full Novel Downloader
 // @namespace    fanfan-novel-downloader
-// @version      1.1.0
-// @description  ดาวน์โหลดทุกตอนจาก boluomao1.com รวมตอนหลายหน้า ตรวจตกหล่น และส่งออก TXT/ZIP UTF-8
+// @version      2.3.0
+// @description  ดาวน์โหลดทุกตอนจาก boluomao1.com — 2 คู่ขนาน, rate-limit backoff, resume ต่อจากที่ค้าง, QC, TXT/ZIP UTF-8
 // @author       Fanfan
 // @match        https://www.boluomao1.com/book/*.html
 // @match        https://boluomao1.com/book/*.html
@@ -24,8 +24,11 @@
   const URL_CHAPTER_SIMPLE = /\/chapter\/([0-9]+)(?:-([0-9]+))?\.html/i;
   const URL_CHAPTER_READ   = /\/read\/[^/]+\/([0-9]+)(?:-([0-9]+))?\.html/i;
   const BLOCK = /Just a moment|安全验证|人机验证|Verify Yourself|Access Denied|Forbidden/i;
+  const RATELIMIT = /访问过于频繁|检测到异常请求|请稍后再试|too many requests|rate.?limit/i;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const CONCURRENCY = 2, POOL_DELAY = 1200;
   let stopped = false, running = false, catalog = [], results = new Map();
+  let rateLimitPause = false;
 
   // ตรวจว่าอยู่หน้าไหน
   const isBookPage = /\/book\/[0-9]+\.html/.test(location.pathname);
@@ -54,6 +57,26 @@
   function safeName(v, fb = 'novel') {
     return (String(v || '').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_')
       .slice(0, 100).replace(/^[_.]+|[_.]+$/g, '') || fb);
+  }
+
+  // ─── Resume (localStorage) ──────────────────────────────────────────────────
+  function resumeKey() {
+    const bookId = bookIdFromRead || location.pathname.match(/\/book\/(\d+)/)?.[1] || 'unknown';
+    return `blm1-resume-${bookId}`;
+  }
+  function saveProgress(chapterNum, data) {
+    try {
+      const raw = localStorage.getItem(resumeKey());
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[chapterNum] = data;
+      localStorage.setItem(resumeKey(), JSON.stringify(cache));
+    } catch (_) {}
+  }
+  function loadProgress() {
+    try { return JSON.parse(localStorage.getItem(resumeKey()) || '{}'); } catch (_) { return {}; }
+  }
+  function clearProgress() {
+    try { localStorage.removeItem(resumeKey()); } catch (_) {}
   }
 
   // ─── UI ────────────────────────────────────────────────────────────────────
@@ -190,6 +213,7 @@
             if (err) throw err;
             const doc = frame.contentDocument, pageText = doc?.body?.innerText || '';
             if (!doc || BLOCK.test(pageText)) throw new Error('หน้าขอการยืนยัน');
+            if (RATELIMIT.test(pageText.slice(0, 500))) throw new Error('rate-limited');
             const titleNode = doc.querySelector('h1.title, .chapter-title h1, .chaptertitle, h1, .title');
             const chapterTitle = clean(titleNode?.innerText || '');
             // ลอง selector เนื้อหาหลายแบบ
@@ -221,6 +245,7 @@
         frame.src = url; document.body.append(frame);
       });
     } catch (e) {
+      if (RATELIMIT.test(e.message)) throw e;
       if (attempt >= 4 || stopped) throw e;
       await sleep(attempt * 1400); return renderedPage(url, attempt + 1);
     }
@@ -256,7 +281,10 @@
       if (body.includes('')) { out.status = 'suspicious'; out.warnings.push('encoding เสีย'); }
       if (count < 200) { out.status = 'suspicious'; out.warnings.push(`สั้นผิดปกติ ${count} ตัวอักษร`); }
       if (out.pages.length > 1) out.warnings.push(`รวม ${out.pages.length} หน้า`);
-    } catch (e) { out.status = 'failed'; out.error = e.message; }
+    } catch (e) {
+      if (RATELIMIT.test(e.message)) throw e;
+      out.status = 'failed'; out.error = e.message;
+    }
     return out;
   }
 
@@ -264,14 +292,68 @@
     const selected = selectedCatalog();
     if (running || !selected.length) return status('ช่วงตอนที่เลือกไม่พบในสารบัญ');
     stopped = false; results = new Map(); setRunning(true);
+    rateLimitPause = false;
     ui.prog.max = selected.length; ui.prog.value = 0;
-    try {
-      for (let i = 0; i < selected.length && !stopped; i++) {
-        const item = selected[i]; status(`โหลดตอน ${item.number} (${i + 1}/${selected.length})`);
-        const result = await scrape(item); results.set(item.number, result); ui.prog.value = i + 1;
-        log(`ตอน ${item.number}: ${result.status} — ${result.error || result.warnings.join('; ') || result.pages.length + ' หน้า'}`);
-        await sleep(Math.max(250, Number(ui.delay.value) || 700));
+
+    const cached = loadProgress();
+    let resumedCount = 0;
+    for (const item of selected) {
+      if (cached[item.number]) {
+        results.set(item.number, cached[item.number]);
+        resumedCount++;
       }
+    }
+    if (resumedCount > 0) {
+      ui.prog.value = resumedCount;
+      log(`📂 พบ progress ที่บันทึกไว้ ${resumedCount} ตอน — ดาวน์โหลดต่อ…`);
+    }
+
+    let nextIdx = 0;
+    let doneCount = resumedCount;
+
+    async function worker(workerIdx) {
+      await sleep(workerIdx * 700);
+      while (!stopped) {
+        while (rateLimitPause && !stopped) await sleep(500);
+        const idx = nextIdx++;
+        if (idx >= selected.length) return;
+        const item = selected[idx];
+        if (results.has(item.number)) continue;
+
+        status(`โหลดตอน ${item.number} (${doneCount + 1}/${selected.length})`);
+        let retries = 0;
+        while (retries <= 4) {
+          try {
+            const result = await scrape(item);
+            results.set(item.number, result);
+            saveProgress(item.number, result);
+            log(`ตอน ${item.number}: ${result.status} — ${result.error || result.warnings.join('; ') || result.pages.length + ' หน้า'}`);
+            break;
+          } catch (e) {
+            if (RATELIMIT.test(e.message) && retries < 4) {
+              retries++;
+              const wait = 5000 * retries;
+              rateLimitPause = true;
+              log(`⚠ rate-limit ตอน ${item.number} — หยุดทุก worker ${wait / 1000}s…`);
+              await sleep(wait);
+              rateLimitPause = false;
+            } else {
+              const failResult = { number: item.number, title: item.title, firstUrl: item.url, pages: [], paragraphs: [], status: 'failed', warnings: [], error: e.message };
+              results.set(item.number, failResult);
+              log(`ตอน ${item.number}: failed — ${e.message}`);
+              break;
+            }
+          }
+        }
+        doneCount++;
+        ui.prog.value = doneCount;
+        await sleep(POOL_DELAY + Math.random() * POOL_DELAY * 0.5);
+      }
+    }
+
+    try {
+      await Promise.all(Array.from({ length: CONCURRENCY }, (_, i) => worker(i)));
+      clearProgress();
       const r = makeReport(selected);
       ui.txt.disabled = ui.zip.disabled = ui.qc.disabled = !results.size;
       status(r.complete ? `เสร็จ ${r.savedChapters} ตอน — ผ่าน QC` : 'เสร็จแล้ว — เปิด QC ก่อนใช้ไฟล์');
