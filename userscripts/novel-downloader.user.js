@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader (universal)
 // @namespace    fanqie-novel-downloader
-// @version      2.3
+// @version      2.4
 // @description  โหลดนิยายจากเว็บนิยายจีนทั่วไปเป็นไฟล์ .txt ผ่านเบราว์เซอร์ของคุณเอง
 // @match        *://*/*
 // @noframes
@@ -200,6 +200,52 @@
     return null;
   }
 
+  // TOC pages switched by JavaScript (select change / "next" button without a real URL)
+  async function harvestLive(key, ui) {
+    const cur = () => boxItems(anchorsOf(document, location.href).filter((i) => shapeKey(i.url) === key)).out.map((i) => ({ url: i.url, title: i.title }));
+    const sig = (a) => (a.length ? a[0].url + '|' + a[a.length - 1].url + '|' + a.length : '');
+    const out = [], have = new Set(cur().map((c) => c.url));
+    const add = (arr) => { let n = 0; arr.forEach((c) => { if (!have.has(c.url)) { have.add(c.url); out.push(c); n++; } }); return n; };
+    const waitChange = async (before) => { for (let k = 0; k < 50; k++) { await sleep(150); const x = sig(cur()); if (x && x !== before) return true; } return false; };
+    const sels = [...document.querySelectorAll('select')].filter((e) => e.options.length >= 2 && e.options.length <= 400 && ![...e.options].every((o) => /^(javascript|#)/i.test(o.value)));
+    for (const sel of sels) {
+      const start = sel.selectedIndex;
+      let gained = 0;
+      for (let k = 0; k < sel.options.length; k++) {
+        if (k === start) continue;
+        const before = sig(cur());
+        sel.selectedIndex = k;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        if (!(await waitChange(before))) continue;
+        gained += add(cur());
+        ui('สแกนสารบัญ หน้า ' + (k + 1) + '/' + sel.options.length + ' (พบเพิ่ม ' + out.length + ' ตอน)');
+      }
+      if (gained) { sel.selectedIndex = start; sel.dispatchEvent(new Event('change', { bubbles: true })); return { out, mode: 'select-change' }; }
+    }
+    const findNext = () => {
+      for (const e of document.querySelectorAll('a,button,span,div,li,input[type=button]')) {
+        const t = (e.value || e.textContent || '').replace(/\s+/g, '');
+        if (!/^(下一[页頁]|下[页頁]|next)$/i.test(t)) continue;
+        if (e.disabled || /disabled|disable|gray|off/i.test(String(e.className || ''))) continue;
+        const href = e.getAttribute && e.getAttribute('href');
+        if (href && !/^(javascript|#)/i.test(href)) continue;
+        return e;
+      }
+      return null;
+    };
+    for (let g = 0; g < 400; g++) {
+      const nx = findNext();
+      if (!nx) break;
+      const before = sig(cur());
+      nx.click();
+      if (!(await waitChange(before))) break;
+      if (!add(cur())) break;
+      ui('สแกนสารบัญ (กดหน้าถัดไป) พบเพิ่ม ' + out.length + ' ตอน');
+    }
+    return { out, mode: out.length ? 'click-next' : 'none' };
+  }
+
   const numOf = (t) => { const m = /第\s*(\d+)\s*[章节節回]/.exec(t) || /^(\d{1,5})\s*[.、．]/.exec(t); return m ? +m[1] : null; };
 
   function fillSequential(list, all) {
@@ -265,9 +311,12 @@
     let list = det.items.map((i) => ({ url: i.url, title: i.title }));
     let pagesN = 1;
     const queue = [], seenPages = new Set([location.href]);
-    pageLinks(doc, location.href).forEach((u) => { if (!seenPages.has(u)) { seenPages.add(u); queue.push(u); } });
+    const addPages = (d) => pageLinks(d, location.href).forEach((u) => { if (!seenPages.has(u)) { seenPages.add(u); queue.push(u); } });
+    addPages(doc);
+    if (doc !== document) addPages(document);
+    const hadSelect = queue.length > 0;
     let cur = location.href;
-    const nl = nextLink(doc, cur);
+    const nl = nextLink(doc, cur) || (doc !== document ? nextLink(document, cur) : null);
     if (nl && !seenPages.has(nl) && !queue.length) { queue.push(nl); seenPages.add(nl); }
     let guard = 0;
     while (queue.length && guard++ < 150) {
@@ -281,12 +330,23 @@
         const have = new Set(list.map((c) => c.url));
         b.forEach((i) => { if (!have.has(i.url)) list.push({ url: i.url, title: i.title }); });
         pagesN++;
-        if (!pageLinks(doc, location.href).length) {
+        if (!hadSelect) {
           const n2 = nextLink(d, u);
           if (n2 && !seenPages.has(n2)) { seenPages.add(n2); queue.push(n2); }
         }
       } catch (e) { /* skip page */ }
     }
+    let paging = pagesN > 1 ? 'urls' : 'none';
+    if (pagesN === 1) {
+      const h = await harvestLive(det.key, ui);
+      if (h.out.length) {
+        const have = new Set(list.map((c) => c.url));
+        h.out.forEach((c) => { if (!have.has(c.url)) list.push(c); });
+        paging = h.mode;
+      }
+    }
+    const dbgSel = [...document.querySelectorAll('select')].slice(0, 2).map((e) => e.outerHTML.slice(0, 220));
+    const dbgNext = [...document.querySelectorAll('a,button,span,div,li')].filter((e) => /^(下一[页頁]|下[页頁])$/.test((e.textContent || '').replace(/\s+/g, ''))).slice(0, 2).map((e) => e.outerHTML.slice(0, 160));
     const nums = list.map((c) => numOf(c.title)).filter((n) => n !== null);
     let rev = 0, inc = 0;
     for (let i = 1; i < nums.length; i++) { if (nums[i] < nums[i - 1]) rev++; else if (nums[i] > nums[i - 1]) inc++; }
@@ -301,7 +361,7 @@
     st.chapters = list.map((c, i) => ({ i, url: c.url, title: c.title }));
     st.results = new Array(list.length).fill(null);
     st.meta = metaOf(src || document);
-    st.toc = { key: det.key, count: list.length, hint: det.hint, box: det.box, reversed, pages: pagesN, filled: fs.filled, src: det === fromSrc ? 'source' : 'live' };
+    st.toc = { paging, dbg: { sel: dbgSel, next: dbgNext }, key: det.key, count: list.length, hint: det.hint, box: det.box, reversed, pages: pagesN, filled: fs.filled, src: det === fromSrc ? 'source' : 'live' };
     const first = list[0], last = list[list.length - 1];
     ui('พบ ' + list.length + ' ตอน' + (det.hint ? ' (เว็บแจ้ง ' + det.hint + ')' : '') + note + (fs.filled ? ' [เติมเลขตอน]' : '') +
       ' | แรก: ' + (first.title || first.url).slice(0, 18) + ' | ท้าย: ' + (last.title || last.url).slice(0, 18));
@@ -517,7 +577,7 @@
 
   function report(idxs) {
     const t = st.toc, o = ['=== REPORT ===', 'host=' + location.hostname + ' | ' + st.meta.title + ' | ' + st.meta.author,
-      'TOC: count=' + t.count + ' hint=' + t.hint + ' pages=' + t.pages + ' reversed=' + t.reversed + ' filled=' + t.filled + ' src=' + t.src + ' key=' + t.key + ' box=' + t.box];
+      'TOC: count=' + t.count + ' hint=' + t.hint + ' pages=' + t.pages + ' reversed=' + t.reversed + ' filled=' + t.filled + ' paging=' + t.paging + ' dbg=' + JSON.stringify(t.dbg) + ' src=' + t.src + ' key=' + t.key + ' box=' + t.box];
     idxs.forEach((i) => {
       const r = st.results[i], ch = st.chapters[i];
       if (!r) { o.push('#' + i + ' ' + ch.title + ' FAIL: ' + st.errors[i]); return; }
