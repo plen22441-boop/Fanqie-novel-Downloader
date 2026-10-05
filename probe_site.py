@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-MARKERS = ("Just a moment", "Checking", "正在验证浏览器", "Verify Yourself", "身份验证", "Attention Required")
+MARKERS = ("请稍候", "Just a moment", "Checking", "正在验证浏览器", "Verify Yourself", "身份验证", "Attention Required")
 CAPTCHA = re.compile(r"captcha|verify yourself|身份验证|人机验证|cf-turnstile|geetest|WAF", re.I)
 BLOCK_JS = """() => {
   const out = [];
@@ -131,7 +131,81 @@ def probe(url, p):
     b.close()
 
 
+def chapters_mode(url):
+    with sync_playwright() as p:
+        b = p.chromium.launch(headless=True)
+        ctx = b.new_context(user_agent=UA, locale="zh-CN")
+        page = ctx.new_page()
+        page.goto(url, wait_until="domcontentloaded")
+        print("detail passed:", wait_pass(page), page.title())
+        time.sleep(3)
+        raw = page.eval_on_selector_all(
+            "a[href*='/site/chapter?id=']", "els => els.map(e => [e.innerText.trim(), e.href])")
+        seen, links = set(), []
+        for t, h in raw:
+            if h not in seen:
+                seen.add(h)
+                links.append((t, h))
+        ids = [int(re.search(r"id=(\d+)", h).group(1)) for _, h in links]
+        print("chapter links:", len(links), "first3:", links[:3], "last3:", links[-3:])
+        print("ids ascending:", ids == sorted(ids), "descending:", ids == sorted(ids, reverse=True))
+        body = page.inner_text("body")
+        print("total-count hints:", re.findall(r".{0,8}共\s*\d+\s*章.{0,6}|.{0,8}\d+\s*章节.{0,6}", body)[:4])
+        try:
+            print("toc container of first link:", page.evaluate(
+                "() => { let e = document.querySelector(\"a[href*='/site/chapter?id=']\"); let o=[]; "
+                "for (let i=0;i<4&&e;i++){ e=e.parentElement; if(e) o.push(e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(e.className?'.'+String(e.className).trim().split(/\\s+/).join('.'):'')); } return o; }"))
+        except Exception as e:
+            print("container scan failed", e)
+        cookies = {c["name"]: c["value"] for c in ctx.cookies()}
+        print("cookie names:", list(cookies))
+        picks = [0, 1, len(links) // 2, len(links) - 1]
+        print("--- strategy A: requests + cookies ---")
+        for i in picks:
+            try:
+                r = requests.get(links[i][1], headers={"User-Agent": UA, "Referer": url, "Accept-Language": "zh-CN,zh;q=0.9"},
+                                 cookies=cookies, timeout=25)
+                tt = BeautifulSoup(r.text, "html.parser").title
+                print(f"  #{i} HTTP {r.status_code} len={len(r.text)} title={tt.string.strip() if tt and tt.string else None}")
+            except Exception as e:
+                print("  #", i, "failed", type(e).__name__)
+        print("--- strategy B: playwright per chapter ---")
+        xh = []
+
+        def on_resp(r):
+            try:
+                if r.request.resource_type in ("xhr", "fetch") and "spudnovel" in r.url and "cdn-cgi" not in r.url:
+                    xh.append((r.status, r.url[:110], r.text()[:80].replace("\n", " ")))
+            except Exception:
+                pass
+
+        page.on("response", on_resp)
+        for i in picks:
+            del xh[:]
+            t0 = time.time()
+            page.goto(links[i][1], wait_until="domcontentloaded")
+            ok = wait_pass(page, 40)
+            for _ in range(20):
+                if len(page.inner_text("body")) > 600:
+                    break
+                time.sleep(0.5)
+            txt = page.inner_text("body")
+            blocks = page.evaluate(BLOCK_JS)
+            m = re.search(r"字数[:：]?\s*(\d+)", txt)
+            pg = re.findall(r"[（(]\s*\d+\s*/\s*\d+\s*[)）]|第\s*\d+\s*/\s*\d+\s*页", txt)
+            nav = page.eval_on_selector_all(
+                "a[href]", "els => els.map(e => [e.innerText.trim(), e.getAttribute('href')])"
+                ".filter(x => /下一[页頁章]|上一[页頁章]|目录|next/i.test(x[0]))")
+            print(f"  #{i} {links[i][0][:20]!r} passed={ok} {time.time()-t0:.1f}s title={page.title()!r} bodylen={len(txt)} declared={m.group(1) if m else None} pages={pg[:2]}")
+            print("     blocks:", blocks[:3], "nav:", nav[:4])
+            print("     head:", repr(txt[:50]), "tail:", repr(txt[-60:]))
+            print("     ad-words:", re.findall(r".{0,10}(?:土豆|spudnovel|http|www\.).{0,12}", txt)[:3], "xhr:", xh[:2])
+        b.close()
+
+
 def main(urls):
+    if urls and urls[0] == "chapters":
+        return chapters_mode(urls[1])
     with sync_playwright() as p:
         for u in urls:
             try:
