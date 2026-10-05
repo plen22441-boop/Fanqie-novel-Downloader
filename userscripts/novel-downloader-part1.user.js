@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 1/2 (สารบัญ+เครือข่าย)
 // @namespace    fanqie-novel-downloader
-// @version      2.5
+// @version      2.6
 // @description  ส่วนที่ 1 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 2
 // @match        *://*/*
 // @noframes
@@ -198,7 +198,7 @@
     const sig = (a) => (a.length ? a[0].url + '|' + a[a.length - 1].url + '|' + a.length : '');
     const out = [], have = new Set(cur().map((c) => c.url));
     const add = (arr) => { let n = 0; arr.forEach((c) => { if (!have.has(c.url)) { have.add(c.url); out.push(c); n++; } }); return n; };
-    const waitChange = async (before) => { for (let k = 0; k < 50; k++) { await sleep(150); const x = sig(cur()); if (x && x !== before) return true; } return false; };
+    const waitChange = async (before) => { for (let k = 0; k < 160; k++) { await sleep(150); const x = sig(cur()); if (x && x !== before) return true; } return false; };
     const sels = [...document.querySelectorAll('select')].filter((e) => e.options.length >= 2 && e.options.length <= 400 && ![...e.options].every((o) => /^(javascript|#)/i.test(o.value)));
     for (const sel of sels) {
       const start = sel.selectedIndex;
@@ -206,10 +206,14 @@
       for (let k = 0; k < sel.options.length; k++) {
         if (k === start) continue;
         const before = sig(cur());
-        sel.selectedIndex = k;
-        sel.dispatchEvent(new Event('input', { bubbles: true }));
-        sel.dispatchEvent(new Event('change', { bubbles: true }));
-        if (!(await waitChange(before))) continue;
+        let changed = false;
+        for (let tr = 0; tr < 2 && !changed; tr++) {
+          sel.selectedIndex = k;
+          sel.dispatchEvent(new Event('input', { bubbles: true }));
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          changed = await waitChange(before);
+        }
+        if (!changed) continue;
         gained += add(cur());
         ui('สแกนสารบัญ หน้า ' + (k + 1) + '/' + sel.options.length + ' (พบเพิ่ม ' + out.length + ' ตอน)');
       }
@@ -231,7 +235,9 @@
       if (!nx) break;
       const before = sig(cur());
       nx.click();
-      if (!(await waitChange(before))) break;
+      let moved = await waitChange(before);
+      if (!moved) { nx.click(); moved = await waitChange(before); }
+      if (!moved) break;
       if (!add(cur())) break;
       ui('สแกนสารบัญ (กดหน้าถัดไป) พบเพิ่ม ' + out.length + ' ตอน');
     }
@@ -355,8 +361,10 @@
     st.meta = metaOf(src || document);
     st.toc = { paging, dbg: { sel: dbgSel, next: dbgNext }, key: det.key, count: list.length, hint: det.hint, box: det.box, reversed, pages: pagesN, filled: fs.filled, src: det === fromSrc ? 'source' : 'live' };
     const first = list[0], last = list[list.length - 1];
+    const ctl = dbgSel[0] || dbgNext[0] || '';
+    const diag = ' | หน้า: ' + paging + (paging === 'none' && ctl ? ' (เจอตัวควบคุมหน้าแต่เปลี่ยนไม่ได้: ' + ctl.replace(/\s+/g, ' ').slice(0, 110) + ')' : '');
     ui('พบ ' + list.length + ' ตอน' + (det.hint ? ' (เว็บแจ้ง ' + det.hint + ')' : '') + note + (fs.filled ? ' [เติมเลขตอน]' : '') +
-      ' | แรก: ' + (first.title || first.url).slice(0, 18) + ' | ท้าย: ' + (last.title || last.url).slice(0, 18));
+      ' | แรก: ' + (first.title || first.url).slice(0, 18) + ' | ท้าย: ' + (last.title || last.url).slice(0, 18) + diag);
     return true;
   }
 

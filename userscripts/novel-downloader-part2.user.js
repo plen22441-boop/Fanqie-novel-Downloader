@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 2/2 (โหลดตอน+แผงควบคุม)
 // @namespace    fanqie-novel-downloader
-// @version      2.5
+// @version      2.6
 // @description  ส่วนที่ 2 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 1
 // @match        *://*/*
 // @noframes
