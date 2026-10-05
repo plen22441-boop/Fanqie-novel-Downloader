@@ -302,37 +302,70 @@
     return entries.sort((a, b) => a.number - b.number);
   }
 
-  // ── Parallel fetch pool ───────────────────────────────────────────────────────
-  // Site-adaptive concurrency: strict sites get fewer workers + longer delay
-  const CONCURRENCY = IS_BOLUOMAO ? 3 : 16;
-  const POOL_DELAY  = IS_BOLUOMAO ? 400 : 30;
+  // ── Resume cache (localStorage) ──────────────────────────────────────────────
+  function resumeKey() { return `nd-resume-${HOST}-${S.slug || 'manual'}`; }
+  function saveProgress(idx, text) {
+    try {
+      const raw = localStorage.getItem(resumeKey());
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[idx] = text;
+      localStorage.setItem(resumeKey(), JSON.stringify(cache));
+    } catch (_) {}
+  }
+  function loadProgress() {
+    try { return JSON.parse(localStorage.getItem(resumeKey()) || '{}'); } catch (_) { return {}; }
+  }
+  function clearProgress() {
+    try { localStorage.removeItem(resumeKey()); } catch (_) {}
+  }
 
-  async function fetchPool(entries, fromN) {
+  // ── Parallel fetch pool ───────────────────────────────────────────────────────
+  // Site-adaptive concurrency: boluomao is strict → 2 workers, 1.2s delay
+  const CONCURRENCY = IS_BOLUOMAO ? 2 : 16;
+  const POOL_DELAY  = IS_BOLUOMAO ? 1200 : 30;
+
+  async function fetchPool(entries) {
+    const cache   = loadProgress();
     const ordered = new Array(entries.length);
     let nextIdx = 0;
     let done = 0;
+    let rateLimitPause = false;
+
+    // Pre-fill cached chapters
+    entries.forEach((ch, i) => {
+      if (cache[i] !== undefined) { ordered[i] = cache[i]; done++; }
+    });
+    ui.prog.value = done;
 
     async function worker(workerIdx) {
-      // stagger worker start to avoid burst
-      await sleep(workerIdx * (IS_BOLUOMAO ? 300 : 20));
+      await sleep(workerIdx * (IS_BOLUOMAO ? 700 : 20));
       while (!stopped) {
+        // Wait if a rate-limit pause is active (all workers pause together)
+        while (rateLimitPause) await sleep(500);
+
         const idx = nextIdx++;
         if (idx >= entries.length) return;
+        if (ordered[idx] !== undefined) continue; // already cached
         const ch = entries[idx];
-        setStatus(`กำลังโหลด ${done + 1}/${entries.length} (${CONCURRENCY} คู่ขนาน)…`);
+        setStatus(`กำลังโหลด ${done + 1}/${entries.length}…`);
+
         let retries = 0;
-        while (retries < 4) {
+        while (retries <= 4) {
           try {
             const { title, paras } = await extractChapter(ch.url);
-            ordered[idx] = `\n\n第${ch.number}章 ${title || ch.title}\n\n` + paras.join('\n\n');
+            const text = `\n\n第${ch.number}章 ${title || ch.title}\n\n` + paras.join('\n\n');
+            ordered[idx] = text;
+            saveProgress(idx, text);
             addLog(`✓ ${ch.number}. ${title || ch.title}`);
             break;
           } catch (e) {
-            if (RATELIMIT_RE.test(e.message) && retries < 3) {
+            if (RATELIMIT_RE.test(e.message) && retries < 4) {
               retries++;
-              const wait = 3000 * retries;
-              addLog(`⚠ ถูก rate-limit ตอน ${ch.number} — รอ ${wait/1000}s แล้วลองใหม่…`);
+              const wait = 5000 * retries;
+              rateLimitPause = true;
+              addLog(`⚠ rate-limit ตอน ${ch.number} — หยุดทุก worker ${wait/1000}s…`);
               await sleep(wait);
+              rateLimitPause = false;
             } else {
               ordered[idx] = `\n\n第${ch.number}章 ${ch.title}\n\n[โหลดไม่สำเร็จ: ${e.message}]`;
               addLog(`✗ ตอน ${ch.number}: ${e.message}`);
@@ -342,12 +375,12 @@
         }
         done++;
         ui.prog.value = done;
-        // jitter: base delay ± 30%
-        await sleep(POOL_DELAY + Math.random() * POOL_DELAY * 0.6);
+        await sleep(POOL_DELAY + Math.random() * POOL_DELAY * 0.5);
       }
     }
 
     await Promise.all(Array.from({ length: CONCURRENCY }, (_, i) => worker(i)));
+    clearProgress();
     return ordered.filter(Boolean);
   }
 
@@ -402,7 +435,10 @@
     // Mode A: catalog known — parallel fetch
     if (entries.length) {
       ui.prog.max = entries.length;
-      results = await fetchPool(entries, fromN);
+      const cached = loadProgress();
+      const cachedCount = Object.keys(cached).length;
+      if (cachedCount > 0) addLog(`📂 พบ progress ที่บันทึกไว้ ${cachedCount} ตอน — ดาวน์โหลดต่อ…`);
+      results = await fetchPool(entries);
 
     // Mode B: no catalog — follow next-chapter links (sequential, can't parallelize)
     } else if (manualUrl) {
@@ -419,10 +455,10 @@
           ui.prog.value = i + 1;
           url = nextUrl || null;
           if (!url) { addLog('ไม่พบลิงก์ตอนต่อไปแล้ว'); break; }
-          await sleep(200);
+          await sleep(IS_BOLUOMAO ? 1200 : 200);
         } catch (e) {
           addLog(`✗ ตอน ${fromN + i}: ${e.message}`);
-          await sleep(1500);
+          await sleep(RATELIMIT_RE.test(e.message) ? 8000 : 1500);
         }
       }
     } else {
