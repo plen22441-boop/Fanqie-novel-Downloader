@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 2/2 (โหลดตอน+แผงควบคุม)
 // @namespace    fanqie-novel-downloader
-// @version      2.7
+// @version      2.8
 // @description  ส่วนที่ 2 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 1
 // @match        *://*/*
 // @noframes
@@ -22,7 +22,7 @@
       if (typeof GM_registerMenuCommand === 'function') GM_registerMenuCommand('เปิดแผงโหลดนิยาย', () => alert('ไม่พบส่วนที่ 1 กรุณาติดตั้ง "ส่วนที่ 1/2" และเปิดใช้งานทั้งสองส่วน'));
       return;
     }
-    const { st, VERSION, cleanTitle, detect, idbClear, idbGet, idbSet, ifrQueue, loadHtml, parseHtml, scan, sleep, textOf, viaIframe, fetchText } = A;
+    const { st, VERSION, cleanTitle, detect, idbClear, idbGet, idbSet, ifrQueue, loadHtml, parseHtml, scan, sleep, textOf, viaIframe, fetchText, isChallenge } = A;
   const ZW = /[​-‏⁠﻿­]/g;
   const SEP = '─'.repeat(40);
   const NAV_LINE = /^(上一[章页頁节節]|下一[章页頁节節]|上[页頁]|下[页頁]|目[录錄]|返回.*|书页|書頁|加入书[架签]|加入書[架籤]|设置|設置|A[+-]|阅读背景|错乱章节催更！?|章节错误|章節錯誤|举报|舉報|收藏|书名[：:]?|作者[：:]?|本章字数[：:]?|更新时间[：:]?|开始阅读|立即阅读|报错|催更|书签|没有了|沒有了|指南)$/;
@@ -192,6 +192,32 @@
     return { lines, pages, chars, declared, sel, mode, dropped, title: gotTitle };
   }
 
+  async function waitGate(ui) {
+    const g = st.gate;
+    while (g.captcha || Date.now() < g.until) {
+      if (g.captcha) {
+        ui('ติด captcha/ด่านตรวจ: เปิดแท็บใหม่ไปที่เว็บนี้แล้วผ่านด่าน ระบบจะตรวจเองทุก 5 วินาทีแล้วทำต่อ (หรือกด "ต่อ")');
+        await sleep(5000);
+        try {
+          const r = await fetchText(g.probe);
+          if (r.ok && !isChallenge(r.text) && !/GOEDGE_WAF|ui-captcha|Verify Yourself|身份验证/.test(r.text.slice(0, 6000))) { g.captcha = false; g.until = Date.now() + 3000; }
+        } catch (e) { /* keep waiting */ }
+      } else {
+        ui('เว็บจำกัดความเร็ว พักรอ ' + Math.ceil((g.until - Date.now()) / 1000) + ' วินาที แล้วทำต่อ');
+        await sleep(1000);
+      }
+    }
+  }
+
+  function trip(kind, url) {
+    const g = st.gate;
+    g.level = Math.min(g.level + 1, 6);
+    if (kind === 'CAPTCHA') { g.captcha = true; g.probe = url; }
+    else g.until = Math.max(g.until, Date.now() + Math.min(300000, 15000 * 2 ** (g.level - 1)));
+    st.limit = Math.max(2, Math.floor(st.limit / 2));
+    st.stat.okStreak = 0;
+  }
+
   async function runBatch(idxs, ui) {
     let next = 0, done = 0;
     const T0 = Date.now();
@@ -204,21 +230,36 @@
         if (k >= idxs.length) return;
         const i = idxs[k];
         const t0 = Date.now();
-        for (let a = 0; a < 4; a++) {
+        let a = 0, trips = 0;
+        while (a < 4) {
+          await waitGate(ui);
           try {
             const r = await downloadChapter(st.chapters[i]);
+            if (r.declared && r.chars < r.declared * 0.6 && a < 1) { a++; st.errors[i] = 'PARTIAL'; await sleep(1500); continue; }
+            if (r.declared && r.chars < r.declared * 0.6) st.stat.partial++;
             st.stat.n++; st.stat.ms += Date.now() - t0;
             if (++st.stat.okStreak >= 8 && st.limit < st.workers) { st.limit++; st.stat.okStreak = 0; }
+            if (st.stat.okStreak >= 20 && st.gate.level > 0) { st.gate.level--; st.stat.okStreak = 0; }
             st.results[i] = r;
             st.failed.delete(i);
             idbSet(st.chapters[i].url, Object.assign({ v: VERSION }, r));
             break;
-          } catch (e) { st.errors[i] = String(e.message || e); if (a === 3) st.failed.add(i); else await sleep(1000 * 2 ** a); }
+          } catch (e) {
+            const m = String(e.message || e);
+            st.errors[i] = m;
+            if (/^(CAPTCHA|RATE|BLOCK)$/.test(m)) {
+              trip(m, st.chapters[i].url);
+              if (++trips > 15) { st.failed.add(i); break; }
+              continue;
+            }
+            a++;
+            if (a >= 4) st.failed.add(i); else await sleep(1000 * 2 ** (a - 1));
+          }
         }
         done++;
         const el = (Date.now() - T0) / 1000, left = Math.round(((idxs.length - done) * el / done) / 60);
         ui(done + '/' + idxs.length + ' | ล้ม ' + st.failed.size + ' | ขนาน ' + Math.min(st.limit, st.workers) + '/' + st.workers +
-          ' | เฉลี่ย ' + (st.stat.n ? (st.stat.ms / st.stat.n / 1000).toFixed(1) : '-') + ' วิ/ตอน | เหลือ ~' + left + ' นาที | 429:' + st.stat.p429 + ' 403:' + st.stat.p403 + ' iframe:' + st.stat.iframe);
+          ' | เฉลี่ย ' + (st.stat.n ? (st.stat.ms / st.stat.n / 1000).toFixed(1) : '-') + ' วิ/ตอน | เหลือ ~' + left + ' นาที | 429:' + st.stat.p429 + ' 403:' + st.stat.p403 + ' | ไม่ครบ:' + st.stat.partial);
         if (!document.hidden) await sleep(30 + Math.random() * 120);
       }
     };
@@ -297,10 +338,17 @@
     document.addEventListener('visibilitychange', onVis);
     await restoreCache(ui);
     await runBatch(st.chapters.map((_, i) => i).filter((i) => !st.results[i]), ui);
+    for (let round = 0; round < 2 && st.failed.size; round++) {
+      const w = st.workers;
+      st.workers = 2;
+      await sleep(5000);
+      await runBatch([...st.failed], ui);
+      st.workers = w;
+    }
     document.removeEventListener('visibilitychange', onVis);
     if (lock) try { await lock.release(); } catch (e) { /* ignore */ }
     saveText(safeName() + '.txt', assemble());
-    ui(st.failed.size ? 'เสร็จ แต่ล้มเหลว ' + st.failed.size + ' ตอน กด "ลองตอนที่ล้มซ้ำ"' : 'เสร็จครบทุกตอน บันทึกไฟล์แล้ว');
+    ui((st.failed.size ? 'เสร็จ แต่ล้มเหลว ' + st.failed.size + ' ตอน กด "ลองตอนที่ล้มซ้ำ"' : 'เสร็จครบทุกตอน บันทึกไฟล์แล้ว') + (st.stat.partial ? ' | ตอนที่น่าจะไม่ครบ ' + st.stat.partial : ''));
   }
 
   // ---------- UI ----------
@@ -331,6 +379,7 @@
     mk('ทดสอบ 4 ตอน', () => runTest(ui));
     mk('โหลดทั้งเรื่อง', () => runAll(ui));
     mk('ลองตอนที่ล้มซ้ำ', () => runAll(ui));
+    mk('ต่อ', async () => { st.gate.captcha = false; st.gate.until = 0; ui('สั่งทำต่อแล้ว'); });
     mk('กลับลำดับ', async () => { st.chapters.reverse(); st.chapters.forEach((c, i) => { c.i = i; }); st.results.reverse(); ui('กลับลำดับแล้ว แรก: ' + (st.chapters[0].title || st.chapters[0].url).slice(0, 20)); });
     const spd = document.createElement('button');
     const speeds = [3, 6, 10, 16];

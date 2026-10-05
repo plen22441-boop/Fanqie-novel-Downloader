@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader - ส่วนที่ 1/2 (สารบัญ+เครือข่าย)
 // @namespace    fanqie-novel-downloader
-// @version      2.7
+// @version      2.8
 // @description  ส่วนที่ 1 จาก 2 ต้องติดตั้งคู่กับส่วนที่ 2
 // @match        *://*/*
 // @noframes
@@ -34,7 +34,7 @@
   async function idbClear() {
     try { const db = await idb(); await new Promise((res) => { const t = db.transaction('c', 'readwrite'); t.objectStore('c').clear(); t.oncomplete = () => res(); t.onerror = () => res(); }); } catch (e) { /* ignore */ }
   }
-  const st = { stat: { fetch: 0, iframe: 0, p429: 0, p403: 0, ms: 0, n: 0, okStreak: 0, lastCut: 0 }, workers: 6, limit: 6, restored: 0, chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false, ad: AD_BASE };
+  const st = { gate: { until: 0, level: 0, captcha: false, probe: '' }, stat: { partial: 0,  fetch: 0, iframe: 0, p429: 0, p403: 0, ms: 0, n: 0, okStreak: 0, lastCut: 0 }, workers: 6, limit: 6, restored: 0, chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false, ad: AD_BASE };
 
   const isChallenge = (h) => h.length < 30000 && CHALLENGE.test(h);
   const parseHtml = (h) => new DOMParser().parseFromString(h, 'text/html');
@@ -76,7 +76,7 @@
             if (!isChallenge(html) && d.body.textContent.trim().length > 100) { clearInterval(iv); f.remove(); res(html); return; }
           }
         } catch (e) { /* keep waiting */ }
-        if (Date.now() - t0 > 60000) { clearInterval(iv); f.remove(); rej(new Error('ด่านตรวจไม่ผ่านภายใน 60 วินาที')); }
+        if (Date.now() - t0 > 25000) { clearInterval(iv); f.remove(); rej(new Error('ด่านตรวจไม่ผ่านภายใน 25 วินาที')); }
       }, 1000);
     });
   }
@@ -91,10 +91,12 @@
 
   async function loadHtml(url) {
     const r = await fetchText(url);
-    if (r.status === 429) { st.stat.p429++; cut(); await sleep(4000); throw new Error('HTTP 429'); }
+    if (r.status === 429) { st.stat.p429++; cut(); throw new Error('RATE'); }
     if (r.status === 403 || r.status === 503 || isChallenge(r.text)) {
-      st.stat.p403++; cut(); st.stat.iframe++;
-      return { html: await ifrQueue(() => viaIframe(url)), mode: 'iframe' };
+      st.stat.p403++; cut();
+      if (/GOEDGE_WAF|ui-captcha|Verify Yourself|身份验证|人机验证|验证码/.test(r.text.slice(0, 6000))) throw new Error('CAPTCHA');
+      st.stat.iframe++;
+      try { return { html: await ifrQueue(() => viaIframe(url)), mode: 'iframe' }; } catch (e) { throw new Error('BLOCK'); }
     }
     st.stat.fetch++;
     return { html: r.text, mode: 'fetch' };
@@ -416,5 +418,5 @@
   }
 
   const W = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-  W.__NDL1 = { st, VERSION, cleanTitle, detect, idbClear, idbGet, idbSet, ifrQueue, loadHtml, parseHtml, scan, sleep, textOf, viaIframe, fetchText };
+  W.__NDL1 = { st, VERSION, cleanTitle, detect, idbClear, idbGet, idbSet, ifrQueue, loadHtml, parseHtml, scan, sleep, textOf, viaIframe, fetchText, isChallenge };
 })();

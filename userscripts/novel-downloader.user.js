@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel TXT Downloader (universal)
 // @namespace    fanqie-novel-downloader
-// @version      2.7
+// @version      2.8
 // @description  โหลดนิยายจากเว็บนิยายจีนทั่วไปเป็นไฟล์ .txt ผ่านเบราว์เซอร์ของคุณเอง
 // @match        *://*/*
 // @noframes
@@ -44,7 +44,7 @@
   async function idbClear() {
     try { const db = await idb(); await new Promise((res) => { const t = db.transaction('c', 'readwrite'); t.objectStore('c').clear(); t.oncomplete = () => res(); t.onerror = () => res(); }); } catch (e) { /* ignore */ }
   }
-  const st = { stat: { fetch: 0, iframe: 0, p429: 0, p403: 0, ms: 0, n: 0, okStreak: 0, lastCut: 0 }, workers: 6, limit: 6, restored: 0, chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false, ad: AD_BASE };
+  const st = { gate: { until: 0, level: 0, captcha: false, probe: '' }, stat: { partial: 0,  fetch: 0, iframe: 0, p429: 0, p403: 0, ms: 0, n: 0, okStreak: 0, lastCut: 0 }, workers: 6, limit: 6, restored: 0, chapters: [], results: [], errors: [], failed: new Set(), meta: {}, toc: {}, busy: false, ad: AD_BASE };
 
   const isChallenge = (h) => h.length < 30000 && CHALLENGE.test(h);
   const parseHtml = (h) => new DOMParser().parseFromString(h, 'text/html');
@@ -86,7 +86,7 @@
             if (!isChallenge(html) && d.body.textContent.trim().length > 100) { clearInterval(iv); f.remove(); res(html); return; }
           }
         } catch (e) { /* keep waiting */ }
-        if (Date.now() - t0 > 60000) { clearInterval(iv); f.remove(); rej(new Error('ด่านตรวจไม่ผ่านภายใน 60 วินาที')); }
+        if (Date.now() - t0 > 25000) { clearInterval(iv); f.remove(); rej(new Error('ด่านตรวจไม่ผ่านภายใน 25 วินาที')); }
       }, 1000);
     });
   }
@@ -101,10 +101,12 @@
 
   async function loadHtml(url) {
     const r = await fetchText(url);
-    if (r.status === 429) { st.stat.p429++; cut(); await sleep(4000); throw new Error('HTTP 429'); }
+    if (r.status === 429) { st.stat.p429++; cut(); throw new Error('RATE'); }
     if (r.status === 403 || r.status === 503 || isChallenge(r.text)) {
-      st.stat.p403++; cut(); st.stat.iframe++;
-      return { html: await ifrQueue(() => viaIframe(url)), mode: 'iframe' };
+      st.stat.p403++; cut();
+      if (/GOEDGE_WAF|ui-captcha|Verify Yourself|身份验证|人机验证|验证码/.test(r.text.slice(0, 6000))) throw new Error('CAPTCHA');
+      st.stat.iframe++;
+      try { return { html: await ifrQueue(() => viaIframe(url)), mode: 'iframe' }; } catch (e) { throw new Error('BLOCK'); }
     }
     st.stat.fetch++;
     return { html: r.text, mode: 'fetch' };
@@ -585,6 +587,32 @@
     return { lines, pages, chars, declared, sel, mode, dropped, title: gotTitle };
   }
 
+  async function waitGate(ui) {
+    const g = st.gate;
+    while (g.captcha || Date.now() < g.until) {
+      if (g.captcha) {
+        ui('ติด captcha/ด่านตรวจ: เปิดแท็บใหม่ไปที่เว็บนี้แล้วผ่านด่าน ระบบจะตรวจเองทุก 5 วินาทีแล้วทำต่อ (หรือกด "ต่อ")');
+        await sleep(5000);
+        try {
+          const r = await fetchText(g.probe);
+          if (r.ok && !isChallenge(r.text) && !/GOEDGE_WAF|ui-captcha|Verify Yourself|身份验证/.test(r.text.slice(0, 6000))) { g.captcha = false; g.until = Date.now() + 3000; }
+        } catch (e) { /* keep waiting */ }
+      } else {
+        ui('เว็บจำกัดความเร็ว พักรอ ' + Math.ceil((g.until - Date.now()) / 1000) + ' วินาที แล้วทำต่อ');
+        await sleep(1000);
+      }
+    }
+  }
+
+  function trip(kind, url) {
+    const g = st.gate;
+    g.level = Math.min(g.level + 1, 6);
+    if (kind === 'CAPTCHA') { g.captcha = true; g.probe = url; }
+    else g.until = Math.max(g.until, Date.now() + Math.min(300000, 15000 * 2 ** (g.level - 1)));
+    st.limit = Math.max(2, Math.floor(st.limit / 2));
+    st.stat.okStreak = 0;
+  }
+
   async function runBatch(idxs, ui) {
     let next = 0, done = 0;
     const T0 = Date.now();
@@ -597,21 +625,36 @@
         if (k >= idxs.length) return;
         const i = idxs[k];
         const t0 = Date.now();
-        for (let a = 0; a < 4; a++) {
+        let a = 0, trips = 0;
+        while (a < 4) {
+          await waitGate(ui);
           try {
             const r = await downloadChapter(st.chapters[i]);
+            if (r.declared && r.chars < r.declared * 0.6 && a < 1) { a++; st.errors[i] = 'PARTIAL'; await sleep(1500); continue; }
+            if (r.declared && r.chars < r.declared * 0.6) st.stat.partial++;
             st.stat.n++; st.stat.ms += Date.now() - t0;
             if (++st.stat.okStreak >= 8 && st.limit < st.workers) { st.limit++; st.stat.okStreak = 0; }
+            if (st.stat.okStreak >= 20 && st.gate.level > 0) { st.gate.level--; st.stat.okStreak = 0; }
             st.results[i] = r;
             st.failed.delete(i);
             idbSet(st.chapters[i].url, Object.assign({ v: VERSION }, r));
             break;
-          } catch (e) { st.errors[i] = String(e.message || e); if (a === 3) st.failed.add(i); else await sleep(1000 * 2 ** a); }
+          } catch (e) {
+            const m = String(e.message || e);
+            st.errors[i] = m;
+            if (/^(CAPTCHA|RATE|BLOCK)$/.test(m)) {
+              trip(m, st.chapters[i].url);
+              if (++trips > 15) { st.failed.add(i); break; }
+              continue;
+            }
+            a++;
+            if (a >= 4) st.failed.add(i); else await sleep(1000 * 2 ** (a - 1));
+          }
         }
         done++;
         const el = (Date.now() - T0) / 1000, left = Math.round(((idxs.length - done) * el / done) / 60);
         ui(done + '/' + idxs.length + ' | ล้ม ' + st.failed.size + ' | ขนาน ' + Math.min(st.limit, st.workers) + '/' + st.workers +
-          ' | เฉลี่ย ' + (st.stat.n ? (st.stat.ms / st.stat.n / 1000).toFixed(1) : '-') + ' วิ/ตอน | เหลือ ~' + left + ' นาที | 429:' + st.stat.p429 + ' 403:' + st.stat.p403 + ' iframe:' + st.stat.iframe);
+          ' | เฉลี่ย ' + (st.stat.n ? (st.stat.ms / st.stat.n / 1000).toFixed(1) : '-') + ' วิ/ตอน | เหลือ ~' + left + ' นาที | 429:' + st.stat.p429 + ' 403:' + st.stat.p403 + ' | ไม่ครบ:' + st.stat.partial);
         if (!document.hidden) await sleep(30 + Math.random() * 120);
       }
     };
@@ -690,10 +733,17 @@
     document.addEventListener('visibilitychange', onVis);
     await restoreCache(ui);
     await runBatch(st.chapters.map((_, i) => i).filter((i) => !st.results[i]), ui);
+    for (let round = 0; round < 2 && st.failed.size; round++) {
+      const w = st.workers;
+      st.workers = 2;
+      await sleep(5000);
+      await runBatch([...st.failed], ui);
+      st.workers = w;
+    }
     document.removeEventListener('visibilitychange', onVis);
     if (lock) try { await lock.release(); } catch (e) { /* ignore */ }
     saveText(safeName() + '.txt', assemble());
-    ui(st.failed.size ? 'เสร็จ แต่ล้มเหลว ' + st.failed.size + ' ตอน กด "ลองตอนที่ล้มซ้ำ"' : 'เสร็จครบทุกตอน บันทึกไฟล์แล้ว');
+    ui((st.failed.size ? 'เสร็จ แต่ล้มเหลว ' + st.failed.size + ' ตอน กด "ลองตอนที่ล้มซ้ำ"' : 'เสร็จครบทุกตอน บันทึกไฟล์แล้ว') + (st.stat.partial ? ' | ตอนที่น่าจะไม่ครบ ' + st.stat.partial : ''));
   }
 
   // ---------- UI ----------
@@ -724,6 +774,7 @@
     mk('ทดสอบ 4 ตอน', () => runTest(ui));
     mk('โหลดทั้งเรื่อง', () => runAll(ui));
     mk('ลองตอนที่ล้มซ้ำ', () => runAll(ui));
+    mk('ต่อ', async () => { st.gate.captcha = false; st.gate.until = 0; ui('สั่งทำต่อแล้ว'); });
     mk('กลับลำดับ', async () => { st.chapters.reverse(); st.chapters.forEach((c, i) => { c.i = i; }); st.results.reverse(); ui('กลับลำดับแล้ว แรก: ' + (st.chapters[0].title || st.chapters[0].url).slice(0, 20)); });
     const spd = document.createElement('button');
     const speeds = [3, 6, 10, 16];
