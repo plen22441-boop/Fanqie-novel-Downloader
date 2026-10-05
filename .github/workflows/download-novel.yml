@@ -49,6 +49,9 @@ jobs:
           if [ -n "${{ inputs.end_chapter }}" ]; then
             END_ARG="--end ${{ inputs.end_chapter }}"
           fi
+          # extract book_id for artifact name (strip URL to digits only)
+          BOOK_ID=$(echo "${{ inputs.book_url }}" | grep -oP '\d{5,}' | head -1)
+          echo "BOOK_ID=${BOOK_ID}" >> $GITHUB_ENV
           python scraper/boluomao1.py \
             "${{ inputs.book_url }}" \
             --start "${{ inputs.start_chapter }}" \
@@ -59,6 +62,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: novel-${{ inputs.book_url }}-ch${{ inputs.start_chapter }}-${{ inputs.end_chapter || 'end' }}
+          name: novel-${{ env.BOOK_ID }}-ch${{ inputs.start_chapter }}-${{ inputs.end_chapter || 'end' }}
           path: output/
           retention-days: 7

@@ -181,18 +181,19 @@ def get_catalog(book_id: str) -> list[dict]:
         if len(links) > 2:
             break
 
+    seq = 0
     for a in links:
         href = urljoin(book_url, a.get("href", ""))
         m = URL_RE.search(href)
         if not m:
             continue
-        num = int(m.group(2))
-        part = 1  # part pages handled during scrape
-        if part != 1 and found.get(num):
+        url_id = int(m.group(2))
+        if url_id in found:
             continue
-        title_text = clean(a.get_text()) or f"第{num}章"
-        if num not in found or len(title_text) > len(found[num]["title"]):
-            found[num] = {"number": num, "title": title_text, "url": href}
+        seq += 1
+        title_text = clean(a.get_text()) or f"第{seq}章"
+        # number = sequential order (1,2,3…); url_id = DB id used in URL
+        found[url_id] = {"number": seq, "url_id": url_id, "title": title_text, "url": href}
 
     catalog = sorted(found.values(), key=lambda x: x["number"])
     if not catalog:
@@ -218,11 +219,15 @@ def scrape_chapter(item: dict, delay_ms: int) -> dict:
                 raise RuntimeError(f"Blocked or failed: {current}")
 
             ch_title = extract_title(soup)
-            observed = chapter_no(ch_title, current)
-            if observed and observed != item["number"]:
-                raise RuntimeError(f"Chapter mismatch: expected {item['number']}, got {observed}")
 
             paras = extract_content(soup)
+            if not paras:
+                # try playwright if requests gave an empty page
+                print(f"  no content via requests, retrying with playwright…", file=sys.stderr)
+                soup2 = fetch_playwright(current)
+                if soup2:
+                    ch_title = extract_title(soup2) or ch_title
+                    paras = extract_content(soup2)
             if not paras:
                 raise RuntimeError("No content found")
 
@@ -235,7 +240,7 @@ def scrape_chapter(item: dict, delay_ms: int) -> dict:
                 out["status"] = "suspicious"
                 out["warnings"].append("พบอักขระป้องกันคัดลอก")
 
-            nxt = next_page_url(soup, current, item["number"], visited)
+            nxt = next_page_url(soup, current, item.get("url_id", item["number"]), visited)
             if nxt:
                 time.sleep(max(0.25, delay_ms / 1000))
             current = nxt
