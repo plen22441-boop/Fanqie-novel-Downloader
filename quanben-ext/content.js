@@ -404,26 +404,160 @@
   const css = document.createElement('style');
   css.id = APP + '-css';
   css.textContent = `
-#${APP}{position:fixed;bottom:16px;right:12px;z-index:2147483647;width:260px;font:13px/1.4 sans-serif;color:#222;user-select:none;}
-#${APP} .nd-head{background:#f5c518;border-radius:8px 8px 0 0;padding:4px 8px;display:flex;justify-content:space-between;align-items:center;cursor:move;font-weight:700;font-size:13px;}
-#${APP} .nd-body{background:#fff;border:2px solid #f5c518;border-top:none;border-radius:0 0 8px 8px;padding:8px;display:flex;flex-direction:column;gap:5px;}
-#${APP} input[type=text]{width:100%;box-sizing:border-box;padding:3px 5px;border:1px solid #ccc;border-radius:4px;font-size:12px;}
-#${APP} .nd-row{display:flex;gap:4px;align-items:center;}
-#${APP} .nd-row label{font-size:11px;white-space:nowrap;}
-#${APP} .nd-row input[type=number]{width:54px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px;}
-#${APP} .nd-btns{display:flex;flex-wrap:wrap;gap:3px;}
-#${APP} button{padding:3px 7px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#e8e8e8;}
-#${APP} button:hover{background:#d0d0d0;}
-#${APP} .nd-run{background:#f5c518;font-weight:700;}
-#${APP} .nd-run:hover{background:#e0b000;}
-#${APP} .nd-stop{background:#e55;}
-#${APP} .nd-stop:hover{background:#c33;color:#fff;}
-#${APP} progress{width:100%;height:6px;}
-#${APP} .nd-log{max-height:80px;overflow-y:auto;font-size:11px;background:#f9f9f9;border:1px solid #eee;padding:3px;border-radius:4px;}
-#${APP} .nd-info{font-size:11px;color:#555;}
-#${APP} .nd-status{font-size:11px;color:#0a0;}
-#${APP} .nd-minimized .nd-body{display:none;}
-#${APP} .nd-minimized .nd-head{border-radius:8px;}
+/* ── Panel shell ── */
+#${APP}{
+  position:fixed;bottom:20px;right:14px;z-index:2147483647;
+  width:272px;font:13px/1.5 'Segoe UI',sans-serif;
+  filter:drop-shadow(0 4px 18px rgba(255,0,128,.35));
+  user-select:none;
+}
+/* ── Header bar ── */
+#${APP} .nd-head{
+  background:linear-gradient(135deg,#1a1a1a 0%,#2d002d 100%);
+  border-radius:14px 14px 0 0;
+  padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:move;
+  border-bottom:2px solid #FF0080;
+}
+#${APP} .nd-head-title{
+  display:flex;align-items:center;gap:7px;
+  color:#fff;font-weight:700;font-size:14px;letter-spacing:.5px;
+}
+#${APP} .nd-head-title span.nd-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#FF0080;box-shadow:0 0 6px #FF0080;
+  display:inline-block;
+}
+#${APP} .nd-min-btn{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;color:#fff;cursor:pointer;
+  font-size:16px;line-height:1;padding:2px 8px;
+  transition:background .2s;
+}
+#${APP} .nd-min-btn:hover{background:#FF0080;}
+
+/* ── Body ── */
+#${APP} .nd-body{
+  background:#fff;
+  border:2px solid #FF0080;border-top:none;
+  border-radius:0 0 14px 14px;
+  padding:12px;
+  display:flex;flex-direction:column;gap:9px;
+}
+
+/* ── Info / status ── */
+#${APP} .nd-info{
+  font-size:11.5px;color:#333;
+  background:#fff0f7;border:1px solid #ffc0e0;
+  border-radius:8px;padding:6px 9px;line-height:1.4;
+}
+#${APP} .nd-status{
+  font-size:11.5px;font-weight:600;
+  color:#FF0080;text-align:center;
+}
+
+/* ── Section label ── */
+#${APP} .nd-label{
+  font-size:10.5px;font-weight:700;color:#999;
+  text-transform:uppercase;letter-spacing:.6px;
+  margin-bottom:2px;
+}
+
+/* ── URL input ── */
+#${APP} input[type=text]{
+  width:100%;box-sizing:border-box;
+  padding:7px 10px;
+  border:1.5px solid #e0e0e0;border-radius:8px;
+  font-size:12px;color:#222;
+  transition:border-color .2s;
+  outline:none;
+}
+#${APP} input[type=text]:focus{border-color:#FF0080;}
+
+/* ── Chapter range row ── */
+#${APP} .nd-range{
+  display:flex;align-items:center;gap:6px;
+}
+#${APP} .nd-range label{
+  font-size:11px;color:#666;white-space:nowrap;
+}
+#${APP} .nd-range input[type=number]{
+  width:52px;padding:5px 6px;
+  border:1.5px solid #e0e0e0;border-radius:7px;
+  font-size:12px;text-align:center;outline:none;
+  transition:border-color .2s;
+}
+#${APP} .nd-range input[type=number]:focus{border-color:#FF0080;}
+
+/* ── Quick-count pills ── */
+#${APP} .nd-pills{display:flex;gap:5px;}
+#${APP} .nd-pill{
+  flex:1;padding:5px 0;
+  background:#f5f5f5;border:1.5px solid #e0e0e0;
+  border-radius:20px;font-size:12px;font-weight:600;
+  color:#555;cursor:pointer;text-align:center;
+  transition:all .15s;
+}
+#${APP} .nd-pill:hover,#${APP} .nd-pill.active{
+  background:#FF0080;border-color:#FF0080;color:#fff;
+}
+
+/* ── Action buttons ── */
+#${APP} .nd-actions{display:flex;gap:6px;}
+#${APP} .nd-btn-run{
+  flex:1;padding:9px 0;
+  background:linear-gradient(135deg,#FF0080,#c0006a);
+  border:none;border-radius:10px;
+  color:#fff;font-size:13px;font-weight:700;letter-spacing:.3px;
+  cursor:pointer;transition:opacity .2s;
+}
+#${APP} .nd-btn-run:hover{opacity:.88;}
+#${APP} .nd-btn-stop{
+  padding:9px 12px;
+  background:#1a1a1a;border:none;border-radius:10px;
+  color:#fff;font-size:13px;cursor:pointer;transition:opacity .2s;
+}
+#${APP} .nd-btn-stop:hover{opacity:.75;}
+
+/* ── Save buttons ── */
+#${APP} .nd-saves{display:flex;gap:6px;}
+#${APP} .nd-btn-save{
+  flex:1;padding:8px 0;
+  background:#fff;border:1.5px solid #FF0080;
+  border-radius:10px;color:#FF0080;
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s;
+}
+#${APP} .nd-btn-save:hover:not(:disabled){background:#FF0080;color:#fff;}
+#${APP} .nd-btn-save:disabled{
+  border-color:#e0e0e0;color:#bbb;cursor:not-allowed;
+}
+
+/* ── Progress bar ── */
+#${APP} .nd-prog-wrap{
+  background:#f0f0f0;border-radius:99px;height:6px;overflow:hidden;
+}
+#${APP} .nd-prog-bar{
+  height:100%;border-radius:99px;
+  background:linear-gradient(90deg,#FF0080,#ff66b3);
+  width:0%;transition:width .3s;
+}
+
+/* ── Log ── */
+#${APP} .nd-log{
+  max-height:72px;overflow-y:auto;
+  font-size:11px;color:#444;
+  background:#fafafa;border:1px solid #f0e0e8;
+  border-radius:8px;padding:5px 8px;line-height:1.6;
+}
+#${APP} .nd-log .ok{color:#d4006a;}
+#${APP} .nd-log .err{color:#888;}
+
+/* ── Minimized state ── */
+#${APP}.nd-minimized .nd-body{display:none;}
+#${APP}.nd-minimized .nd-head{border-radius:14px;border-bottom:none;}
+#${APP}.nd-minimized{filter:drop-shadow(0 2px 8px rgba(255,0,128,.25));}
 `;
 
   const adCss = document.createElement('style');
@@ -440,32 +574,53 @@ ins.adsbygoogle { display:none!important; }
   panel.id = APP;
   panel.innerHTML = `
 <div class="nd-head" id="${APP}-head">
-  📖 Novel DL
-  <button id="${APP}-min" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;">−</button>
+  <div class="nd-head-title">
+    <span class="nd-dot"></span>
+    📖 Novel Downloader
+  </div>
+  <button class="nd-min-btn" id="${APP}-min">−</button>
 </div>
 <div class="nd-body">
-  <div class="nd-info" id="${APP}-info">ใส่ URL ตอนแรก หรือรอสแกนสารบัญ…</div>
-  <input type="text" id="${APP}-firstUrl" placeholder="URL ตอนแรก (ถ้าไม่มีสารบัญ)" />
-  <div class="nd-row">
-    <label>เริ่มตอน</label>
-    <input type="number" id="${APP}-from" value="1" min="1" />
-    <label>จำนวน</label>
-    <input type="number" id="${APP}-cnt" value="50" min="1" max="999" />
+  <div class="nd-info" id="${APP}-info">กำลังสแกนสารบัญ…</div>
+
+  <div>
+    <div class="nd-label">🔗 URL ตอนแรก (สำหรับเว็บไม่มีสารบัญ)</div>
+    <input type="text" id="${APP}-firstUrl" placeholder="วาง URL ตอนที่ 1 ที่นี่" />
   </div>
-  <div class="nd-btns">
-    <button id="${APP}-q50">50</button>
-    <button id="${APP}-q100">100</button>
-    <button id="${APP}-q200">200</button>
-    <button id="${APP}-q300">300</button>
+
+  <div>
+    <div class="nd-label">📚 ช่วงตอนที่ต้องการ</div>
+    <div class="nd-range">
+      <label>เริ่มตอน</label>
+      <input type="number" id="${APP}-from" value="1" min="1" />
+      <label>จำนวนตอน</label>
+      <input type="number" id="${APP}-cnt" value="50" min="1" max="999" />
+    </div>
   </div>
-  <div class="nd-row" style="gap:6px;">
-    <button class="nd-run" id="${APP}-run">▶ โหลด</button>
-    <button class="nd-stop" id="${APP}-stop">■ หยุด</button>
-    <button id="${APP}-copy" disabled>Copy</button>
-    <button id="${APP}-dl" disabled>DL</button>
+
+  <div>
+    <div class="nd-label">⚡ เลือกจำนวนด่วน</div>
+    <div class="nd-pills">
+      <button class="nd-pill" id="${APP}-q50">50</button>
+      <button class="nd-pill" id="${APP}-q100">100</button>
+      <button class="nd-pill" id="${APP}-q200">200</button>
+      <button class="nd-pill" id="${APP}-q300">300</button>
+    </div>
   </div>
-  <progress id="${APP}-prog" value="0" max="100"></progress>
-  <div class="nd-status" id="${APP}-status">พร้อม</div>
+
+  <div class="nd-actions">
+    <button class="nd-btn-run" id="${APP}-run">▶ เริ่มโหลด</button>
+    <button class="nd-btn-stop" id="${APP}-stop">■</button>
+  </div>
+
+  <div class="nd-prog-wrap"><div class="nd-prog-bar" id="${APP}-progbar"></div></div>
+  <div class="nd-status" id="${APP}-status">พร้อมใช้งาน</div>
+
+  <div class="nd-saves">
+    <button class="nd-btn-save" id="${APP}-dl" disabled>💾 บันทึก .txt</button>
+    <button class="nd-btn-save" id="${APP}-copy" disabled>📋 คัดลอก</button>
+  </div>
+
   <div class="nd-log" id="${APP}-log"></div>
 </div>
 `;
@@ -482,15 +637,25 @@ ins.adsbygoogle { display:none!important; }
     stop:     panel.querySelector(`#${APP}-stop`),
     copy:     panel.querySelector(`#${APP}-copy`),
     dl:       panel.querySelector(`#${APP}-dl`),
-    prog:     panel.querySelector(`#${APP}-prog`),
+    progbar:  panel.querySelector(`#${APP}-progbar`),
     status:   panel.querySelector(`#${APP}-status`),
     log:      panel.querySelector(`#${APP}-log`),
+    // prog shim — used as {value, max} by runDownload
+    prog: { _v: 0, _m: 100,
+      get value(){ return this._v; },
+      set value(v){ this._v = v; const el = panel.querySelector(`#${APP}-progbar`); if(el) el.style.width = (this._m ? Math.round(v/this._m*100) : 0)+'%'; },
+      get max(){ return this._m; },
+      set max(v){ this._m = v; }
+    },
   };
 
   function setStatus(t) { ui.status.textContent = t; }
   function addLog(t) {
-    const d = document.createElement('div'); d.textContent = t;
-    ui.log.appendChild(d); ui.log.scrollTop = ui.log.scrollHeight;
+    const d = document.createElement('div');
+    d.className = t.startsWith('✓') ? 'ok' : (t.startsWith('✗') ? 'err' : '');
+    d.textContent = t;
+    ui.log.appendChild(d);
+    ui.log.scrollTop = ui.log.scrollHeight;
   }
 
   // ── Minimize / expand ─────────────────────────────────────────────────────────
@@ -505,6 +670,7 @@ ins.adsbygoogle { display:none!important; }
   // ── Drag ─────────────────────────────────────────────────────────────────────
   let dx = 0, dy = 0, dragging = false;
   ui.head.addEventListener('pointerdown', e => {
+    if (e.target === ui.min) return;
     dragging = true; dx = e.clientX - panel.getBoundingClientRect().left;
     dy = e.clientY - panel.getBoundingClientRect().top;
     e.preventDefault();
@@ -517,15 +683,21 @@ ins.adsbygoogle { display:none!important; }
   });
   document.addEventListener('pointerup', () => { dragging = false; });
 
-  // ── Quick count buttons ───────────────────────────────────────────────────────
-  panel.querySelector(`#${APP}-q50`).onclick  = () => { ui.cnt.value = 50; };
-  panel.querySelector(`#${APP}-q100`).onclick = () => { ui.cnt.value = 100; };
-  panel.querySelector(`#${APP}-q200`).onclick = () => { ui.cnt.value = 200; };
-  panel.querySelector(`#${APP}-q300`).onclick = () => { ui.cnt.value = 300; };
+  // ── Quick count pills ─────────────────────────────────────────────────────────
+  const pills = panel.querySelectorAll('.nd-pill');
+  function setPill(val) {
+    ui.cnt.value = val;
+    pills.forEach(p => p.classList.toggle('active', p.textContent === String(val)));
+  }
+  panel.querySelector(`#${APP}-q50`).onclick  = () => setPill(50);
+  panel.querySelector(`#${APP}-q100`).onclick = () => setPill(100);
+  panel.querySelector(`#${APP}-q200`).onclick = () => setPill(200);
+  panel.querySelector(`#${APP}-q300`).onclick = () => setPill(300);
+  setPill(50); // default highlight
 
   ui.run.onclick  = runDownload;
-  ui.stop.onclick = () => { stopped = true; setStatus('หยุดแล้ว'); };
-  ui.copy.onclick = () => { navigator.clipboard.writeText(buildText()).then(() => setStatus('คัดลอกแล้ว!')); };
+  ui.stop.onclick = () => { stopped = true; setStatus('⏹ หยุดแล้ว'); };
+  ui.copy.onclick = () => { navigator.clipboard.writeText(buildText()).then(() => setStatus('✅ คัดลอกแล้ว!')); };
   ui.dl.onclick   = doDownload;
 
   // ── Mount ─────────────────────────────────────────────────────────────────────
