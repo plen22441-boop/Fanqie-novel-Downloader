@@ -45,8 +45,13 @@
   let results = [];
 
   const BLOCK_RE = /Just a moment|安全验证|人机验证|Verify you are human|Access Denied|Forbidden/i;
-  const NEXT_RE  = /下一[章页节]|next\s*chapter|next\s*page|下一篇|下一回/i;
+  // Match "next CHAPTER" only — not "next page" (避免跟着分页链接走)
+  const NEXT_CH_RE = /下一[章节回篇]|next\s*chapter/i;
+  // "next page" within same chapter (same chapter split into multiple pages)
+  const NEXT_PG_RE = /下一页|next\s*page/i;
   const JUNK_RE  = /当前位置|上一章|下一章|回目录|©\s*20\d\d|document\.domain|this\.location|GoogleAnalytics|function\(i,s,o|ga\("create|ga\("send|\(function\(/i;
+  // Filter out lines that are just novel recommendation titles 《...》
+  const RECOMMEND_RE = /^《[^》]+》\s*$/;
 
   // ── Text helpers ─────────────────────────────────────────────────────────────
   function clean(s) {
@@ -96,35 +101,39 @@
     return best;
   }
 
+  function isJunkLine(s) {
+    return JUNK_RE.test(s) || RECOMMEND_RE.test(s);
+  }
+
   function parseParagraphs(box) {
     const ps = [...box.querySelectorAll('p')]
       .map(p => clean(p.textContent || ''))
-      .filter(s => s.length > 1 && !JUNK_RE.test(s));
+      .filter(s => s.length > 1 && !isJunkLine(s));
     if (ps.length >= 3) return ps;
 
     const tmpHtml = (box.innerHTML || '').replace(/<br\s*\/?>/gi, '\n');
     const tmp = box.ownerDocument.createElement('div');
     tmp.innerHTML = tmpHtml;
     const raw = tmp.textContent || box.textContent || '';
-    let lines = clean(raw).split(/\n+/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
+    let lines = clean(raw).split(/\n+/).map(s => s.trim()).filter(s => s.length > 2 && !isJunkLine(s));
     if (lines.length >= 3) return lines;
 
-    return clean(raw).split(/　　/).map(s => s.trim()).filter(s => s.length > 2 && !JUNK_RE.test(s));
+    return clean(raw).split(/　　/).map(s => s.trim()).filter(s => s.length > 2 && !isJunkLine(s));
   }
 
-  // ── Find "next chapter" link in a doc ────────────────────────────────────────
-  function findNextLink(doc, baseUrl) {
+  // ── Find next-chapter and next-page links separately ─────────────────────────
+  function findLinks(doc, baseUrl) {
     const all = [...doc.querySelectorAll('a')];
-    // Prefer exact text match
+    let nextChapter = null, nextPage = null;
     for (const a of all) {
       const t = clean(a.textContent);
-      if (NEXT_RE.test(t)) {
-        const href = a.getAttribute('href');
-        if (!href || href === '#') continue;
-        return new URL(href, baseUrl).href;
-      }
+      const href = a.getAttribute('href');
+      if (!href || href === '#') continue;
+      const full = new URL(href, baseUrl).href;
+      if (!nextChapter && NEXT_CH_RE.test(t)) nextChapter = full;
+      if (!nextPage && NEXT_PG_RE.test(t)) nextPage = full;
     }
-    return null;
+    return { nextChapter, nextPage };
   }
 
   // ── Title guess ───────────────────────────────────────────────────────────────
@@ -165,23 +174,53 @@
     });
   }
 
-  // ── Extract text from URL ─────────────────────────────────────────────────────
-  async function extractChapter(url) {
+  // ── Fetch one doc ─────────────────────────────────────────────────────────────
+  async function fetchDoc(url) {
     let doc;
-    try {
-      doc = await fastFetch(url);
-    } catch (_) {
-      doc = await iframeFetch(url);
-    }
+    try { doc = await fastFetch(url); }
+    catch (_) { doc = await iframeFetch(url); }
     if (BLOCK_RE.test(doc.title || '')) throw new Error('ถูก block — CAPTCHA/WAF');
-    cleanDoc(doc);
-    const title = clean(doc.querySelector('h1,h2,.chapter-title,.title')?.textContent || doc.title || '');
-    const box = findContentBox(doc);
-    if (!box) throw new Error('ไม่พบเนื้อหา');
-    const paras = parseParagraphs(box);
-    if (!paras.length) throw new Error('ไม่พบข้อความ');
-    const nextUrl = findNextLink(doc, url);
-    return { title, paras, nextUrl };
+    return doc;
+  }
+
+  // ── Extract chapter — collects all pages of the same chapter ─────────────────
+  async function extractChapter(url) {
+    const allParas = [];
+    let title = '';
+    let currentUrl = url;
+    const visitedPages = new Set();
+
+    for (let page = 0; page < 20; page++) {
+      if (visitedPages.has(currentUrl)) break;
+      visitedPages.add(currentUrl);
+
+      const doc = await fetchDoc(currentUrl);
+      cleanDoc(doc);
+
+      if (!title) {
+        title = clean(doc.querySelector('h1,h2,.chapter-title,.title')?.textContent || doc.title || '');
+      }
+
+      const box = findContentBox(doc);
+      if (box) {
+        const paras = parseParagraphs(box);
+        allParas.push(...paras);
+      }
+
+      const { nextChapter, nextPage } = findLinks(doc, currentUrl);
+
+      // If there's a "next page" link that stays on the same chapter, follow it
+      // Stop if: no next-page link, or next-page is the same as next-chapter (i.e., no real pagination)
+      if (nextPage && nextPage !== nextChapter && nextPage !== currentUrl) {
+        currentUrl = nextPage;
+        await sleep(400);
+      } else {
+        // No more pages — return with next chapter URL
+        return { title, paras: allParas, nextUrl: nextChapter };
+      }
+    }
+
+    return { title, paras: allParas, nextUrl: null };
   }
 
   // ── Catalog scan (known sites only) ──────────────────────────────────────────
