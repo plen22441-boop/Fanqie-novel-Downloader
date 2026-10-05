@@ -328,10 +328,20 @@
   async function init() {
     S = getUrlState();
 
-    // ถ้าอยู่บน chapter page → auto-fill firstUrl ด้วย URL ปัจจุบัน
-    if (!S.isIndexPage && !ui.firstUrl.value) {
-      ui.firstUrl.value = location.href;
-      if (S.chapterNum) ui.from.value = S.chapterNum;
+    // ถ้าอยู่บน chapter page → auto-fill firstUrl + ย่อ panel ไว้ก่อน
+    if (!S.isIndexPage) {
+      if (!ui.firstUrl.value) {
+        ui.firstUrl.value = location.href;
+        if (S.chapterNum) ui.from.value = S.chapterNum;
+      }
+      // Minimize by default on chapter pages so it doesn't block reading
+      if (ui.body.style.display !== 'none') {
+        ui.body.style.display = 'none';
+        ui.min.textContent = '+';
+      }
+    } else {
+      ui.body.style.display = '';
+      ui.min.textContent = '−';
     }
 
     try {
@@ -458,37 +468,25 @@
   // ── SPA navigation: keep panel alive + re-init on URL change ────────────────
   let lastHref = location.href;
 
-  // Re-append panel and styles whenever SPA removes them
-  const keepAlive = new MutationObserver(() => {
+  // Poll every 1.5s: re-add panel/styles if SPA removed them, detect URL change
+  setInterval(() => {
     const body = document.body;
-    if (!body) return;
-    if (!body.contains(panel)) body.append(panel);
-    if (!document.head.contains(css)) document.head.append(css);
-    if (!document.head.contains(adCss)) document.head.append(adCss);
+    if (body && !body.contains(panel)) body.append(panel);
+    if (document.head && !document.head.contains(css)) document.head.append(css);
+    if (document.head && !document.head.contains(adCss)) document.head.append(adCss);
 
-    // Detect URL change (SPA pushState)
     if (location.href !== lastHref) {
       lastHref = location.href;
-      catalog = [];
-      results = [];
-      ui.firstUrl.value = '';
-      ui.prog.value = 0;
-      ui.copy.disabled = ui.dl.disabled = true;
-      ui.log.textContent = '';
-      init();
+      if (!running) {
+        catalog = []; results = [];
+        ui.firstUrl.value = '';
+        ui.prog.value = 0;
+        ui.copy.disabled = ui.dl.disabled = true;
+        ui.log.textContent = '';
+        init();
+      }
     }
-  });
-  keepAlive.observe(document.documentElement, { childList: true, subtree: false });
-
-  // Also catch popstate (back/forward)
-  window.addEventListener('popstate', () => {
-    if (location.href !== lastHref) {
-      lastHref = location.href;
-      catalog = []; results = [];
-      ui.firstUrl.value = '';
-      init();
-    }
-  });
+  }, 1500);
 
   init();
 })();
