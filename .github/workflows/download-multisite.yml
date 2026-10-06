@@ -11,37 +11,38 @@ on:
       site:
         description: "เว็บที่จะโหลด"
         required: true
-        default: "shuixxs"
+        default: "4jiwx"
         type: choice
         options:
+          - 4jiwx
           - shuixxs
           - zhys
       book_id:
-        description: "รหัสหนังสือ (shuixxs: YA9K, zhys: 7945508)"
+        description: "รหัสหนังสือ"
         required: true
-        default: "YA9K"
+        default: "YH2B"
         type: string
       total_chapters:
-        description: "จำนวนตอน (เฉพาะ shuixxs)"
+        description: "จำนวนตอน (เฉพาะ shuixxs/4jiwx)"
         required: false
-        default: "503"
+        default: "523"
         type: string
       workers:
         description: "จำนวน workers (1-15)"
         required: false
-        default: "8"
+        default: "3"
         type: string
       delay:
         description: "หน่วง (วินาที)"
         required: false
-        default: "1.5"
+        default: "3"
         type: string
 
 jobs:
   download:
     name: Download chapters
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
