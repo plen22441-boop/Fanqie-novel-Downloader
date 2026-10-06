@@ -1,0 +1,89 @@
+name: Download Novel — Multi-site
+
+on:
+  workflow_dispatch:
+    inputs:
+      novel_name:
+        description: "ชื่อนิยาย"
+        required: true
+        default: "萌宝驾到豪门全家宠上天"
+        type: string
+      site:
+        description: "เว็บที่จะโหลด"
+        required: true
+        default: "shuixxs"
+        type: choice
+        options:
+          - shuixxs
+          - zhys
+      book_id:
+        description: "รหัสหนังสือ (shuixxs: YA9K, zhys: 7945508)"
+        required: true
+        default: "YA9K"
+        type: string
+      total_chapters:
+        description: "จำนวนตอน (เฉพาะ shuixxs)"
+        required: false
+        default: "503"
+        type: string
+      workers:
+        description: "จำนวน workers (1-15)"
+        required: false
+        default: "8"
+        type: string
+      delay:
+        description: "หน่วง (วินาที)"
+        required: false
+        default: "1.5"
+        type: string
+
+jobs:
+  download:
+    name: Download chapters
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -q aiohttp
+
+      - name: Download novel
+        env:
+          NOVEL_NAME: ${{ inputs.novel_name }}
+          SITE: ${{ inputs.site }}
+          BOOK_ID: ${{ inputs.book_id }}
+          TOTAL_CHAPTERS: ${{ inputs.total_chapters }}
+          WORKERS: ${{ inputs.workers }}
+          DELAY: ${{ inputs.delay }}
+          OUTPUT_DIR: ./output
+        run: |
+          mkdir -p output
+          python scripts/download_novel.py
+
+      - name: Show result
+        if: always()
+        run: |
+          echo "=== Files ==="
+          ls -lh output/ 2>/dev/null || echo "No output"
+          echo ""
+          echo "=== First 30 lines ==="
+          head -30 output/*.txt 2>/dev/null || true
+          echo ""
+          echo "=== Chapter count ==="
+          grep -c "^第.*章" output/*.txt 2>/dev/null || true
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novel-${{ inputs.novel_name }}
+          path: output/*.txt
+          retention-days: 30
