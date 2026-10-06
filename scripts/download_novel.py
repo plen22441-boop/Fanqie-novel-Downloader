@@ -120,17 +120,23 @@ async def download_chapter(session, url, semaphore, delay=1.5):
     await asyncio.sleep(delay)
 
 
-async def download_shuixxs(book_id, total_chapters, output_file, novel_name, workers=8, delay=1.5):
-    print(f'=== Downloading from shuixxs.com ===')
+SITE_DOMAINS = {
+    'shuixxs': 'www.shuixxs.com',
+    '4jiwx': 'www.4jiwx.com',
+}
+
+
+async def download_sequential(site, book_id, total_chapters, output_file, novel_name, workers=8, delay=1.5):
+    domain = SITE_DOMAINS.get(site, site)
+    print(f'=== Downloading from {domain} ===')
     print(f'Book: {book_id}, Chapters: {total_chapters}, Workers: {workers}')
 
     semaphore = asyncio.Semaphore(workers)
     connector = aiohttp.TCPConnector(limit=workers + 2, force_close=False)
 
     async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
-        # First test if site is accessible
         try:
-            async with session.get(f'https://www.shuixxs.com/book/{book_id}.html',
+            async with session.get(f'https://{domain}/book/{book_id}.html',
                                    timeout=aiohttp.ClientTimeout(total=15)) as resp:
                 if resp.status != 200:
                     print(f'Site returned {resp.status} — may be blocked')
@@ -142,7 +148,7 @@ async def download_shuixxs(book_id, total_chapters, output_file, novel_name, wor
 
         tasks = []
         for n in range(1, total_chapters + 1):
-            url = f'https://www.shuixxs.com/book/{book_id}-{n}.html'
+            url = f'https://{domain}/book/{book_id}-{n}.html'
             tasks.append(download_chapter(session, url, semaphore, delay))
 
         results = []
@@ -280,27 +286,18 @@ async def main():
     safe_name = re.sub(r'[\\/:*?"<>|]', '_', novel_name)
     output_file = os.path.join(output_dir, f'{safe_name}.txt')
 
-    if site == 'shuixxs':
-        book_id = os.environ.get('BOOK_ID', 'YA9K')
+    book_id = os.environ.get('BOOK_ID', 'YA9K')
+    workers = int(os.environ.get('WORKERS', '8'))
+    delay = float(os.environ.get('DELAY', '1.5'))
+
+    if site in ('shuixxs', '4jiwx'):
         total = int(os.environ.get('TOTAL_CHAPTERS', '503'))
-        workers = int(os.environ.get('WORKERS', '8'))
-        delay = float(os.environ.get('DELAY', '1.5'))
-        success = await download_shuixxs(book_id, total, output_file, novel_name, workers, delay)
+        success = await download_sequential(site, book_id, total, output_file, novel_name, workers, delay)
     elif site == 'zhys':
-        book_id = os.environ.get('BOOK_ID', '7945508')
-        workers = int(os.environ.get('WORKERS', '8'))
-        delay = float(os.environ.get('DELAY', '1.5'))
         success = await download_zhys(book_id, output_file, novel_name, workers, delay)
     else:
         print(f'Unknown site: {site}')
         sys.exit(1)
-
-    if not success:
-        print('Download failed from primary site, trying fallback...')
-        if site == 'shuixxs':
-            success = await download_zhys('7945508', output_file, novel_name)
-        else:
-            success = await download_shuixxs('YA9K', 503, output_file, novel_name)
 
     if not success:
         print('Both sites failed!')
