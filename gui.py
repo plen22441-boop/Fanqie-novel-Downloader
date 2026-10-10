@@ -4,8 +4,11 @@ from tkinter import messagebox, filedialog
 import customtkinter as ctk
 import threading
 import os
+import re
 import time
 import json
+import random
+import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import OrderedDict
 import sys
@@ -170,9 +173,20 @@ class NovelDownloaderGUI(ctk.CTk):
         )
         settings_button.pack(side="left", padx=5)
         
+        # 修复缺失章节按钮
+        repair_button = ctk.CTkButton(
+            bottom_frame,
+            text="修复缺失章节",
+            command=self.open_repair_dialog,
+            width=130,
+            fg_color="#d97706",
+            hover_color="#b45309",
+        )
+        repair_button.pack(side="left", padx=5)
+
         # 清空日志按钮
         clear_log_button = ctk.CTkButton(
-            bottom_frame, 
+            bottom_frame,
             text="清空日志",
             command=self.clear_log,
             width=100
@@ -336,17 +350,35 @@ class NovelDownloaderGUI(ctk.CTk):
             add_to_library(book_id, book_info, output_file)
             self.log("已添加到书库")
             
-            messagebox.showinfo("完成", f"小说《{name}》下载完成！\n保存路径：{output_file}")
-            
+            failed_count = total_chapters - success_count
+            if failed_count > 0:
+                self.log(f"\n⚠️  มี {failed_count} ตอนที่โหลดไม่สำเร็จ")
+                self.log(f"   คุณสามารถใช้ปุ่ม '修复缺失章节' เพื่อโหลดตอนที่ขาดได้")
+                messagebox.showwarning(
+                    "下载不完整",
+                    f"小说《{name}》下载完成，但有 {failed_count} 章下载失败。\n"
+                    f"文件保存在：{output_file}\n\n"
+                    f"请使用【修复缺失章节】功能补全缺失内容。"
+                )
+            else:
+                messagebox.showinfo("完成", f"小说《{name}》下载完成！\n保存路径：{output_file}")
+
         except Exception as e:
             self.log(f"\n错误：{str(e)}")
             self.update_progress(0, f"下载失败: {str(e)}")
             messagebox.showerror("错误", f"下载失败: {str(e)}")
-        
+
         finally:
             self.download_button.configure(state="normal")
             self.is_downloading = False
-    
+
+    def open_repair_dialog(self):
+        """Open dialog to repair/patch missing chapters in an existing novel file."""
+        if self.is_downloading:
+            messagebox.showwarning("提示", "下载正在进行中，请等待完成后再修复")
+            return
+        RepairDialog(self)
+
     def open_library(self):
         """打开书库窗口"""
         try:
@@ -376,6 +408,273 @@ class NovelDownloaderGUI(ctk.CTk):
                 self.destroy()
         else:
             self.destroy()
+
+
+_REPAIR_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+]
+
+
+def _repair_headers():
+    return {
+        "User-Agent": random.choice(_REPAIR_USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    }
+
+
+def _repair_fanqie_chapters(session, book_id):
+    endpoints = [
+        f"https://api5-normal-lf.fqnovel.com/reading/bookapi/search/{book_id}/v",
+        f"https://api5-normal-lf.fqnovel.com/reading/bookapi/detail/v/?book_id={book_id}",
+        f"https://api.cengui.cn/api/tomato/book.php?book_id={book_id}",
+    ]
+    for url in endpoints:
+        try:
+            r = session.get(url, headers=_repair_headers(), timeout=15)
+            data = r.json()
+            raw_list = (
+                data.get("data", {}).get("chapter_list")
+                or data.get("data", {}).get("chapters")
+                or data.get("chapters")
+                or (data.get("data") if isinstance(data.get("data"), list) else None)
+            )
+            if raw_list:
+                chapters = []
+                for idx, item in enumerate(raw_list):
+                    cid = str(item.get("chapter_id") or item.get("id") or item.get("item_id", ""))
+                    raw_title = item.get("chapter_title") or item.get("title") or f"第{idx+1}章"
+                    if re.match(r"^(番外|特别篇|if线)\s*", raw_title):
+                        title = raw_title
+                    else:
+                        clean = re.sub(r"^第[一二三四五六七八九十百千\d]+章\s*", "", raw_title).strip()
+                        title = f"第{idx+1}章 {clean}" if clean else raw_title
+                    if cid:
+                        chapters.append({"index": idx, "id": cid, "title": title})
+                if chapters:
+                    return chapters
+        except Exception:
+            continue
+    return []
+
+
+def _repair_clean_content(raw, title=""):
+    c = re.sub(r"<header>.*?</header>", "", raw, flags=re.DOTALL)
+    c = re.sub(r"<footer>.*?</footer>", "", c, flags=re.DOTALL)
+    c = re.sub(r"</?article>", "", c)
+    c = re.sub(r'<p idx="\d+">', "\n", c)
+    c = re.sub(r"</p>", "\n", c)
+    c = re.sub(r"<[^>]+>", "", c)
+    if title and c.startswith(title):
+        c = c[len(title):].lstrip()
+    c = re.sub(r"\n{2,}", "\n", c).strip()
+    return "\n".join("    " + ln if ln.strip() else ln for ln in c.split("\n"))
+
+
+def _repair_download_chapter(session, chapter, max_retries=5):
+    for attempt in range(max_retries):
+        try:
+            url = f"https://api.cengui.cn/api/tomato/content.php?item_id={chapter['id']}"
+            r = session.get(url, headers=_repair_headers(), timeout=15)
+            data = r.json()
+            if data.get("code") == 200:
+                content = data.get("data", {}).get("content", "")
+                api_title = data.get("data", {}).get("title", "")
+                return chapter["index"], chapter["title"], _repair_clean_content(content, api_title)
+        except Exception:
+            pass
+        time.sleep(1.5 * (attempt + 1))
+    return chapter["index"], chapter["title"], ""
+
+
+def _repair_parse_file(filepath):
+    with open(filepath, encoding="utf-8") as f:
+        text = f.read()
+    lines = text.split("\n")
+    header = "\n".join(lines[:2])
+    blocks = re.split(r"─{30,}", text)
+    chapters = {}
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        bl = block.split("\n")
+        first_line = bl[0].strip() if bl else ""
+        m = re.match(r"^第(\d+)章", first_line)
+        if m:
+            idx = int(m.group(1))
+            content = "\n".join(bl[2:]).strip() if len(bl) > 2 else ""
+            chapters[idx] = (first_line, content)
+    return header, chapters
+
+
+SEPARATOR = "─" * 40
+
+
+class RepairDialog(ctk.CTkToplevel):
+    """Dialog to patch/repair missing chapters in an existing novel .txt file."""
+
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("修复缺失章节")
+        self.geometry("520x400")
+        self.resizable(False, False)
+        self.grab_set()
+        self._running = False
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.grid_columnconfigure(0, weight=1)
+
+        info = ctk.CTkLabel(
+            self,
+            text="选择已下载的小说 .txt 文件并输入 Book ID，即可自动补全缺失章节。",
+            wraplength=480,
+            justify="left",
+        )
+        info.grid(row=0, column=0, padx=20, pady=(18, 6), sticky="w")
+
+        # File picker
+        file_frame = ctk.CTkFrame(self, fg_color="transparent")
+        file_frame.grid(row=1, column=0, padx=20, pady=4, sticky="ew")
+        file_frame.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(file_frame, text="小说文件:").grid(row=0, column=0, sticky="w")
+        self._file_var = tk.StringVar()
+        file_entry = ctk.CTkEntry(file_frame, textvariable=self._file_var, placeholder_text="选择 .txt 文件")
+        file_entry.grid(row=1, column=0, padx=(0, 8), sticky="ew")
+        ctk.CTkButton(file_frame, text="浏览", width=70, command=self._browse_file).grid(row=1, column=1)
+
+        # Book ID
+        id_frame = ctk.CTkFrame(self, fg_color="transparent")
+        id_frame.grid(row=2, column=0, padx=20, pady=4, sticky="ew")
+        id_frame.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(id_frame, text="Book ID (番茄小说编号):").grid(row=0, column=0, sticky="w")
+        self._bookid_var = tk.StringVar()
+        ctk.CTkEntry(id_frame, textvariable=self._bookid_var, placeholder_text="例: 7115595052725832716").grid(
+            row=1, column=0, sticky="ew"
+        )
+
+        # Workers
+        wk_frame = ctk.CTkFrame(self, fg_color="transparent")
+        wk_frame.grid(row=3, column=0, padx=20, pady=4, sticky="ew")
+        ctk.CTkLabel(wk_frame, text="并发数:").pack(side="left", padx=(0, 8))
+        self._workers_var = tk.IntVar(value=10)
+        ctk.CTkEntry(wk_frame, textvariable=self._workers_var, width=60).pack(side="left")
+
+        # Progress
+        self._progress = ctk.CTkProgressBar(self)
+        self._progress.grid(row=4, column=0, padx=20, pady=(12, 0), sticky="ew")
+        self._progress.set(0)
+        self._status_label = ctk.CTkLabel(self, text="", anchor="w")
+        self._status_label.grid(row=5, column=0, padx=20, pady=(2, 8), sticky="ew")
+
+        # Buttons
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.grid(row=6, column=0, padx=20, pady=(0, 18), sticky="ew")
+        self._run_btn = ctk.CTkButton(btn_frame, text="开始修复", command=self._start, fg_color="#d97706", hover_color="#b45309")
+        self._run_btn.pack(side="left", padx=(0, 10))
+        ctk.CTkButton(btn_frame, text="关闭", command=self.destroy, fg_color="gray40", hover_color="gray30").pack(side="left")
+
+    def _browse_file(self):
+        path = filedialog.askopenfilename(
+            title="选择小说文件",
+            filetypes=[("文本文件", "*.txt"), ("所有文件", "*.*")],
+        )
+        if path:
+            self._file_var.set(path)
+
+    def _set_status(self, text, progress=None):
+        self._status_label.configure(text=text)
+        if progress is not None:
+            self._progress.set(progress)
+        self.update_idletasks()
+
+    def _start(self):
+        filepath = self._file_var.get().strip()
+        book_id = self._bookid_var.get().strip()
+        if not filepath or not os.path.exists(filepath):
+            messagebox.showerror("错误", "请选择有效的小说文件", parent=self)
+            return
+        if not book_id:
+            messagebox.showerror("错误", "请输入 Book ID", parent=self)
+            return
+        if self._running:
+            return
+        self._running = True
+        self._run_btn.configure(state="disabled")
+        threading.Thread(target=self._run, args=(filepath, book_id), daemon=True).start()
+
+    def _run(self, filepath, book_id):
+        try:
+            self._set_status("读取文件中...", 0)
+            header, existing = _repair_parse_file(filepath)
+            self._set_status(f"文件中已有 {len(existing)} 章，正在获取章节列表...")
+
+            session = requests.Session()
+            session.headers.update({"Accept-Language": "zh-CN,zh;q=0.9"})
+            all_chapters = _repair_fanqie_chapters(session, book_id)
+            total = len(all_chapters)
+            if not all_chapters:
+                self.after(0, lambda: messagebox.showerror("错误", "无法从 API 获取章节列表，请检查 Book ID", parent=self))
+                return
+
+            chapter_by_index = {ch["index"] + 1: ch for ch in all_chapters}
+            missing = [i for i in range(1, total + 1)
+                       if i not in existing or not existing[i][1].strip()]
+
+            if not missing:
+                self._set_status(f"✅ 文件已完整，共 {total} 章，无需修复", 1.0)
+                self.after(0, lambda: messagebox.showinfo("完成", "文件已完整，无缺失章节！", parent=self))
+                return
+
+            self._set_status(f"发现 {len(missing)} 个缺失章节，开始下载...", 0)
+            to_download = [chapter_by_index[i] for i in missing if i in chapter_by_index]
+            new_chapters = {}
+            workers = max(1, min(self._workers_var.get(), 20))
+            done_count = 0
+
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                futs = {ex.submit(_repair_download_chapter, session, ch): ch for ch in to_download}
+                for f in as_completed(futs):
+                    idx_0, title, content = f.result()
+                    new_chapters[idx_0 + 1] = (title, content)
+                    done_count += 1
+                    pct = done_count / len(to_download)
+                    self._set_status(f"下载中: {done_count}/{len(to_download)} — {title[:20]}", pct)
+
+            merged = dict(existing)
+            merged.update(new_chapters)
+
+            base, ext = os.path.splitext(filepath)
+            out_path = base + "_patched" + ext
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(header + "\n\n")
+                for i in range(1, total + 1):
+                    if i not in merged:
+                        continue
+                    title, content = merged[i]
+                    f.write(f"{title}\n\n{content}\n\n{SEPARATOR}\n\n")
+
+            still_missing = [i for i in range(1, total + 1)
+                             if i not in merged or not merged[i][1].strip()]
+            self._set_status(f"✅ 完成！修复了 {len(new_chapters)} 章，已保存: {os.path.basename(out_path)}", 1.0)
+
+            msg = (
+                f"修复完成！\n"
+                f"补全章节: {len(new_chapters)}\n"
+                f"仍缺失: {len(still_missing)}\n"
+                f"文件: {out_path}"
+            )
+            self.after(0, lambda: messagebox.showinfo("修复完成", msg, parent=self))
+
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("错误", f"修复失败: {e}", parent=self))
+            self._set_status(f"错误: {e}", 0)
+        finally:
+            self._running = False
+            self.after(0, lambda: self._run_btn.configure(state="normal"))
 
 
 class SettingsWindow(ctk.CTkToplevel):
