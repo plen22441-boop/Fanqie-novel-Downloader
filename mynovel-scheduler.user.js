@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         MyNovel Auto Scheduler Helper v11.0.0
+// @name         MyNovel Auto Scheduler Helper v11.1.0
 // @namespace    https://mynovel.co/
-// @version      11.0.0
+// @version      11.1.0
 // @description  ตั้งเวลา MyNovel ทีละตอนจากล่างขึ้นบน — โหมดปุ๊บปุ๊บ (event-driven), ปรับความเร็วอัตโนมัติ, ตรวจหาเวลาต่อจากตอนที่ตั้งไว้, Wake Lock, เสียงแจ้งเตือน
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
@@ -12,7 +12,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '11.0.0';
+  const VERSION = '11.1.0';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
   const STORE_KEY = 'mn-auto-helper-settings';
@@ -310,8 +310,11 @@
 
   // อ่านเวลาตั้งเผยแพร่จาก card text เช่น "กำหนดเผยแพร่ 26 ก.ย. 2569 02:55"
   function parseScheduledDateFromCard(card) {
-    const t = txt(card);
-    if (!t.includes('กำหนดเผยแพร่')) return null;
+    const full = txt(card);
+    const at = full.indexOf('กำหนดเผยแพร่');
+    if (at < 0) return null;
+    // ใช้เฉพาะข้อความหลัง "กำหนดเผยแพร่" กันไปอ่านโดน "แก้ไขล่าสุด ..." ที่อยู่บนการ์ดเดียวกัน
+    const t = full.slice(at, at + 60);
 
     const timeMatch = t.match(/(\d{1,2}):(\d{2})(?!:\d)/);
     if (!timeMatch) return null;
@@ -332,7 +335,7 @@
     if (yearMatches) {
       const years = yearMatches.map(Number).filter(y => y >= 1900);
       if (years.length) {
-        const y = years[years.length - 1];
+        const y = years[0];
         year = y >= 2400 ? y - 543 : y; // แปลง พ.ศ. → ค.ศ.
       }
     }
@@ -467,7 +470,9 @@
 
   /* ───────────────────────── กล่องโต้ตอบ "ตั้งเวลาเผยแพร่" ───────────────────────── */
 
-  const CONFIRM_LABELS = ['ยืนยันตั้งเวลา', 'ยืนยัน', 'ตกลง', 'ทำสิ่งนี้เลยสิ'];
+  // รองรับทั้ง "ยืนยันตั้งเวลา" และแบบใหม่ "ยืนยันตั้งเวลา 1 ตอน" / "ยืนยันตั้งเวลา 5 ตอน"
+  const CONFIRM_RE = /^(ยืนยันตั้งเวลา|ยืนยัน|ตกลง|ทำสิ่งนี้เลยสิ)(\d+ตอน)?$/;
+  const isConfirmLabel = el => CONFIRM_RE.test(clean(txt(el)));
 
   function modal() {
     const hasConfirm = t =>
@@ -554,10 +559,11 @@
 
   function fieldText(el) {
     if (!el) return '';
-    if (el.tagName === 'INPUT') return clean(el.value);
+    const norm = v => String(v || '').replace(/\s+/g, ' ').trim();
+    if (el.tagName === 'INPUT') return norm(el.value);
     const inner = $$('input', el).filter(visible)[0];
-    if (inner && inner.value) return clean(inner.value);
-    return clean(txt(el));
+    if (inner && inner.value) return norm(inner.value);
+    return norm(txt(el));
   }
 
   function findDateField(scheduleModal, cached) {
@@ -585,7 +591,7 @@
       for (let box = label.parentElement, i = 0; box && i < 4; box = box.parentElement, i++) {
         const btn = $$('button,[role="button"],input', box)
           .filter(visible)
-          .filter(el => !CONFIRM_LABELS.includes(clean(txt(el))) && clean(txt(el)) !== 'ยกเลิก')[0];
+          .filter(el => !isConfirmLabel(el) && clean(txt(el)) !== 'ยกเลิก')[0];
         if (btn) return btn;
       }
     }
@@ -669,26 +675,45 @@
 
   /* ───────────────────────── ปฏิทิน + ช่องเวลา ───────────────────────── */
 
-  function picker() {
-    const scopes = $$('[data-radix-popper-content-wrapper],[data-radix-popover-content],[role="dialog"]')
-      .filter(visible);
+  const NON_TEXT_INPUT = ['date', 'datetime-local', 'checkbox', 'radio', 'hidden', 'search', 'button', 'file'];
 
-    const pool = [];
-    if (scopes.length) {
-      for (const root of scopes) pool.push(root, ...$$('*', root));
-    } else {
-      pool.push(...$$('body *'));
+  // ปฏิทินมีตัวเลขวัน 1-31 อย่างน้อย ~28 ช่อง — ใช้แยกออกจากการ์ดตอนที่มีชื่อเดือนเหมือนกัน
+  function looksLikeCalendar(el) {
+    let count = 0;
+    for (const cell of el.querySelectorAll('button,[role="gridcell"],td,div,span')) {
+      if (cell.children.length > 1) continue;
+      if (/^\d{1,2}$/.test((cell.textContent || '').trim())) count++;
+      if (count >= 25) return true;
+    }
+    return false;
+  }
+
+  function picker() {
+    const inputs = $$('input')
+      .filter(i => !NON_TEXT_INPUT.includes(i.type))
+      .filter(visible)
+      .filter(i => !isOwnUI(i));
+
+    const seen = new Set();
+    const found = [];
+
+    for (const input of inputs) {
+      let el = input.parentElement;
+      for (let depth = 0; el && depth < 9; el = el.parentElement, depth++) {
+        if (seen.has(el)) continue;
+        seen.add(el);
+        const text = el.textContent || '';
+        if (text.length > 2500) break;
+        if (!MONTH_EN_RE.test(text) && !MONTH_TH_RE.test(text)) continue;
+        if (!visible(el) || isOwnUI(el)) continue;
+        const own = $$('input', el).filter(visible).filter(i => !NON_TEXT_INPUT.includes(i.type));
+        if (own.length < 2 && !own.some(i => i.type === 'time')) continue;
+        if (!looksLikeCalendar(el)) continue;
+        found.push(el);
+      }
     }
 
-    return uniq(pool)
-      .filter(visible)
-      .filter(el => {
-        const t = txt(el);
-        if (!MONTH_EN_RE.test(t) && !MONTH_TH_RE.test(t)) return false;
-        const inputs = $$('input', el).filter(visible);
-        return inputs.length >= 2 || inputs.some(i => i.type === 'time');
-      })
-      .sort(byArea)[0] || null;
+    return found.sort(byArea)[0] || null;
   }
 
   function pickerMonthYear(datePicker) {
@@ -976,7 +1001,7 @@
         if (episodeLooksScheduled(episode, target)) return 'ok';
 
         const body = txt(document.body);
-        if (body.includes('ตั้งเวลาเผยแพร่ 1 ตอนสำเร็จ') || body.includes('ตั้งเวลาเผยแพร่สำเร็จ')) {
+        if (/ตั้งเวลาเผยแพร่\s*\d*\s*ตอน\s*(สำเร็จ|เสร็จแล้ว|เรียบร้อย)|ตั้งเวลาเผยแพร่สำเร็จ/.test(body)) {
           return 'ok';
         }
 
@@ -1002,30 +1027,40 @@
       'ไม่พบช่องเลือกวันและเวลา'
     );
 
-    const dayFirst = attempt < 3;
+    // UI ใหม่: ช่องเวลาในปฏิทินมีข้อความ "เวลาจะถูกตั้งเมื่อเลือกวันที่แล้ว"
+    // จึงตั้งชั่วโมง/นาทีก่อน แล้วค่อยกดวัน (ลำดับเดียวกับที่ทำมือในวิดีโอ)
+    // ถ้าพลาดซ้ำ จึงสลับไปลองกดวันก่อนแล้วตั้งเวลาทีหลัง
+    const timeFirst = attempt < 3;
 
     await openPicker(dateField);
     await gotoTargetMonth(target);
 
-    if (dayFirst) {
+    if (timeFirst) {
+      await setTimeInPicker(picker(), target);
       await pickDay(target, dateField);
-      // ถ้าปฏิทินยังเปิดอยู่หลังเลือกวัน ตั้งเวลาต่อได้เลย ไม่ต้องเปิดใหม่
+    } else {
+      await pickDay(target, dateField);
       const open = picker() || await openPicker(dateField);
       await setTimeInPicker(open, target);
-    } else {
+    }
+
+    // ถ้าช่องวันเวลาถูกเติมแล้วแต่เวลายังไม่ตรง และปฏิทินยังเปิดอยู่ ให้ตั้งเวลาซ้ำอีกครั้ง
+    if (fieldIsFilled(dateField) && !fieldTimeMatches(dateField, target) && picker()) {
       await setTimeInPicker(picker(), target);
-      await gotoTargetMonth(target);
-      await pickDay(target, dateField);
+      await settle(() => fieldTimeMatches(dateField, target), 800);
     }
 
     await closePickerSafely(scheduleModal);
     await sleep(SPEED.afterClosePickerMs);
 
     const liveModal = await waitFor(modal, 4000, 'หน้าต่างตั้งเวลาหายไปก่อนกดยืนยัน');
-    const field = findDateField(liveModal, dateField);
 
     // รอให้ช่องอัปเดตค่าเต็มก่อนตรวจ (กัน React render ช้ากว่า 1 เฟรม)
-    await settle(() => fieldIsFilled(findDateField(liveModal, dateField)), 800);
+    await settle(() => {
+      const f = findDateField(liveModal, dateField);
+      return fieldIsFilled(f) && fieldTimeMatches(f, target);
+    }, 800);
+    const field = findDateField(liveModal, dateField);
 
     if (!fieldIsFilled(field)) {
       throw retryable(`MyNovel ยังไม่รับวันเวลา (ช่องแสดง: "${fieldText(field) || 'ว่าง'}")`);
@@ -1043,7 +1078,7 @@
       () => uniq(
         $$('button,[role="button"],a,div,span', liveModal)
           .filter(visible)
-          .filter(el => CONFIRM_LABELS.includes(clean(txt(el))))
+          .filter(isConfirmLabel)
           .map(el => el.closest('button,[role="button"],a') || el)
       )
         .filter(enabled)
@@ -1168,6 +1203,9 @@
 #${ID} .start{background:#1596f5!important;color:#fff!important}
 #${ID} .stop{background:#fff2f1!important;color:#a61b14!important;border:1px solid #efcbc8!important}
 #${ID} button.action:disabled{opacity:.55!important}
+#${ID} .diag{background:#fff8e1!important;color:#7a5200!important;border:1px solid #ffe08a!important}
+#${ID} textarea.diag-out{display:none!important;box-sizing:border-box!important;width:100%!important;height:110px!important;margin-top:8px!important;padding:8px!important;border:1px solid #cfdae7!important;border-radius:9px!important;font:11px/1.35 monospace!important;color:#142033!important;background:#fbfdff!important}
+#${ID} textarea.diag-out[data-show="1"]{display:block!important}
 #${ID} .note{margin-top:7px!important;color:#52647a!important;font-size:11px!important;line-height:1.4!important}
 #${ID} .status{max-height:132px!important;margin-top:8px!important;padding:8px!important;border-radius:9px!important;background:#102035!important;color:#e8f3ff!important;font-size:12px!important;line-height:1.5!important;overflow-y:auto!important;white-space:pre-line!important}
 #${ID} .speed-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:4px!important}
@@ -1215,6 +1253,8 @@
     <div class="note">เลือกตอนใน MyNovel แล้วกดเริ่ม — สคริปต์ไล่ตั้งจากล่างขึ้นบน<br>⚠️ ต้องคาหน้าเบราว์เซอร์ไว้ สลับแอปอื่น JS จะหยุดทำงาน</div>
     <button class="action scan" id="mn-scan">ตรวจตอนที่เลือก</button>
     <button class="action detect" id="mn-detect">ตรวจหาเวลาต่อจากตอนที่ตั้งไว้</button>
+    <button class="action diag" id="mn-diag">🔍 วินิจฉัยหน้าเว็บ (เปิดหน้าต่างตั้งเวลาค้างไว้ก่อนกด)</button>
+    <textarea class="diag-out" id="mn-diag-out" readonly></textarea>
     <button class="action start" id="mn-start">เริ่มตั้งเวลา</button>
     <button class="action stop" id="mn-stop">หยุดหลังตอนปัจจุบัน</button>
     <div class="status" id="mn-status">พร้อมใช้งาน — เลือกตอนใน MyNovel แล้วกดเริ่ม</div>
@@ -1247,6 +1287,8 @@
     const scanButton = host.querySelector('#mn-scan');
     const detectButton = host.querySelector('#mn-detect');
     const startButton = host.querySelector('#mn-start');
+    const diagButton = host.querySelector('#mn-diag');
+    const diagOut = host.querySelector('#mn-diag-out');
     const stopButton = host.querySelector('#mn-stop');
     const closeButton = host.querySelector('#mn-close');
     const statusBox = host.querySelector('#mn-status');
@@ -1324,6 +1366,68 @@
       timeInput.value = `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`;
       persist();
       reset(`ตรวจพบ: ตอน ${found.episode} ตั้งไว้ ${timeText(found.date)}\n→ เริ่มตั้งจาก ${timeText(next)} (+${gap} นาที)`);
+    };
+
+    // สรุปโครงสร้างหน้าต่างตั้งเวลา/ปฏิทินของ MyNovel เพื่อใช้ไล่ปัญหาเมื่อเว็บเปลี่ยนหน้าตา
+    const describeNode = (el, depth, out, maxDepth) => {
+      if (out.length > 320 || depth > maxDepth || isOwnUI(el)) return;
+      const tag = el.tagName.toLowerCase();
+      if (['script', 'style', 'path', 'noscript'].includes(tag)) return;
+      if (tag === 'svg') { out.push('  '.repeat(depth) + '<svg>'); return; }
+      if (!visible(el)) return;
+
+      const attrs = [];
+      for (const name of ['id', 'role', 'type', 'name', 'aria-label', 'aria-selected', 'aria-disabled',
+        'data-state', 'data-disabled', 'placeholder', 'inputmode', 'maxlength']) {
+        const v = el.getAttribute(name);
+        if (v) attrs.push(`${name}="${v.slice(0, 40)}"`);
+      }
+      if (el.disabled) attrs.push('disabled');
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') attrs.push(`value="${el.value}"`);
+      const cls = String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className || '');
+      if (cls) attrs.push(`class="${cls.slice(0, 70)}"`);
+
+      const own = [...el.childNodes].filter(n => n.nodeType === 3)
+        .map(n => n.textContent.replace(/\s+/g, ' ').trim()).join(' ').trim();
+      out.push('  '.repeat(depth) + `<${tag}${attrs.length ? ' ' + attrs.join(' ') : ''}>` +
+        (own ? ` "${own.slice(0, 50)}"` : ''));
+      for (const child of el.children) describeNode(child, depth + 1, out, maxDepth);
+    };
+
+    diagButton.onclick = async () => {
+      const out = [`MyNovel Scheduler v${VERSION} diagnostic`, `url: ${location.pathname}`, `ua: ${navigator.userAgent}`];
+      const dlg = modal();
+      out.push('', `=== MODAL: ${dlg ? 'พบ' : 'ไม่พบ (เปิดหน้าต่างตั้งเวลาก่อนกดปุ่มนี้)'} ===`);
+      if (dlg) {
+        describeNode(dlg, 0, out, 9);
+        const field = findDateField(dlg, null);
+        out.push('', `=== DATE FIELD: ${field ? 'พบ' : 'ไม่พบ'} text="${fieldText(field)}" ===`);
+        const confirms = $$('button,[role="button"],a', dlg).filter(visible).map(el => `"${txt(el)}" confirm=${isConfirmLabel(el)}`);
+        out.push('=== BUTTONS ===', ...confirms);
+      }
+      const pk = picker();
+      out.push('', `=== PICKER: ${pk ? 'พบ' : 'ไม่พบ (กดช่องวันเวลาให้ปฏิทินเปิดก่อน)'} ===`);
+      if (pk) {
+        out.push(`parents: ${[pk.parentElement, pk.parentElement?.parentElement].filter(Boolean)
+          .map(e => e.tagName.toLowerCase() + (e.getAttribute('role') ? '[role=' + e.getAttribute('role') + ']' : '') +
+            (e.hasAttribute('data-radix-popper-content-wrapper') ? '[radix-popper]' : '')).join(' < ')}`);
+        describeNode(pk, 0, out, 8);
+      }
+      const cards = episodeCards();
+      out.push('', `=== EPISODES: ${cards.length} cards, selected: ${selected().map(i => i.episode).join(',') || '-'} ===`);
+
+      const report = out.join('\n');
+      diagOut.value = report;
+      diagOut.dataset.show = '1';
+      diagOut.focus();
+      diagOut.select();
+      let copied = false;
+      try { await navigator.clipboard.writeText(report); copied = true; } catch (_) {
+        try { copied = document.execCommand('copy'); } catch (__) {}
+      }
+      reset(copied
+        ? `🔍 คัดลอกข้อมูลวินิจฉัยแล้ว (${out.length} บรรทัด) วางส่งให้ผู้พัฒนาได้เลย`
+        : `🔍 สร้างข้อมูลวินิจฉัยแล้ว (${out.length} บรรทัด) กดค้างในกล่องข้อความแล้วเลือกคัดลอกทั้งหมด`);
     };
 
     stopButton.onclick = () => {
