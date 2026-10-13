@@ -1,0 +1,50 @@
+[
+  {
+    "bookSourceUrl": "https://ixdzs8.com",
+    "bookSourceName": "爱读中文书",
+    "bookSourceType": 0,
+    "enabled": true,
+    "enabledExplore": false,
+    "header": "",
+    "loginUrl": "",
+    "weight": 0,
+    "searchUrl": "https://ixdzs8.com/search/?q={{key}}",
+    "ruleSearch": {
+      "bookList": ".book-item,.s-bookitem",
+      "bookUrl": "a@href",
+      "name": "h3@text,a@title",
+      "author": ".author@text",
+      "coverUrl": "img@src",
+      "lastChapter": "",
+      "kind": "",
+      "introduce": ""
+    },
+    "ruleBookInfo": {
+      "init": "",
+      "name": "h1@text,.book-name@text",
+      "author": ".author@text,a[href*='author']@text",
+      "coverUrl": ".cover img@src",
+      "lastChapter": "",
+      "introduce": ".intro@text,.desc@text",
+      "canReName": false
+    },
+    "ruleToc": {
+      "chapterList": ".clist a",
+      "chapterName": "@text",
+      "chapterUrl": "@href",
+      "isVip": "",
+      "isPay": "",
+      "updateTime": "",
+      "nextTocUrl": ""
+    },
+    "ruleContent": {
+      "content": "#page",
+      "nextContentUrl": "",
+      "webJs": "",
+      "sourceRegex": "请记住本书首发域名|www\\.ixdzs8\\.com|m\\.ixdzs8\\.com",
+      "replaceRegex": "",
+      "imageStyle": "",
+      "payAction": ""
+    }
+  }
+]
