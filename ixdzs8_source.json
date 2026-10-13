@@ -29,16 +29,17 @@
       "canReName": false
     },
     "ruleToc": {
-      "chapterList": ".clist a",
+      "chapterList": ".clist a,.chapter-list a,.mulu a",
       "chapterName": "@text",
       "chapterUrl": "@href",
       "isVip": "",
       "isPay": "",
       "updateTime": "",
-      "nextTocUrl": ""
+      "nextTocUrl": "",
+      "webJs": "document.documentElement.outerHTML"
     },
     "ruleContent": {
-      "content": "#page",
+      "content": "#page,.content,.read-content",
       "nextContentUrl": "",
       "webJs": "",
       "sourceRegex": "请记住本书首发域名|www\\.ixdzs8\\.com|m\\.ixdzs8\\.com",
