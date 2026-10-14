@@ -78,6 +78,9 @@
     let m = s.match(/第\s*([0-9]{1,5})\s*[章节回集卷]/);
     if (m) return Number(m[1]);
     m = s.match(/第\s*([零〇一二两兩三四五六七八九十百千万]{1,12})\s*[章节回集卷]/);
+    if (m) return cnNum(m[1]);
+    // ชื่อตอนที่ไม่มีคำว่า 第 นำหน้า เช่น "三百零四章 好孩子" หรือ "304章"
+    m = String(text || '').match(/^\s*([0-9]{1,5}|[零〇一二两兩三四五六七八九十百千万]{1,12})\s*[章节回]/);
     return m ? cnNum(m[1]) : null;
   }
   function bookTitle(doc) {
@@ -98,7 +101,7 @@
     let u;
     try { u = new URL(href, base).href; } catch (e) { return false; }
     if (pageSet.has(normUrl(u))) return false;
-    return /第\s*([0-9零〇一二两兩三四五六七八九十百千万]+)\s*[章节回集卷]/.test(text) ||
+    return /(第\s*)?([0-9零〇一二两兩三四五六七八九十百千万]+)\s*[章节回集卷]/.test(text) ||
       (/\/(read|chapter|chapters|book|txt|index)\//i.test(u) && /\/\d+\.html\/?$/i.test(u));
   }
   function links(doc, base, pageSet) {
