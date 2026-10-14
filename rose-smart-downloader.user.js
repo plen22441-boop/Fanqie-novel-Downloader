@@ -462,5 +462,5 @@
     try { if (typeof GM_registerMenuCommand === 'function') GM_registerMenuCommand('เปิด Rose Smart Downloader', open); } catch (e) { /* no menu */ }
     event('READY', 'V3.2 loaded');
   }
-  try { ui(); } catch (e) { alert('Rose Downloader error: ' + e.message); }
+  try { ui(); if (window.__roseAutoOpen) window.__roseSmart.open(); } catch (e) { alert('Rose Downloader error: ' + e.message); }
 })();
