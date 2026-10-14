@@ -5,8 +5,8 @@
 // @description  สแกนสารบัญ ดาวน์โหลดทุกตอนเป็น TXT พร้อมรายงาน QC และ Debug (ใช้ได้หลายเว็บ)
 // @author       Rose
 // @match        *://*/*
-// @grant        none
-// @run-at       document-idle
+// @grant        GM_registerMenuCommand
+// @run-at       document-end
 // ==/UserScript==
 // เคล็ดลับ: ถ้าไม่อยากให้ปุ่ม 📖 โผล่ทุกเว็บ ให้เปลี่ยน @match ด้านบนเป็นเฉพาะเว็บนิยายที่ใช้
 // เช่น  // @match  https://www.example-novel.com/*
@@ -430,17 +430,20 @@
     const st = document.createElement('style');
     st.id = ID + '-style';
     st.textContent = `#${ID}{position:fixed;right:12px;bottom:12px;z-index:2147483647;width:min(92vw,460px);background:#fff;color:#111;border:1px solid #cfd8dc;border-radius:10px;box-shadow:0 10px 32px rgba(0,0,0,.22);font:14px/1.45 Arial,sans-serif;overflow:hidden}#${ID} .head{background:#176b80;color:#fff;padding:10px 12px;font-weight:700;display:flex;justify-content:space-between;align-items:center}#${ID} .close{border:0;background:#fff;color:#176b80;border-radius:6px;padding:3px 9px;font-weight:700}#${ID} .body{padding:12px}#${ID} .title{font-weight:700;margin-bottom:4px}#${ID} .counts{margin-bottom:8px}#${ID} .row{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0}#${ID} button{border:1px solid #9aa7ad;background:#f8fbfc;border-radius:6px;padding:7px 9px;color:#111}#${ID} button.primary{background:#176b80;color:#fff;border-color:#176b80}#${ID} label{display:flex;align-items:center;gap:4px;font-weight:700}#${ID} input{width:50px;border:1px solid #cfd8dc;border-radius:5px;padding:5px}#${ID} .bar{height:10px;background:#eef2f3;border-radius:999px;overflow:hidden;margin:9px 0}#${ID} .bar span{display:block;height:100%;width:0;background:#1e88a8;transition:width .2s}#${ID} .log{white-space:pre-wrap;background:#f7f7f7;border:1px solid #ddd;border-radius:8px;min-height:90px;max-height:170px;overflow:auto;padding:8px;font-family:monospace}#${ID}-fab{position:fixed;left:10px;bottom:10px;z-index:2147483646;width:38px;height:38px;border-radius:50%;border:1px solid #176b80;background:#fff;opacity:.55;font-size:18px;padding:0;line-height:1}`;
-    document.documentElement.appendChild(st);
+    // adoptedStyleSheets/inline style ผ่าน CSP ของเว็บได้ ส่วน <style> อาจถูกบล็อกจนปุ่มหายไป
+    try { const sh = new CSSStyleSheet(); sh.replaceSync(st.textContent); document.adoptedStyleSheets = [...document.adoptedStyleSheets, sh]; }
+    catch (e) { document.documentElement.appendChild(st); }
 
     const fab = document.createElement('button');
     fab.id = ID + '-fab'; fab.textContent = '📖'; fab.title = 'Rose Smart Downloader';
-    document.body.appendChild(fab);
+    fab.style.cssText = 'position:fixed;left:10px;bottom:80px;z-index:2147483646;width:48px;height:48px;border-radius:50%;border:2px solid #176b80;background:#fff;font-size:24px;padding:0;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+    (document.body || document.documentElement).appendChild(fab);
 
     const p = document.createElement('div');
     p.id = ID;
     p.style.display = 'none';
     p.innerHTML = `<div class="head"><span>Rose Smart Downloader V3.2</span><button class="close">X</button></div><div class="body"><div class="title"></div><div class="counts">Found: 0 | OK: 0 | Failed: 0 | Missing: 0 | Short: 0</div><div class="row"><label>Threads <input class="threads" type="number" min="1" max="8"></label><label>Retry <input class="retries" type="number" min="1" max="5"></label><label>Min <input class="minchars" type="number" min="100" max="3000"></label><label>Delay <input class="delay" type="number" min="0" max="5000" step="100"></label></div><div class="row"><button class="scan">Scan All Pages</button><button class="download primary">Download All + QC</button><button class="retry">Resume / Retry</button><button class="stop">Stop</button><button class="copy-debug">Copy Debug</button><button class="download-debug">Download Debug</button></div><div class="bar"><span></span></div><div class="log">Ready. Open catalog page, then tap Scan All Pages.</div></div>`;
-    document.body.appendChild(p);
+    (document.body || document.documentElement).appendChild(p);
     p.querySelector('.title').textContent = 'Book: ' + bookTitle(document);
     p.querySelector('.threads').value = S.threads; p.querySelector('.retries').value = S.retries;
     p.querySelector('.minchars').value = S.minChars; p.querySelector('.delay').value = S.delay;
@@ -456,7 +459,8 @@
     p.querySelector('.copy-debug').onclick = copyDebug;
     p.querySelector('.download-debug').onclick = downDebug;
     window.__roseSmart = { open };
+    try { if (typeof GM_registerMenuCommand === 'function') GM_registerMenuCommand('เปิด Rose Smart Downloader', open); } catch (e) { /* no menu */ }
     event('READY', 'V3.2 loaded');
   }
-  ui();
+  try { ui(); } catch (e) { alert('Rose Downloader error: ' + e.message); }
 })();
