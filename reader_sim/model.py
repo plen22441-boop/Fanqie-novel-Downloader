@@ -38,8 +38,23 @@ def normalize_book(book):
         if unknown:
             raise ValueError(f"unknown {key}: {unknown} (ใช้ได้: {', '.join(vocab)})")
     chapters_read = int(book.get("chapters_read", 20))
+    source = book.get("source", "raw_zh")
+    if source not in ("raw_zh", "thai"):
+        raise ValueError("source ต้องเป็น 'raw_zh' (ต้นฉบับจีนยังไม่แปล) หรือ 'thai' (ฉบับแปลแล้ว)")
+    tq = float(book.get("translation_quality", 7.0))
+    difficulty = float(book.get("translation_difficulty", 5.0))
+    if source == "raw_zh":
+        # นักอ่านไทยไม่เห็นภาษาจีน: สำนวนที่เห็นจริง = ต้นฉบับ กรองผ่านฝีมือแปล
+        # ต้นฉบับยิ่งแปลยาก (กลอน คำเล่น ศัพท์ระบบ) ยิ่งเสียของระหว่างแปล
+        source_prose = scores["prose"]
+        scores["prose"] = round(min(source_prose, tq) - max(0.0, difficulty - 5) * 0.3, 2)
+        scores.setdefault("polish", tq)
     return {
         **book,
+        "source": source,
+        "translation_quality": tq,
+        "translation_difficulty": difficulty,
+        "source_prose": scores["prose"] if source == "thai" else source_prose,
         "scores": scores,
         "genres": list(book.get("genres", [])),
         "tropes": list(book.get("tropes", [])),
@@ -163,6 +178,14 @@ def _grade(t):
     return "D"
 
 
+GRADE_TEXT_RAW = {
+    "S": "คุ้มแปลมาก ควรรีบแปลก่อนเจ้าอื่น",
+    "A": "คุ้มแปล กลุ่มเป้าหมายชอบชัดเจน",
+    "B": "แปลได้ แต่ต้องเกลา/ตัดช่วงยืดระหว่างแปล",
+    "C": "เสี่ยง แปลเฉพาะถ้าต้นทุนต่ำ",
+    "D": "ไม่แนะนำให้แปล",
+}
+
 GRADE_TEXT = {
     "S": "ตัวท็อป มีโอกาสติดอันดับ ลงได้ทันที",
     "A": "ดีมาก กลุ่มเป้าหมายชอบชัดเจน ลงได้",
@@ -172,14 +195,40 @@ GRADE_TEXT = {
 }
 
 
+def _ranking(overall, target):
+    """โอกาสติดอันดับ (heuristic) — กลุ่มเป้าหมายต้องชอบ คนต้องไม่หลุดเร็ว และต้องมีคนจ่าย"""
+    t = target or overall
+    paid = overall["paid_pct"]
+    tiers = [
+        ("มีลุ้นติดท็อป 10 ของหมวด", t["like_pct"] >= 65 and overall["early_drop_pct"] <= 25
+         and (paid is None or paid >= 22)),
+        ("มีลุ้นติดอันดับหมวด (ท็อป 50)", t["like_pct"] >= 45 and overall["early_drop_pct"] <= 40),
+        ("ติดอันดับยาก แต่มีฐานคนอ่านเฉพาะกลุ่ม", t["like_pct"] >= 25),
+        ("ไม่น่าติดอันดับ", True),
+    ]
+    idx = next(i for i, (_, ok) in enumerate(tiers) if ok)
+    niche = target is not None and target["n"] < 25
+    if niche and idx < 3:
+        idx += 1  # ตลาดเล็ก ต่อให้ชอบมากยอดรวมก็ไม่พอดันอันดับ
+    return {"tier": idx + 1, "text": tiers[idx][0], "niche": niche,
+            "target_n": target["n"] if target else 0}
+
+
 def _recommendations(book, overall, target):
     s = book["scores"]
     recs = []
+    raw = book["source"] == "raw_zh"
+    if raw and book["translation_difficulty"] >= 7:
+        recs.append("ต้นฉบับแปลยาก (กลอน/คำเล่น/ศัพท์เฉพาะเยอะ) — ต้องใช้ผู้แปลมือดี และทำอภิธานศัพท์ตั้งแต่ก่อนเริ่ม")
+    if raw and book["source_prose"] - s["prose"] >= 1.0:
+        recs.append("สำนวนต้นฉบับดีกว่าระดับการแปลที่สมมติไว้ — ถ้าลงทุนการแปลสูงขึ้น คะแนนจะขึ้นอีก (ลองรันด้วย translation_quality สูงขึ้น)")
     if overall["early_drop_pct"] >= 30 and s["hook"] < 7:
-        recs.append("คนหลุดใน 3 ตอนแรกเยอะ — เกลาตอน 1-3 ให้เข้าเรื่องเร็วขึ้น/ใส่ปมตั้งแต่หน้าแรก หรือพิจารณาเขียนบทนำ/คำโปรยใหม่")
+        recs.append("คนหลุดใน 3 ตอนแรกเยอะ — ตอนแปลให้เกลาตอน 1-3 ให้เข้าเรื่องเร็วขึ้น (ตัดบรรยายเปิดยาว) และเขียนคำโปรยภาษาไทยให้ขายปมหลัก")
     if overall["mid_drop_pct"] >= 20:
         recs.append("คนเลิกกลางทางเยอะ — ตัดช่วงยืด และให้ทุกตอนจบด้วยคำถามหรือเหตุการณ์ค้างคา")
-    if s.get("prose", 10) < 6.5 or s.get("polish", 10) < 6.5:
+    if raw and book["source_prose"] < 6:
+        recs.append("ภาษาต้นฉบับเองค่อนข้างอ่อน — ผู้แปลต้องเรียบเรียงใหม่ ไม่ใช่แปลตรงตัว")
+    elif not raw and (s.get("prose", 10) < 6.5 or s.get("polish", 10) < 6.5):
         recs.append("สำนวน/ความเรียบร้อยยังดึงคะแนนลง โดยเฉพาะสายนิยายแปลตัวยงและสายรีวิว — ขัดเกลาอีกรอบก่อนลง")
     if s.get("cliffhanger", 10) < 6 and book["free_chapters"]:
         recs.append(f"ตอนที่ {book['free_chapters']} (ตอนฟรีตอนสุดท้าย) ควรจบแบบค้างคาที่สุด เพื่อดันยอดซื้อเหรียญ")
@@ -248,7 +297,8 @@ def run(book, seed=2024, iterations=300, panel_seed=2024):
         "complaints": _tally([c for r in results for c in r["complaints"]]),
         "praises": _tally([c for r in results if r["passed"] for c in r["praises"]]),
         "grade": grade,
-        "grade_text": GRADE_TEXT[grade],
+        "grade_text": (GRADE_TEXT_RAW if book["source"] == "raw_zh" else GRADE_TEXT)[grade],
+        "ranking": _ranking(overall, target),
         "recommendations": _recommendations(book, overall, target),
         "readers": results,
     }

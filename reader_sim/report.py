@@ -20,12 +20,28 @@ def _ci(res, key):
     return f"{lo_hi[0]:g}–{lo_hi[1]:g}" if lo_hi else "-"
 
 
+def _source_line(b):
+    if b["source"] == "raw_zh":
+        return (f"ประเมินจากต้นฉบับจีน (ยังไม่แปล) · สมมติฝีมือแปล {b['translation_quality']:g}/10 · "
+                f"ความยากในการแปล {b['translation_difficulty']:g}/10")
+    return "ประเมินจากฉบับแปลไทย"
+
+
 def to_markdown(res):
     b, o, t = res["book"], res["overall"], res["target"]
+    rk = res["ranking"]
+    name = b.get("title", "(ไม่มีชื่อ)")
+    if b.get("original_title"):
+        name += f" ({b['original_title']})"
     lines = [
-        f"# ผลจำลองนักอ่าน My Novel 100 คน: {b.get('title', '(ไม่มีชื่อ')}",
+        f"# ผลจำลองนักอ่าน My Novel 100 คน: {name}",
+        "",
+        f"_{_source_line(b)}_",
         "",
         f"**เกรด {res['grade']}** — {res['grade_text']}",
+        "",
+        f"**โอกาสติดอันดับ:** {rk['text']}"
+        + (f" (กลุ่มเป้าหมายมีแค่ {rk['target_n']} จาก 100 คน ตลาดค่อนข้างเล็ก)" if rk["niche"] else ""),
         "",
         "| ตัวชี้วัด | ทั้ง 100 คน | กลุ่มเป้าหมาย | ช่วง 90% |",
         "|---|---|---|---|",
@@ -52,6 +68,8 @@ def to_markdown(res):
     lines += [f"- {k} ({v} คน)" for k, v in res["drop_reasons"]] or ["- ไม่มี"]
     lines += ["", "## จุดที่คนชอบ"]
     lines += [f"- {k} ({v} คน)" for k, v in res["praises"]] or ["- ไม่มี"]
+    if b.get("source_stats"):
+        lines += ["", "## ข้อมูลจากเว็บต้นทาง"] + [f"- {k}: {v}" for k, v in b["source_stats"].items()]
     lines += ["", "## ข้อแนะนำ"]
     lines += [f"- {r}" for r in res["recommendations"]]
     return "\n".join(lines) + "\n"
@@ -91,6 +109,7 @@ ul{margin:0;padding-left:20px}.two{display:grid;grid-template-columns:repeat(aut
 .tags span{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;margin:2px;font-size:.82rem}
 blockquote{margin:6px 0;padding:6px 12px;border-left:3px solid var(--accent);background:var(--bg);border-radius:4px}
 .note{color:var(--muted);font-size:.8rem;margin-top:32px}
+.grade b.rk{font-size:1rem;color:var(--ink)}
 h1,.sub,.grade{overflow-wrap:anywhere}.grade>div,.kpis>div,.two>div{min-width:0}
 @media (max-width:560px){.bars .row{grid-template-columns:96px 1fr 48px}.grade b{font-size:2rem}}
 """
@@ -123,10 +142,13 @@ def to_html(res, comments=None):
         "<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap'>",
         f"<style>{CSS}</style></head><body><main>",
         f"<h1>{e(title)}</h1>",
-        f"<p class='sub'>จำลองนักอ่าน My Novel 100 คน · ประเมินจาก {b['chapters_read']} ตอนแรก"
+        (f"<p class='sub'>{e(b['original_title'])}</p>" if b.get("original_title") else ""),
+        f"<p class='sub'>จำลองนักอ่าน My Novel 100 คน · {e(_source_line(b))} · อ่าน {b['chapters_read']} ตอนแรก"
         f"{' จากทั้งหมด ' + str(b['chapters_total']) + ' ตอน' if b['chapters_total'] > b['chapters_read'] else ''}"
         f"{' · ตอนฟรี ' + str(b['free_chapters']) + ' ตอน' if b['free_chapters'] else ''}</p>",
         f"<div class='grade'><b>{res['grade']}</b><div><div>{e(res['grade_text'])}</div>"
+        f"<div><b class='rk'>โอกาสติดอันดับ: {e(res['ranking']['text'])}</b>"
+        f"{' · ตลาดเฉพาะกลุ่ม (' + str(res['ranking']['target_n']) + '/100 คน)' if res['ranking']['niche'] else ''}</div>"
         f"<div class='tags'>{''.join('<span>' + e(GENRES[g]) + '</span>' for g in b['genres'])}"
         f"{''.join('<span>' + e(TROPES[x]) + '</span>' for x in b['tropes'])}</div></div></div>",
         "<div class='kpis'>",
@@ -169,7 +191,13 @@ def to_html(res, comments=None):
                  + tally_list(res["drop_reasons"]) + "</div></div>"
                  "<div><h2>จุดที่คนชอบ</h2><div class='card'>" + tally_list(res["praises"]) + "</div></div></div>")
 
-    parts.append("<h2>ข้อแนะนำก่อนลงเว็บ</h2><div class='card'><ul>")
+    if b.get("source_stats"):
+        parts.append("<h2>ข้อมูลจากเว็บต้นทาง</h2><div class='card'><table>")
+        parts += [f"<tr><th>{e(str(k))}</th><td>{e(str(v))}</td></tr>" for k, v in b["source_stats"].items()]
+        parts.append("</table></div>")
+
+    parts.append("<h2>" + ("ข้อแนะนำก่อนแปล" if b["source"] == "raw_zh" else "ข้อแนะนำก่อนลงเว็บ")
+                 + "</h2><div class='card'><ul>")
     parts += [f"<li>{e(r)}</li>" for r in res["recommendations"] + b.get("editor_recommendations", [])]
     parts.append("</ul></div>")
 
@@ -196,6 +224,6 @@ def to_html(res, comments=None):
                      f"<td>{status}{paid}</td><td>{e(why)}</td></tr>")
     parts.append("</table></div>")
     parts.append(f"<p class='note'>ตัวเลขเป็นการจำลองจากคะแนนรายมิติที่ผู้ประเมินให้ + โปรไฟล์นักอ่านสมมติ "
-                 f"ไม่ใช่ผลสำรวจจริง · ช่วง 90% มาจากการสุ่มซ้ำ {res['iterations']} รอบ</p>")
+                 f"ไม่ใช่ผลสำรวจจริง · โอกาสติดอันดับเป็นการประมาณแบบกฎง่ายๆ ไม่รวมผลของปก โปรโมต และคู่แข่งช่วงที่ลง · ช่วง 90% มาจากการสุ่มซ้ำ {res['iterations']} รอบ</p>")
     parts.append("</main></body></html>")
     return "".join(parts)

@@ -1,25 +1,74 @@
 {
   "title": "(ตัวอย่าง) ทะลุมิติมาเป็นพระชายาตัวร้าย",
   "original_title": "穿成恶毒王妃",
+  "source": "raw_zh",
+  "translation_quality": 7,
+  "translation_difficulty": 5,
+  "source_stats": {
+    "เว็บต้นทาง": "番茄小说",
+    "คะแนน": "8.7",
+    "สถานะ": "完结 (จบแล้ว)",
+    "ยอดคนอ่าน": "52万人在读"
+  },
   "chapters_total": 320,
   "chapters_read": 30,
   "free_chapters": 15,
-  "genres": ["historical", "transmigration", "romance", "revenge"],
-  "tropes": ["villainess", "strong_fl", "cold_ml", "face_slapping", "misunderstanding"],
+  "genres": [
+    "historical",
+    "transmigration",
+    "romance",
+    "revenge"
+  ],
+  "tropes": [
+    "villainess",
+    "strong_fl",
+    "cold_ml",
+    "face_slapping",
+    "misunderstanding"
+  ],
   "scores": {
-    "hook":        {"score": 7.5, "evidence": "ตอน 1 นางเอกตื่นมาในฉากถูกประหาร พลิกสถานการณ์ได้ในตอนเดียว"},
-    "pacing":      {"score": 6.5, "evidence": "ตอน 9-14 วนเรื่องงานเลี้ยงในวังนานเกินไป"},
-    "prose":       {"score": 7.0, "evidence": "สำนวนลื่น มีคำแปลตรงตัวบ้างในบทบรรยาย"},
-    "characters":  {"score": 7.5, "evidence": "นางเอกปากจัดมีเหตุผล พระเอกมีปมชัด"},
-    "romance":     {"score": 7.0, "evidence": "เคมีเริ่มชัดตอน 18 ขึ้นไป"},
-    "world":       {"score": 6.0, "evidence": "ฉากวังทั่วไป ยังไม่มีอะไรใหม่"},
-    "plot":        {"score": 6.5, "evidence": "แผนตบหน้าคนชั่วเดาได้บางส่วน"},
-    "emotion":     {"score": 6.5, "evidence": "ตอน 22 ฉากแม่นางเอกเรียกน้ำตาได้"},
-    "cliffhanger": {"score": 7.0, "evidence": "ส่วนใหญ่จบตอนค้างคา ยกเว้นช่วงงานเลี้ยง"},
-    "originality": {"score": 5.0, "evidence": "พล็อตทะลุมิติเป็นตัวร้ายพบบ่อยในตลาด"},
-    "polish":      {"score": 8.0, "evidence": "หลัง QC เหลือคำผิดน้อย ชื่อเฉพาะสม่ำเสมอ"}
+    "hook": {
+      "score": 7.5,
+      "evidence": "ตอน 1 นางเอกตื่นมาในฉากถูกประหาร พลิกสถานการณ์ได้ในตอนเดียว"
+    },
+    "pacing": {
+      "score": 6.5,
+      "evidence": "ตอน 9-14 วนเรื่องงานเลี้ยงในวังนานเกินไป"
+    },
+    "prose": {
+      "score": 7.0,
+      "evidence": "ภาษาต้นฉบับลื่น บทพูดคม ไม่มีกลอนหรือคำเล่นมาก"
+    },
+    "characters": {
+      "score": 7.5,
+      "evidence": "นางเอกปากจัดมีเหตุผล พระเอกมีปมชัด"
+    },
+    "romance": {
+      "score": 7.0,
+      "evidence": "เคมีเริ่มชัดตอน 18 ขึ้นไป"
+    },
+    "world": {
+      "score": 6.0,
+      "evidence": "ฉากวังทั่วไป ยังไม่มีอะไรใหม่"
+    },
+    "plot": {
+      "score": 6.5,
+      "evidence": "แผนตบหน้าคนชั่วเดาได้บางส่วน"
+    },
+    "emotion": {
+      "score": 6.5,
+      "evidence": "ตอน 22 ฉากแม่นางเอกเรียกน้ำตาได้"
+    },
+    "cliffhanger": {
+      "score": 7.0,
+      "evidence": "ส่วนใหญ่จบตอนค้างคา ยกเว้นช่วงงานเลี้ยง"
+    },
+    "originality": {
+      "score": 5.0,
+      "evidence": "พล็อตทะลุมิติเป็นตัวร้ายพบบ่อยในตลาด"
+    }
   },
   "editor_recommendations": [
-    "ตัดฉากงานเลี้ยงตอน 9-14 ให้เหลือ 3 ตอน"
+    "ตอนแปล ตัดฉากงานเลี้ยงตอน 9-14 ให้เหลือราว 3 ตอน"
   ]
 }
