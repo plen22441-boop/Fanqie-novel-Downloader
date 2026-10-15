@@ -1,0 +1,38 @@
+{
+  "title": "豪门大小姐她撕了白月光剧本",
+  "author": "以介景福",
+  "source": "raw_zh",
+  "translation_quality": 7,
+  "translation_difficulty": 5,
+  "total_chapters": 280,
+  "free_chapters": 30,
+  "genres": ["romance", "modern", "drama", "revenge"],
+  "tropes": ["face_slapping", "strong_fl", "slow_burn", "op_mc"],
+  "scores": {
+    "hook": 9,
+    "pacing": 8,
+    "prose": 8,
+    "characters": 9,
+    "romance": 6,
+    "world": 7,
+    "plot": 8,
+    "emotion": 7,
+    "cliffhanger": 8,
+    "originality": 7,
+    "polish": 7
+  },
+  "score_evidence": {
+    "hook": "Ch1: 颜汐 ถูกครอบครัวปฏิเสธ ถูกแทนที่ด้วยสาวชาวบ้าน แต่เปิดตัวด้วยความ confident อย่างไม่คาดคิด — สดและแน่ใจในตัวเอก",
+    "pacing": "เปิดตัวเร็ว ไม่มีฉากอธิบายยืดยาว; conflict ใหม่ทุก 3–5 ตอน",
+    "prose": "สำนวนสละสลวย ชัดเจน อ่านง่าย ไม่ใช้สแลงมากเกินไป — แปลไทยได้สวย",
+    "characters": "颜汐 เป็นตัวเอกที่ดีที่สุดในกลุ่ม 4 เล่ม: มีความลึก, เป้าหมายชัด, ไม่ใจอ่อนเกินไป",
+    "romance": "Male lead ปรากฏใน ch5 แต่ chemistry ช้า; romantic tension ยังไม่สูงใน ch30",
+    "world": "โลกคนรวย+โรงเรียน สร้างได้ดี มีรายละเอียดชีวิต elite ที่น่าสนใจ",
+    "plot": "โครงสร้าง counterattack ชัด; subplot ครอบครัว+โรงเรียน+ธุรกิจเชื่อมกันดี",
+    "emotion": "ฉากถูก gaslight และ comeback ให้ความพึงพอใจ; อารมณ์หลากหลาย",
+    "cliffhanger": "reveal ต่อเนื่อง เกือบทุกตอนมี payoff เล็กๆ",
+    "originality": "white_moonlight trope ปกติ แต่ execution ดีกว่าค่าเฉลี่ย",
+    "polish": "ตาม translation_quality = 7"
+  },
+  "notes": "จุดแข็ง: คุณภาพรวมสูงสุดในกลุ่ม, ตัวเอกโดดเด่น, prose แปลง่าย. จุดอ่อน: romance ยังอ่อน ณ ch30, tropes ไม่แปลกใหม่. โอกาสติด: สูงในกลุ่ม modern_romance + reviewer segment"
+}

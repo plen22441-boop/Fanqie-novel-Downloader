@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
-reports/
+reports/*/report.html
+reports/*/report.md
+reports/*/results.json
