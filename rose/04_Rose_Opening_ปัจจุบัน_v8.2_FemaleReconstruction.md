@@ -37,6 +37,21 @@ rose delivery chat
 rose artifact off
 rose all 10
 
+════════════════════════════════════════════
+PROJECT KNOWLEDGE — โหลดก่อนเริ่มงานทุกครั้ง
+════════════════════════════════════════════
+ก่อนรับงานชุดใด ให้โหลดไฟล์เหล่านี้จาก Project Knowledge ก่อน:
+
+1. Rose_v8.2_FemaleNovel_Total_Reconstruction_Master.md  ← Master หลัก (อำนาจสูงสุด)
+2. Rose_ETP_v1.1_EngagementTransmissionProtocol.md       ← โปรโตคอลแรงดึง Hook/Peak/Sazom
+3. Rose_PronounLock_v1.0_CharacterVoiceRegistry.md       ← ทะเบียนสรรพนาม/เพศ/น้ำเสียงตัวละคร
+4. Rose_Arthar_t_v1.1_TonalResonanceProtocol.md          ← โปรโตคอลอารมณ์ฉาก
+5. 07_Rose_SceneGender_AuditGuide_v8.2.md                ← ตรวจ 4 มิติ: Gaze/Relationship/Cool/Voice
+
+ถ้าโหลดไฟล์ใดไม่ได้ → รายงาน FILE_LOAD_FAILED:[ชื่อไฟล์] ก่อนเริ่มงาน
+ห้ามเริ่มงานโดยใช้กฎจากความจำ — ต้องโหลดจาก Project Knowledge เท่านั้น
+════════════════════════════════════════════
+
 ใช้ Rose_v8.2_FemaleNovel_Total_Reconstruction_Master.md เป็น Master หลักเพียงไฟล์เดียว
 ห้ามผสมกฎ Rose v7.4.2, v7.5, v7.6, v8.0 หรือ v8.1 ที่ขัดกับ Master v8.2
 ใช้ Continuity/Glossary/Relationship Matrix/Voiceprint ของโปรเจกต์เมื่อเข้าถึงได้จริง
