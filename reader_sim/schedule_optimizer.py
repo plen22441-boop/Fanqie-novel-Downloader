@@ -19,11 +19,27 @@ from typing import List, Dict
 # โปรไฟล์กิจกรรมนักอ่านไทยรายชั่วโมง (ค่าสัมพัทธ์ 0–10)
 # อ้างอิงจากพฤติกรรมทั่วไปของแพลตฟอร์มนิยายไทย
 # ---------------------------------------------------------------------------
-#              0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23
+#                   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23
 HOURLY_TRAFFIC = [
     1, 0, 0, 0, 0, 1, 2, 5, 7, 6,  5,  5,  8,  7,  5,  5,  6,  7,  8,  9, 10,  9,  7,  3
 ]
-# peak: 20.00 (10), 19.00 (9), 21.00 (9), 12.00/18.00 (8), 7-9 เช้า (5-7)
+# peak weekday: 20.00 (10), 19.00 (9), 21.00 (9), 12.00/18.00 (8), 7-9 เช้า (5-7)
+
+# วันเสาร์-อาทิตย์: ไม่มีชั่วโมงเดินทาง แต่ตื่นสาย + บิ้นจ์ช่วงบ่าย-ดึก
+#                      0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23
+HOURLY_TRAFFIC_SAT = [
+    2, 1, 0, 0, 0, 0, 1, 2, 4, 6,  7,  7,  8,  8,  8,  8,  8,  8,  9,  9, 10,  9,  8,  4
+]
+# peak weekend: 20.00 (10), 18-19 (9), 12-17 กว้าง (8), เช้า-สาย (6-7)
+# ไม่มี spike เช้า เพราะไม่ต้องเดินทาง; ช่วงบ่าย flat สูง เพราะ binge ทั้งวัน
+
+HOURLY_TRAFFIC_SUN = HOURLY_TRAFFIC_SAT  # อาทิตย์ใกล้เคียงกัน
+
+TRAFFIC_BY_DAY = {
+    "weekday": HOURLY_TRAFFIC,
+    "saturday": HOURLY_TRAFFIC_SAT,
+    "sunday": HOURLY_TRAFFIC_SUN,
+}
 
 PEAK_LABEL = {
     range(6,  9):  "เช้า (ระหว่างเดินทาง)",
@@ -32,8 +48,16 @@ PEAK_LABEL = {
     range(20, 24): "ดึก (ก่อนนอน)",
 }
 
-def peak_name(hour: int) -> str:
-    for r, label in PEAK_LABEL.items():
+PEAK_LABEL_WEEKEND = {
+    range(9,  12): "เช้าสาย (ตื่นสาย+อาหารเช้า)",
+    range(12, 17): "บ่าย (บิ้นจ์ยาว)",
+    range(17, 20): "เย็น (ก่อนกินข้าว)",
+    range(20, 24): "ดึก (ก่อนนอน)",
+}
+
+def peak_name(hour: int, day_type: str = "weekday") -> str:
+    labels = PEAK_LABEL_WEEKEND if day_type in ("saturday", "sunday") else PEAK_LABEL
+    for r, label in labels.items():
         if hour in r:
             return label
     return "นอกช่วง peak"
@@ -68,17 +92,19 @@ def calc_visibility(traffic: float, chapters_per_day: int) -> float:
 def optimize_schedule(
     chapters_per_day: int = 12,
     seed: int = 2024,
+    day_type: str = "weekday",
 ) -> List[ReleaseSlot]:
     """
     กระจาย chapters_per_day ตอนให้ครอบ peak hours ตลอดวัน
     โดยให้ priority กับช่วงที่มี traffic สูง แต่ยังมีช่องว่างพอ
     """
     rng = random.Random(seed)
+    traffic_profile = TRAFFIC_BY_DAY.get(day_type, HOURLY_TRAFFIC)
 
     # สร้าง candidate slots ทุกครึ่งชั่วโมงตลอด 24 ชั่วโมง
     slots_48: List[tuple] = []  # (hour, minute, traffic)
     for h in range(24):
-        t = HOURLY_TRAFFIC[h]
+        t = traffic_profile[h]
         for m in [0, 30]:
             # traffic ครึ่งชั่วโมงที่สอง: blend กับชั่วโมงถัดไป
             if m == 30:
@@ -136,7 +162,7 @@ def optimize_schedule(
             visibility_minutes=round(vis),
             expected_views=round(views, 1),
             profile_visits=round(profile_p, 2),
-            peak_label=peak_name(h),
+            peak_label=peak_name(h, day_type),
         ))
     return result
 
@@ -147,7 +173,8 @@ def print_schedule(slots: List[ReleaseSlot], chapters_per_day: int) -> None:
     covered_hours = len(set(s.hour for s in slots))
 
     print(f"\n{'='*70}")
-    print(f"  ตารางปล่อยตอน {chapters_per_day} ตอน/วัน — กลยุทธ์ Feed Domination")
+    print(f"  ตารางปล่อยตอน {chapters_per_day} ตอน/วัน — กลยุทธ์ Feed Domination"  # noqa: E501
+          )
     print(f"  ครอบ {covered_hours}/24 ชั่วโมง | ช่วงห่างเฉลี่ย {avg_gap:.0f} นาที ({avg_gap/60:.1f} ชม)")
     print(f"{'='*70}")
     print(f"{'เวลา':>7}  {'Traffic':>8}  {'อยู่ใน feed':>11}  {'วิวคาด':>8}  {'กด Profile':>10}  ช่วงไหน")
@@ -218,10 +245,13 @@ if __name__ == "__main__":
     parser.add_argument("--show-heatmap", action="store_true",
                         help="แสดง heatmap การมองเห็น")
     parser.add_argument("--seed", type=int, default=2024)
+    parser.add_argument("--day-type", choices=["weekday", "saturday", "sunday"],
+                        default="weekday", help="ประเภทวัน (weekday/saturday/sunday)")
     args = parser.parse_args()
 
-    slots = optimize_schedule(args.chapters_per_day, args.seed)
+    slots = optimize_schedule(args.chapters_per_day, args.seed, args.day_type)
     print_schedule(slots, args.chapters_per_day)
     if args.show_heatmap:
         print_heatmap(slots)
     print_strategy_note(slots, args.chapters_per_day)
+    print(f"  วันที่จำลอง: {args.day_type}")
