@@ -1,76 +1,78 @@
 {
-  "title": "ทะลุมิติมาเป็นเมียทหารหล่อ",
-  "original_title": "晴天霹雳！新来的军嫂她美貌如花",
+  "title": "换亲？好！那我就嫁首长，养乖崽",
+  "author": "炭烧鸳鸯",
   "source": "raw_zh",
-  "translation_quality": 7,
-  "translation_difficulty": 4,
   "source_stats": {
     "เว็บต้นทาง": "番茄小说",
-    "คะแนน": "9.3",
-    "สถานะ": "完结 (จบแล้ว)",
-    "ยอดคนอ่าน": "23,442 คน"
+    "สถานะ": "已完结 (จบแล้ว)",
+    "字数": "102.1 万字",
+    "阅读量": "7692"
   },
-  "chapters_total": 473,
+  "chapters_total": 498,
   "chapters_read": 30,
   "free_chapters": 20,
+  "translation_quality": 7,
+  "translation_difficulty": 5,
   "genres": [
     "transmigration",
     "historical",
     "drama",
+    "romance",
     "sweet"
   ],
   "tropes": [
     "strong_fl",
+    "face_slapping",
     "cold_ml",
     "contract_marriage",
-    "face_slapping",
     "cute_kids"
   ],
   "scores": {
     "hook": {
-      "score": 9.5,
-      "evidence": "ตอน 1 ตลกตั้งแต่บรรทัดแรก นางเอกปฏิเสธหนุ่มที่แม่หามา พระเอกทหารหล่อปรากฏตัวและขอแต่งงานทันที ตอน 2 แต่งงานเสร็จ แนะนำนางร้าย Liu Meijiao ในเวลาเดียวกัน"
+      "score": 8.5,
+      "evidence": "บท 1: ทะลุมิติกลางเหตุการณ์ยา 解药 ด้วย灵泉 ทันที; บท 2: ตบหน้า villain สาใจ ML ปกป้อง FL ต่อหน้าสาธารณะ; บท 3: ML แนะนำตัวแบบทหารพร้อมเปิดเผยว่ามี 3 เด็กทันที — setup ครบใน 3 บทโดยไม่มีฉากน้ำ"
     },
     "pacing": {
-      "score": 8.5,
-      "evidence": "ไม่มี filler เลยใน 30 ตอนแรก ทุกตอนมีเหตุการณ์สำคัญ เร็วที่สุดในบรรดา 4 เล่ม"
+      "score": 8.0,
+      "evidence": "บท 1-30 ครอบคลุม: ทะลุมิติ → กลับหาพ่อแม่แท้ → แต่งงานด่วน → เจอ 3 เด็ก → ปรองดองกับแม่สามี (郑兰花) → เริ่มฟ้องร้อง 徐家; บท 100 ยังเดินหน้าทุกอาร์ค ไม่มีตอนเสีย"
     },
     "prose": {
-      "score": 8.5,
-      "evidence": "ภาษาเบา สนุก อารมณ์ขันเป็นธรรมชาติ บทสนทนาคม นางเอกพูดเก่งมาก"
+      "score": 6.5,
+      "evidence": "สำนวนจีน functional และอ่านได้ราบรื่น บทพูดชัดและมีชีวิต แต่ไม่มีลูกเล่นภาษาพิเศษ ไม่มีฉากที่โดดเด่นด้านสไตล์ — เป็น plot delivery ที่สะอาดเรียบร้อย ไม่ใช่งานเขียนชั้นสูง"
     },
     "characters": {
-      "score": 8.5,
-      "evidence": "นางเอกปากจัดแต่ไม่ใจร้าย พระเอกสมบูรณ์แบบแต่ยังมีความน่ารัก (แดงหน้าง่าย) นางร้าย Liu Meijiao ชัดเจนตั้งแต่ต้น"
+      "score": 8.0,
+      "evidence": "FL ตัดสินใจไว ฉลาด ไม่มีลักษณะ doormat; ML ซื่อตรง เปิดเผยข้อมูลลูกทุกอย่างตั้งแต่แรก; villain 徐雅秋 มีมิติเพราะ rebirth backstory; 3 เด็ก differentiated ชัด (海枫ไม่ไว้ใจ, 海平มีอาการพิเศษ, 今夏ซุกซน)"
     },
     "romance": {
-      "score": 9.0,
-      "evidence": "พระเอกปรากฏตอน 1 แต่งงานตอน 2 เคมีระหว่างคู่หวานและน่าติดตามตลอด ดีที่สุดในบรรดา 4 เล่ม"
+      "score": 7.5,
+      "evidence": "FL ถาม ML ตรงเรื่องแม่สามี ML ตอบอย่างจริงจัง — เคมีสร้างได้ดีตั้งแต่บทแรก เป็น slow burn ในกรอบ flash marriage ที่ทำได้สมจริง ML ไม่ forcing romance ให้เวลา FL"
     },
     "world": {
       "score": 7.5,
-      "evidence": "จีนยุค 70s ฉากหมู่บ้าน + ค่ายทหาร รายละเอียดพอดี ไม่หนักเกินไป"
+      "evidence": "1985 ยุค Reform Era: 招待所, 供销社, 刺绣厂, 木器厂, 军区大院, 红鹤村 — รายละเอียดยุคสมัยสมจริง แต่ไม่ได้เป็น world-building ที่ลึก เป็นฉากหลังที่ functional"
     },
     "plot": {
       "score": 8.0,
-      "evidence": "ทะลุมิติ + หลีกเลี่ยงชะตากรรม + romance + subplot นางร้าย arc ชัดทุกด้าน"
+      "evidence": "อาร์คซ้อนกันได้ดี: 灵泉 healing (แม่สามี, พ่อแท้) + ปัญหา 3 เด็ก + ฟ้องร้อง 徐家 + villain suffering ใน bad marriage + FL's embroidery business — หลายเส้นเดินพร้อมกันโดยไม่สับสน"
     },
     "emotion": {
       "score": 7.5,
-      "evidence": "หวานมาก แต่ไม่ลึกมากด้านอารมณ์ เน้น feel good มากกว่า cry"
+      "evidence": "SAZOM_CATHARSIS: ตบหน้า villain (บท 2) + FL ทิ้ง manipulative ex อย่างสบายใจ (บท 4); ความอบอุ่น: FL กลับหาพ่อแม่แท้ใน บท 5-6 ซาบซึ้งมาก; VILLAIN_ANTIPATHY: villain ติดอยู่ใน bad marriage กับ 周彦文"
     },
     "cliffhanger": {
-      "score": 7.5,
-      "evidence": "จบตอนค้างคาสม่ำเสมอ มักเป็น situation ที่น่าสนใจ ไม่ใช่ tension ระทึก"
+      "score": 7.0,
+      "evidence": "Chapter breaks ทำได้ดีพอ ไม่ตื่นเต้นมาก แต่ก็ไม่ cutting กลางอากาศโดยไม่จำเป็น — adequate สำหรับ slice-of-life arc ที่ intersperse กับ plot arc"
     },
     "originality": {
-      "score": 7.5,
-      "evidence": "ทะลุมิติยุค 70s เป็นนางเอกทหารเป็น trope ที่พบบ้าง แต่ execution สนุกและ execution ดีกว่าค่าเฉลี่ย"
+      "score": 7.0,
+      "evidence": "假千金+空间灵泉+军婚+后妈+对照组 villain rebirth — แต่ละ element พบบ่อยในตลาด combination นี้ค่อนข้างสด แต่ไม่ unique เท่า 年代女配对照组 (285293cc) ที่ FL ทะลุมาเป็น女配 เอง"
     }
   },
   "editor_recommendations": [
-    "เรื่องนี้เหมาะสำหรับคนอ่านสาย sweet romance เป็นหลัก คำโปรยควรขายความหวาน + อารมณ์ขัน",
-    "ตั้งตอนฟรี 20 ตอนเพราะ hook แรงมาก คนอ่านจะติดใจและยินดีจ่ายต่อ",
-    "ฉากแต่งงานด่วนใน 2 ตอนแรกเป็น selling point หลัก ใส่ในคำโปรยได้เลย"
+    "FL voice ในต้นฉบับจีนค่อนข้าง generic — Rose translation ต้องเพิ่มความคมและ distinctiveness ให้ FL เพื่อให้ทัดเทียมกับฉบับแปลที่ทำไปแล้ว (ดูผล thai-mode ใน book_profile_thai.json)",
+    "ฉาก FL กลับหาพ่อแม่แท้ (บท 5-6) เป็นจุดที่ emotional สูงสุดของ opening arc — translator ควรใส่ใจ Register ให้ถูก (อบอุ่น ไม่เป็นน้ำเน่า)",
+    "3 เด็กต้องมี Voice Registry แยกกัน — 海枫 (ดุ/ไม่ไว้ใจ), 海平 (เงียบ/พิเศษ), 今夏 (ซุกซน/ตลก) ต้องคงเส้นคงวาตลอด 498 บท",
+    "คำโปรยไทยควรเน้น 'fake rich daughter + space ability + 3 step-kids + villain rebirth' — ครบ 4 selling points ที่กลุ่มสาย 年代文 ชอบ"
   ]
 }
