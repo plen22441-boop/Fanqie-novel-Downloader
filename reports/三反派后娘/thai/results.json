@@ -1,0 +1,2826 @@
+{
+  "book": {
+    "title": "ทะลุมิติมาเป็นแม่เลี้ยงสามตัวร้าย",
+    "original_title": "穿书后我成了三个反派的后娘",
+    "source": "thai",
+    "source_stats": {
+      "เว็บต้นทาง": "番茄小说",
+      "คะแนน": "9.3",
+      "สถานะ": "完结 (จบแล้ว)",
+      "ยอดคนอ่าน": "16,565 คน",
+      "ฉบับแปลไทย": "Rose v7.6 (3 บทแรก)"
+    },
+    "chapters_total": 625,
+    "chapters_read": 3,
+    "free_chapters": 20,
+    "genres": [
+      "transmigration",
+      "historical",
+      "drama",
+      "farming"
+    ],
+    "tropes": [
+      "strong_fl",
+      "villainess",
+      "cute_kids",
+      "slow_burn",
+      "face_slapping",
+      "found_family"
+    ],
+    "scores": {
+      "hook": 9.0,
+      "pacing": 7.5,
+      "prose": 8.5,
+      "polish": 8.0,
+      "characters": 8.5,
+      "romance": 5.5,
+      "world": 7.5,
+      "plot": 8.0,
+      "emotion": 8.0,
+      "cliffhanger": 7.0,
+      "originality": 8.0
+    },
+    "editor_recommendations": [
+      "สำนวนแปลระดับนี้รองรับได้ถึงบทที่มีพลังอารมณ์สูง (ฉากลูกผัวเรียกแม่ครั้งแรก) — ไม่ต้องกังวลว่าจะสูญเสียอรรถรส",
+      "Rose ETP ทำงานได้ดีใน 3 บทแรก ควรรักษา HOOK_CLOSE ที่ทำให้ผู้อ่านอยากกดบทต่อไว้ตลอดทั้งเรื่อง",
+      "ควรสร้าง Character Voice Registry ตั้งแต่ต้นสำหรับลูกผัวสามคนเมื่อปรากฏตัว เพื่อรักษาเสียงให้สม่ำเสมอตลอด 625 บท",
+      "คำโปรยควรเน้น '3 ตัวร้ายน้อยน่ารัก' เพราะเป็น USP หลัก"
+    ],
+    "translation_quality": 7.0,
+    "translation_difficulty": 5.0,
+    "source_prose": 8.5
+  },
+  "overall": {
+    "n": 100,
+    "pass_pct": 69.0,
+    "like_pct": 59.0,
+    "shelf_pct": 59.0,
+    "paid_pct": 24.0,
+    "avg_stars": 3.46,
+    "early_drop_pct": 27.0,
+    "mid_drop_pct": 0.0,
+    "finish_pct": 73.0,
+    "star_dist": {
+      "1": 1,
+      "2": 30,
+      "3": 10,
+      "4": 40,
+      "5": 19
+    }
+  },
+  "target": {
+    "n": 56,
+    "pass_pct": 100.0,
+    "like_pct": 92.9,
+    "shelf_pct": 92.9,
+    "paid_pct": 41.1,
+    "avg_stars": 4.27,
+    "early_drop_pct": 0.0,
+    "mid_drop_pct": 0.0,
+    "finish_pct": 100.0,
+    "star_dist": {
+      "1": 0,
+      "2": 0,
+      "3": 4,
+      "4": 33,
+      "5": 19
+    }
+  },
+  "segments": [
+    {
+      "id": "romance_modern",
+      "label": "สาวโรแมนซ์ปัจจุบัน",
+      "n": 16,
+      "pass_pct": 100.0,
+      "like_pct": 87.5,
+      "shelf_pct": 87.5,
+      "paid_pct": 31.2,
+      "avg_stars": 3.94,
+      "early_drop_pct": 0.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 100.0,
+      "star_dist": {
+        "1": 0,
+        "2": 0,
+        "3": 2,
+        "4": 13,
+        "5": 1
+      }
+    },
+    {
+      "id": "romance_ancient",
+      "label": "สายจีนโบราณ/ทะลุมิติ",
+      "n": 14,
+      "pass_pct": 100.0,
+      "like_pct": 100.0,
+      "shelf_pct": 100.0,
+      "paid_pct": 50.0,
+      "avg_stars": 4.93,
+      "early_drop_pct": 0.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 100.0,
+      "star_dist": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 1,
+        "5": 13
+      }
+    },
+    {
+      "id": "bl",
+      "label": "สาววาย (BL)",
+      "n": 14,
+      "pass_pct": 7.1,
+      "like_pct": 0.0,
+      "shelf_pct": 0.0,
+      "paid_pct": 0.0,
+      "avg_stars": 2,
+      "early_drop_pct": 92.9,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 7.1,
+      "star_dist": {
+        "1": 1,
+        "2": 12,
+        "3": 1,
+        "4": 0,
+        "5": 0
+      }
+    },
+    {
+      "id": "xianxia",
+      "label": "สายเซียน/กำลังภายใน",
+      "n": 14,
+      "pass_pct": 0.0,
+      "like_pct": 0.0,
+      "shelf_pct": 0.0,
+      "paid_pct": 0.0,
+      "avg_stars": 2,
+      "early_drop_pct": 71.4,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 28.6,
+      "star_dist": {
+        "1": 0,
+        "2": 14,
+        "3": 0,
+        "4": 0,
+        "5": 0
+      }
+    },
+    {
+      "id": "system_rebirth",
+      "label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "n": 12,
+      "pass_pct": 100.0,
+      "like_pct": 100.0,
+      "shelf_pct": 100.0,
+      "paid_pct": 41.7,
+      "avg_stars": 4.25,
+      "early_drop_pct": 0.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 100.0,
+      "star_dist": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 9,
+        "5": 3
+      }
+    },
+    {
+      "id": "translation_purist",
+      "label": "นักอ่านนิยายแปลจีนตัวยง",
+      "n": 10,
+      "pass_pct": 100.0,
+      "like_pct": 100.0,
+      "shelf_pct": 100.0,
+      "paid_pct": 50.0,
+      "avg_stars": 4.2,
+      "early_drop_pct": 0.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 100.0,
+      "star_dist": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 8,
+        "5": 2
+      }
+    },
+    {
+      "id": "casual",
+      "label": "ขาจร/อ่านฆ่าเวลา",
+      "n": 12,
+      "pass_pct": 100.0,
+      "like_pct": 58.3,
+      "shelf_pct": 58.3,
+      "paid_pct": 8.3,
+      "avg_stars": 3.58,
+      "early_drop_pct": 0.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 100.0,
+      "star_dist": {
+        "1": 0,
+        "2": 0,
+        "3": 5,
+        "4": 7,
+        "5": 0
+      }
+    },
+    {
+      "id": "critic",
+      "label": "สายรีวิว/จับผิด",
+      "n": 4,
+      "pass_pct": 100.0,
+      "like_pct": 50.0,
+      "shelf_pct": 50.0,
+      "paid_pct": 25.0,
+      "avg_stars": 3.5,
+      "early_drop_pct": 0.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 100.0,
+      "star_dist": {
+        "1": 0,
+        "2": 0,
+        "3": 2,
+        "4": 2,
+        "5": 0
+      }
+    },
+    {
+      "id": "gl",
+      "label": "สายยูริ (GL)",
+      "n": 4,
+      "pass_pct": 0.0,
+      "like_pct": 0.0,
+      "shelf_pct": 0.0,
+      "paid_pct": 0.0,
+      "avg_stars": 2,
+      "early_drop_pct": 100.0,
+      "mid_drop_pct": 0.0,
+      "finish_pct": 0.0,
+      "star_dist": {
+        "1": 0,
+        "2": 4,
+        "3": 0,
+        "4": 0,
+        "5": 0
+      }
+    }
+  ],
+  "ci": {
+    "pass_pct": [
+      68.0,
+      72.0
+    ],
+    "like_pct": [
+      56.0,
+      64.0
+    ],
+    "avg_stars": [
+      3.41,
+      3.53
+    ],
+    "paid_pct": [
+      22.0,
+      33.0
+    ]
+  },
+  "iterations": 300,
+  "retention": [
+    100,
+    73,
+    73
+  ],
+  "drop_reasons": [
+    [
+      "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      13
+    ],
+    [
+      "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      10
+    ],
+    [
+      "ไม่ใช่แนว (ไม่มี ยูริ (GL))",
+      4
+    ]
+  ],
+  "complaints": [
+    [
+      "จุดอ่อน: เคมี/ความฟินของคู่หลัก",
+      41
+    ]
+  ],
+  "praises": [
+    [
+      "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+      38
+    ],
+    [
+      "ชอบพล็อต: ลูกน้อยน่ารัก",
+      29
+    ],
+    [
+      "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+      25
+    ],
+    [
+      "ความน่าสนใจของตัวละคร",
+      22
+    ],
+    [
+      "ชอบพล็อต: ตบหน้าคนชั่ว",
+      21
+    ],
+    [
+      "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)",
+      12
+    ]
+  ],
+  "grade": "S",
+  "grade_text": "ตัวท็อป มีโอกาสติดอันดับ ลงได้ทันที",
+  "ranking": {
+    "tier": 2,
+    "text": "มีลุ้นติดอันดับหมวด (ท็อป 50)",
+    "niche": false,
+    "target_n": 56
+  },
+  "recommendations": [
+    "เรื่องนี้เฉพาะกลุ่ม — โปรโมตตรงแท็ก/หมวดของกลุ่มเป้าหมาย ไม่ต้องหวังผู้อ่านทั่วไป"
+  ],
+  "readers": [
+    {
+      "id": "R001",
+      "name": "มายด์#001",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 3,
+      "raw": 6.41,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R002",
+      "name": "แพรว#002",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.92,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R003",
+      "name": "ฝน#003",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.5,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R004",
+      "name": "เฟิร์น#004",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "35-44",
+      "spending": "spender",
+      "target": true,
+      "stars": 4,
+      "raw": 7.87,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R005",
+      "name": "ปุ้ย#005",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 6.94,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R006",
+      "name": "น้ำหวาน#006",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.75,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R007",
+      "name": "ใบเตย#007",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.33,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R008",
+      "name": "มุก#008",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "18-24",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.06,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R009",
+      "name": "แป้ง#009",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 6.94,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R010",
+      "name": "จูน#010",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.97,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R011",
+      "name": "กิ๊ฟ#011",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "35-44",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.75,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R012",
+      "name": "ขิม#012",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "35-44",
+      "spending": "spender",
+      "target": true,
+      "stars": 4,
+      "raw": 6.81,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R013",
+      "name": "เมย์#013",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.38,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R014",
+      "name": "พลอย#014",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.13,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R015",
+      "name": "ออม#015",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 3,
+      "raw": 6.12,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R016",
+      "name": "แนน#016",
+      "segment": "romance_modern",
+      "segment_label": "สาวโรแมนซ์ปัจจุบัน",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.66,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R017",
+      "name": "บีม#017",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "spender",
+      "target": true,
+      "stars": 5,
+      "raw": 9.5,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก"
+      ]
+    },
+    {
+      "id": "R018",
+      "name": "ต้นข้าว#018",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.6,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว"
+      ]
+    },
+    {
+      "id": "R019",
+      "name": "ปาล์ม#019",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 5,
+      "raw": 9.66,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว"
+      ]
+    },
+    {
+      "id": "R020",
+      "name": "อิง#020",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.32,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว"
+      ]
+    },
+    {
+      "id": "R021",
+      "name": "ฟ้า#021",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.57,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R022",
+      "name": "ส้ม#022",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 9.64,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก"
+      ]
+    },
+    {
+      "id": "R023",
+      "name": "นุ่น#023",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "free",
+      "target": true,
+      "stars": 5,
+      "raw": 9.11,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R024",
+      "name": "แตงโม#024",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 9.15,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก"
+      ]
+    },
+    {
+      "id": "R025",
+      "name": "ไอซ์#025",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.26,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว"
+      ]
+    },
+    {
+      "id": "R026",
+      "name": "โบว์#026",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.81,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "พล็อตและการหักมุม",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R027",
+      "name": "ปลา#027",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.9,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R028",
+      "name": "หมิว#028",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.75,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R029",
+      "name": "ตาล#029",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "18-24",
+      "spending": "free",
+      "target": true,
+      "stars": 5,
+      "raw": 8.39,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก"
+      ]
+    },
+    {
+      "id": "R030",
+      "name": "มิ้นท์#030",
+      "segment": "romance_ancient",
+      "segment_label": "สายจีนโบราณ/ทะลุมิติ",
+      "age": "18-24",
+      "spending": "free",
+      "target": true,
+      "stars": 5,
+      "raw": 8.42,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ทะลุมาเป็นตัวร้าย",
+        "ชอบพล็อต: ลูกน้อยน่ารัก"
+      ]
+    },
+    {
+      "id": "R031",
+      "name": "เกด#031",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 1,
+      "raw": 3.24,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R032",
+      "name": "แอม#032",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 4.97,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R033",
+      "name": "นิว#033",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 5.1,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R034",
+      "name": "เจน#034",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 6.07,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R035",
+      "name": "ก้อย#035",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.89,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R036",
+      "name": "ข้าวหอม#036",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 5.75,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R037",
+      "name": "พิม#037",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 5.32,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R038",
+      "name": "ชมพู่#038",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 5.76,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R039",
+      "name": "น้ำฝน#039",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "free",
+      "target": false,
+      "stars": 2,
+      "raw": 4.84,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R040",
+      "name": "ดาว#040",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "15-17",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.96,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R041",
+      "name": "ภูมิ#041",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 5.56,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R042",
+      "name": "ต้น#042",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 5.55,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร",
+        "อารมณ์ร่วม"
+      ]
+    },
+    {
+      "id": "R043",
+      "name": "บอส#043",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "18-24",
+      "spending": "spender",
+      "target": false,
+      "stars": 3,
+      "raw": 5.37,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R044",
+      "name": "เจมส์#044",
+      "segment": "bl",
+      "segment_label": "สาววาย (BL)",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 6.43,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี วาย (BL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R045",
+      "name": "กัปตัน#045",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 4.67,
+      "status": "finished",
+      "reached": 3,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "การสร้างโลก/ระบบ/ฉาก",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R046",
+      "name": "ตั้ม#046",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.8,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "พล็อตและการหักมุม",
+        "การสร้างโลก/ระบบ/ฉาก"
+      ]
+    },
+    {
+      "id": "R047",
+      "name": "เอิร์ธ#047",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "35-44",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 5.62,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "การสร้างโลก/ระบบ/ฉาก",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R048",
+      "name": "ไผ่#048",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "18-24",
+      "spending": "free",
+      "target": false,
+      "stars": 2,
+      "raw": 5.67,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "การสร้างโลก/ระบบ/ฉาก",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R049",
+      "name": "ป๊อป#049",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "15-17",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 5.09,
+      "status": "finished",
+      "reached": 3,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "พล็อตและการหักมุม",
+        "การสร้างโลก/ระบบ/ฉาก"
+      ]
+    },
+    {
+      "id": "R050",
+      "name": "อาร์ม#050",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "15-17",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.65,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "การสร้างโลก/ระบบ/ฉาก",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R051",
+      "name": "มายด์#051",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.94,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "การสร้างโลก/ระบบ/ฉาก",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R052",
+      "name": "แพรว#052",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 5.22,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "การสร้างโลก/ระบบ/ฉาก",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R053",
+      "name": "ฝน#053",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "15-17",
+      "spending": "free",
+      "target": false,
+      "stars": 2,
+      "raw": 5.03,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "การสร้างโลก/ระบบ/ฉาก",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R054",
+      "name": "เฟิร์น#054",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 4.33,
+      "status": "finished",
+      "reached": 3,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "พล็อตและการหักมุม",
+        "การสร้างโลก/ระบบ/ฉาก"
+      ]
+    },
+    {
+      "id": "R055",
+      "name": "ปุ้ย#055",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": false,
+      "stars": 2,
+      "raw": 4.54,
+      "status": "finished",
+      "reached": 3,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "การสร้างโลก/ระบบ/ฉาก",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R056",
+      "name": "น้ำหวาน#056",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "35-44",
+      "spending": "free",
+      "target": false,
+      "stars": 2,
+      "raw": 4.68,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "การสร้างโลก/ระบบ/ฉาก",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R057",
+      "name": "ใบเตย#057",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "35-44",
+      "spending": "free",
+      "target": false,
+      "stars": 2,
+      "raw": 4.75,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "พล็อตและการหักมุม",
+        "การสร้างโลก/ระบบ/ฉาก"
+      ]
+    },
+    {
+      "id": "R058",
+      "name": "มุก#058",
+      "segment": "xianxia",
+      "segment_label": "สายเซียน/กำลังภายใน",
+      "age": "18-24",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.67,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี เซียน/บำเพ็ญเพียร/กำลังภายใน)",
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "พล็อตและการหักมุม",
+        "การสร้างโลก/ระบบ/ฉาก"
+      ]
+    },
+    {
+      "id": "R059",
+      "name": "แป้ง#059",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "18-24",
+      "spending": "spender",
+      "target": true,
+      "stars": 4,
+      "raw": 7.36,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R060",
+      "name": "จูน#060",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "18-24",
+      "spending": "spender",
+      "target": true,
+      "stars": 4,
+      "raw": 7.48,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R061",
+      "name": "กิ๊ฟ#061",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "25-34",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.48,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R062",
+      "name": "ขิม#062",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "18-24",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.72,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R063",
+      "name": "เมย์#063",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "15-17",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 7.38,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "จังหวะการเล่าเรื่อง",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R064",
+      "name": "พลอย#064",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.36,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R065",
+      "name": "ออม#065",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "15-17",
+      "spending": "free",
+      "target": true,
+      "stars": 5,
+      "raw": 9.01,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R066",
+      "name": "แนน#066",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "15-17",
+      "spending": "free",
+      "target": true,
+      "stars": 4,
+      "raw": 6.83,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R067",
+      "name": "บีม#067",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "15-17",
+      "spending": "spender",
+      "target": true,
+      "stars": 5,
+      "raw": 8.49,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R068",
+      "name": "ต้นข้าว#068",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 8.06,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R069",
+      "name": "ปาล์ม#069",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.41,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R070",
+      "name": "อิง#070",
+      "segment": "system_rebirth",
+      "segment_label": "สายระบบ/เกิดใหม่ล้างแค้น",
+      "age": "18-24",
+      "spending": "spender",
+      "target": true,
+      "stars": 5,
+      "raw": 9.21,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R071",
+      "name": "ฟ้า#071",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 8.1,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R072",
+      "name": "ส้ม#072",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 5,
+      "raw": 8.44,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R073",
+      "name": "นุ่น#073",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "45+",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.35,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)",
+        "ความเรียบร้อยฉบับแปล (คำผิด/ชื่อเฉพาะสม่ำเสมอ)"
+      ]
+    },
+    {
+      "id": "R074",
+      "name": "แตงโม#074",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 8.2,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)",
+        "ความเรียบร้อยฉบับแปล (คำผิด/ชื่อเฉพาะสม่ำเสมอ)"
+      ]
+    },
+    {
+      "id": "R075",
+      "name": "ไอซ์#075",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 6.92,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)",
+        "ความเรียบร้อยฉบับแปล (คำผิด/ชื่อเฉพาะสม่ำเสมอ)"
+      ]
+    },
+    {
+      "id": "R076",
+      "name": "โบว์#076",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "45+",
+      "spending": "spender",
+      "target": true,
+      "stars": 4,
+      "raw": 7.96,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R077",
+      "name": "ปลา#077",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "45+",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.72,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)",
+        "ความเรียบร้อยฉบับแปล (คำผิด/ชื่อเฉพาะสม่ำเสมอ)"
+      ]
+    },
+    {
+      "id": "R078",
+      "name": "หมิว#078",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "45+",
+      "spending": "spender",
+      "target": true,
+      "stars": 5,
+      "raw": 9.03,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R079",
+      "name": "ตาล#079",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 8.24,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)",
+        "ความเรียบร้อยฉบับแปล (คำผิด/ชื่อเฉพาะสม่ำเสมอ)"
+      ]
+    },
+    {
+      "id": "R080",
+      "name": "มิ้นท์#080",
+      "segment": "translation_purist",
+      "segment_label": "นักอ่านนิยายแปลจีนตัวยง",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.9,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R081",
+      "name": "เกด#081",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "15-17",
+      "spending": "free",
+      "target": false,
+      "stars": 4,
+      "raw": 7.29,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R082",
+      "name": "แอม#082",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "15-17",
+      "spending": "free",
+      "target": false,
+      "stars": 4,
+      "raw": 7.02,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R083",
+      "name": "นิว#083",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "35-44",
+      "spending": "free",
+      "target": false,
+      "stars": 4,
+      "raw": 7.96,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R084",
+      "name": "เจน#084",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "15-17",
+      "spending": "free",
+      "target": false,
+      "stars": 4,
+      "raw": 6.91,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R085",
+      "name": "ก้อย#085",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "18-24",
+      "spending": "free",
+      "target": false,
+      "stars": 3,
+      "raw": 6.59,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R086",
+      "name": "ข้าวหอม#086",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "15-17",
+      "spending": "occasional",
+      "target": false,
+      "stars": 3,
+      "raw": 6.17,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R087",
+      "name": "พิม#087",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "18-24",
+      "spending": "free",
+      "target": false,
+      "stars": 3,
+      "raw": 6.57,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R088",
+      "name": "ชมพู่#088",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 4,
+      "raw": 7.06,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R089",
+      "name": "น้ำฝน#089",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "25-34",
+      "spending": "free",
+      "target": false,
+      "stars": 4,
+      "raw": 7.93,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ลูกน้อยน่ารัก",
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R090",
+      "name": "ดาว#090",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": false,
+      "stars": 3,
+      "raw": 5.82,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R091",
+      "name": "ภูมิ#091",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": false,
+      "stars": 4,
+      "raw": 7.71,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ตบหน้าคนชั่ว",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R092",
+      "name": "ต้น#092",
+      "segment": "casual",
+      "segment_label": "ขาจร/อ่านฆ่าเวลา",
+      "age": "18-24",
+      "spending": "occasional",
+      "target": false,
+      "stars": 3,
+      "raw": 6.72,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)",
+        "จังหวะการเล่าเรื่อง"
+      ]
+    },
+    {
+      "id": "R093",
+      "name": "บอส#093",
+      "segment": "critic",
+      "segment_label": "สายรีวิว/จับผิด",
+      "age": "25-34",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 7.5,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": true,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง"
+      ]
+    },
+    {
+      "id": "R094",
+      "name": "เจมส์#094",
+      "segment": "critic",
+      "segment_label": "สายรีวิว/จับผิด",
+      "age": "35-44",
+      "spending": "spender",
+      "target": true,
+      "stars": 3,
+      "raw": 6.66,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "พล็อตและการหักมุม"
+      ]
+    },
+    {
+      "id": "R095",
+      "name": "กัปตัน#095",
+      "segment": "critic",
+      "segment_label": "สายรีวิว/จับผิด",
+      "age": "35-44",
+      "spending": "free",
+      "target": true,
+      "stars": 3,
+      "raw": 6.68,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความแปลกใหม่",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R096",
+      "name": "ตั้ม#096",
+      "segment": "critic",
+      "segment_label": "สายรีวิว/จับผิด",
+      "age": "35-44",
+      "spending": "occasional",
+      "target": true,
+      "stars": 4,
+      "raw": 6.87,
+      "status": "finished",
+      "reached": 3,
+      "passed": true,
+      "liked": true,
+      "shelved": true,
+      "paid": false,
+      "drop_reason": null,
+      "complaints": [],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "สำนวนภาษา (ที่นักอ่านไทยเห็นหลังแปล)"
+      ]
+    },
+    {
+      "id": "R097",
+      "name": "เอิร์ธ#097",
+      "segment": "gl",
+      "segment_label": "สายยูริ (GL)",
+      "age": "18-24",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 5.08,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี ยูริ (GL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R098",
+      "name": "ไผ่#098",
+      "segment": "gl",
+      "segment_label": "สายยูริ (GL)",
+      "age": "18-24",
+      "spending": "free",
+      "target": false,
+      "stars": 2,
+      "raw": 4.42,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี ยูริ (GL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ความน่าสนใจของตัวละคร",
+        "ความดึงดูดช่วงเปิด (ตอน 1-3)"
+      ]
+    },
+    {
+      "id": "R099",
+      "name": "ป๊อป#099",
+      "segment": "gl",
+      "segment_label": "สายยูริ (GL)",
+      "age": "25-34",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 5.29,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี ยูริ (GL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ครอบครัวที่เลือกเอง",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    },
+    {
+      "id": "R100",
+      "name": "อาร์ม#100",
+      "segment": "gl",
+      "segment_label": "สายยูริ (GL)",
+      "age": "18-24",
+      "spending": "spender",
+      "target": false,
+      "stars": 2,
+      "raw": 4.53,
+      "status": "early_drop",
+      "reached": 1,
+      "passed": false,
+      "liked": false,
+      "shelved": false,
+      "paid": false,
+      "drop_reason": "ไม่ใช่แนว (ไม่มี ยูริ (GL))",
+      "complaints": [
+        "จุดอ่อน: เคมี/ความฟินของคู่หลัก"
+      ],
+      "praises": [
+        "ชอบพล็อต: นางเอกเก่ง ฉลาด",
+        "ชอบพล็อต: ค่อยเป็นค่อยไป (slow burn)",
+        "ความน่าสนใจของตัวละคร"
+      ]
+    }
+  ]
+}
