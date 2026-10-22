@@ -73,6 +73,9 @@ HEADERS = {
 _NAV_EXACT = {'返回', '目录', '首页', '书签', '收藏', '推荐', '关灯', '护眼',
               '上一章', '下一章', '上一页', '下一页', '回目录', '加入书架'}
 
+# Lines that look like a chapter heading (repeated at top of content from site UI elements)
+_CHAPTER_HDR_RE = re.compile(r'^第\s*\d+\s*[章节話话回]')
+
 
 def clean_lines(paragraphs):
     result = []
@@ -83,6 +86,10 @@ def clean_lines(paragraphs):
         if p in _NAV_EXACT:
             continue
         if JUNK_RE.search(p):
+            continue
+        # Strip page markers inline
+        p = PAGE_MARKER_RE.sub('', p).strip()
+        if not p:
             continue
         result.append(p)
     return result
@@ -96,16 +103,23 @@ def clean_title(title):
     return title.strip()
 
 
+def _remove_leading_headings(lines):
+    """Remove chapter-heading-like lines at the very start (duplicate UI headings)."""
+    i = 0
+    while i < min(6, len(lines)) and _CHAPTER_HDR_RE.match(lines[i]):
+        i += 1
+    return lines[i:]
+
+
 def extract_text(html):
     parser = TextExtractor()
     parser.feed(html)
     lines = clean_lines(parser._paragraphs)
-    # Also strip page markers from lines
-    lines = [PAGE_MARKER_RE.sub('', l).strip() for l in lines]
-    lines = [l for l in lines if l]
+    lines = _remove_leading_headings(lines)
     if len(lines) >= 3:
         return lines
-    return clean_lines(''.join(parser._all_text).split('\n'))
+    lines = clean_lines(''.join(parser._all_text).split('\n'))
+    return _remove_leading_headings(lines)
 
 
 def extract_title(html):
