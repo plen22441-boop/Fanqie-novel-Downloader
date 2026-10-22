@@ -209,14 +209,39 @@ def extract_title(html):
     return None
 
 
+def _extract_all_text_stripped(html):
+    """Extract all visible text from HTML after stripping junk tags/sections."""
+    stripped = _strip_html_junk(html)
+    stripped = re.sub(r'<br\s*/?>', '\n', stripped, flags=re.IGNORECASE)
+    text = re.sub(r'<[^>]+>', ' ', stripped)
+    lines = clean_lines(text.split('\n'))
+    return _remove_leading_headings(lines)
+
+
 def smart_extract(html, use_content_div=True):
-    """Try content-div extraction first, fall back to full HTML extraction."""
-    if use_content_div:
-        content = find_content_div(html)
-        lines = extract_text_from_content(content)
-        if len(lines) >= 3:
-            return lines
-    return extract_text_from_html(html)
+    """Try all extraction methods, return whichever yields the most Chinese text."""
+    candidates = []
+
+    # Method 1: Content-div heuristic
+    content = find_content_div(html)
+    lines1 = extract_text_from_content(content)
+    cn1 = sum(count_chinese(l) for l in lines1)
+    candidates.append((cn1, lines1))
+
+    # Method 2: <p> paragraphs from full HTML parser
+    lines2 = extract_text_from_html(html)
+    cn2 = sum(count_chinese(l) for l in lines2)
+    candidates.append((cn2, lines2))
+
+    # Method 3: All visible text after stripping junk
+    lines3 = _extract_all_text_stripped(html)
+    cn3 = sum(count_chinese(l) for l in lines3)
+    candidates.append((cn3, lines3))
+
+    best_cn, best_lines = max(candidates, key=lambda x: x[0])
+    if best_lines:
+        return best_lines
+    return lines2 or lines1 or lines3
 
 
 # ── HTTP helpers ─────────────────────────────────────────────────────────────
@@ -304,13 +329,14 @@ def _get_next_page_url(base_url, page_num, pattern):
 
 
 async def analyze_site(session, chapters, log):
-    """Fetch sample chapters to learn the site's content structure and pagination.
+    """Fetch sample chapters to learn content structure and pagination.
 
+    Compares all three extraction methods; picks the one with most Chinese chars.
     Returns a profile dict used by the downloader.
     """
     if not chapters:
         return {'multipage_pattern': None, 'avg_chars': 0,
-                'use_content_div': True, 'sample_char_counts': []}
+                'best_method': 'smart', 'sample_char_counts': [], 'low_quality': False}
 
     n = len(chapters)
     indices = sorted(set([0, max(0, n // 4), n // 2, min(n - 1, 3 * n // 4)]))
@@ -318,7 +344,7 @@ async def analyze_site(session, chapters, log):
         indices = indices[:4]
     samples = [chapters[i][0] for i in indices]
 
-    char_counts_div, char_counts_raw = [], []
+    char_counts_smart = []
     multipage_pattern = None
     multipage_extra_chars = 0
 
@@ -327,14 +353,10 @@ async def analyze_site(session, chapters, log):
         if not html:
             continue
 
-        content = find_content_div(html)
-        lines_div = extract_text_from_content(content)
-        cn_div = sum(count_chinese(l) for l in lines_div)
-        char_counts_div.append(cn_div)
-
-        lines_raw = extract_text_from_html(html)
-        cn_raw = sum(count_chinese(l) for l in lines_raw)
-        char_counts_raw.append(cn_raw)
+        # smart_extract already picks the best of all three methods
+        lines = smart_extract(html)
+        cn = sum(count_chinese(l) for l in lines)
+        char_counts_smart.append(cn)
 
         if multipage_pattern is None:
             for candidate_url in _candidate_page2_urls(url):
@@ -343,7 +365,9 @@ async def analyze_site(session, chapters, log):
                     continue
                 lines2 = smart_extract(html2)
                 cn2 = sum(count_chinese(l) for l in lines2)
-                if cn2 > 80 and ''.join(lines2[:2]) != ''.join(lines_div[:2]):
+                first_page_start = ''.join(lines[:2])
+                page2_start = ''.join(lines2[:2])
+                if cn2 > 80 and page2_start != first_page_start:
                     multipage_pattern = (
                         'underscore' if '_2.html' in candidate_url else 'query'
                     )
@@ -354,22 +378,23 @@ async def analyze_site(session, chapters, log):
 
         await asyncio.sleep(0.3)
 
-    avg_div = statistics.mean(char_counts_div) if char_counts_div else 0
-    avg_raw = statistics.mean(char_counts_raw) if char_counts_raw else 0
-    use_content_div = avg_div >= avg_raw * 0.7 if avg_raw > 0 else True
-    avg_chars = int(max(avg_div, avg_raw))
+    avg_chars = int(statistics.mean(char_counts_smart)) if char_counts_smart else 0
     if multipage_pattern:
         avg_chars += multipage_extra_chars
 
-    quality = 'ดี' if avg_chars > 1500 else 'ปานกลาง' if avg_chars > 500 else 'ต่ำ'
+    low_quality = avg_chars < 200
+    quality = 'ดี' if avg_chars > 1500 else 'ปานกลาง' if avg_chars > 500 else 'ต่ำมาก (อาจต้องใช้ JS หรือ login)'
     log(f'🔍 วิเคราะห์เสร็จ — เฉลี่ย ~{avg_chars} อักษรจีน/ตอน, คุณภาพ: {quality}, '
         f'หน้าต่อ: {"มี" if multipage_pattern else "ไม่พบ"}')
+    if low_quality:
+        log(f'⚠️ เนื้อหาน้อยมาก — เว็บนี้อาจใช้ JavaScript หรือต้องการ login เพื่อแสดงเนื้อหา')
 
     return {
         'multipage_pattern': multipage_pattern,
         'avg_chars': avg_chars,
-        'use_content_div': use_content_div,
-        'sample_char_counts': char_counts_div or char_counts_raw,
+        'best_method': 'smart',
+        'sample_char_counts': char_counts_smart,
+        'low_quality': low_quality,
     }
 
 
@@ -1028,13 +1053,21 @@ if scan_info:
     if profile:
         mp = profile.get('multipage_pattern')
         avg = profile.get('avg_chars', 0)
-        st.info(
+        low = profile.get('low_quality', False)
+        info_text = (
             f'🔍 **ผลวิเคราะห์เว็บ:**  \n'
             f'เฉลี่ย ~{avg} ตัวอักษรจีน/ตอน  \n'
             f'หน้าต่อ: {"มี (" + mp + ")" if mp else "ไม่พบ (ตอนละ 1 หน้า)"}  \n'
-            f'วิธีดึง: '
-            f'{"Content Div" if profile.get("use_content_div") else "Full HTML"}'
+            f'คุณภาพ: {"ดี" if avg > 1500 else "ปานกลาง" if avg > 500 else "ต่ำ"}'
         )
+        if low:
+            st.warning(
+                '⚠️ **เว็บนี้เนื้อหาน้อยมาก (~' + str(avg) + ' ตัวอักษร/ตอน)**  \n'
+                'เว็บนี้อาจใช้ JavaScript ในการโหลดเนื้อหา หรือต้องการ login  \n'
+                'ดาวน์โหลดได้ แต่แต่ละตอนอาจได้เนื้อหาไม่ครบค่ะ'
+            )
+        else:
+            st.info(info_text)
 
     # ── Step 2: Download settings ────────────────────────────────────────
 
