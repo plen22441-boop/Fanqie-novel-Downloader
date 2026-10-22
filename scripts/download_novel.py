@@ -740,17 +740,75 @@ async def download_biquge365(book_id, output_file, novel_name, workers=8, delay=
     return (cnt_ok + cnt_short) > 0
 
 
+def parse_novel_url(url):
+    """Auto-detect site and book_id from a novel URL. Returns (site, book_id) or raises."""
+    url = url.strip().rstrip('/')
+
+    # biquge365: https://m.biquge365.net/shu/528722/
+    m = re.search(r'biquge365\.[^/]+/shu/(\d+)', url)
+    if m:
+        return 'biquge365', m.group(1)
+
+    # 69shu: https://www.69shu.xyz/index/2/2829/1.html
+    m = re.search(r'69shu\.[^/]+/index/(\d+/\d+)', url)
+    if m:
+        return '69shu', m.group(1)
+
+    # shubaowb: https://shubaowb.com/novel/YH2B.html
+    m = re.search(r'shubaowb\.[^/]+/novel/([^/.\s]+)', url)
+    if m:
+        return 'shubaowb', m.group(1)
+
+    # zhys: https://cn.zhys.tw/book/12345.html
+    m = re.search(r'zhys\.[^/]+/book/([^/.\s]+)', url)
+    if m:
+        return 'zhys', m.group(1)
+
+    # 4jiwx: https://www.4jiwx.com/book/ABCD.html
+    m = re.search(r'4jiwx\.[^/]+/book/([^/.\s]+)', url)
+    if m:
+        return '4jiwx', m.group(1)
+
+    # shuixxs: https://www.shuixxs.com/book/ABCD.html
+    m = re.search(r'shuixxs\.[^/]+/book/([^/.\s]+)', url)
+    if m:
+        return 'shuixxs', m.group(1)
+
+    raise ValueError(
+        f'ไม่รู้จัก URL นี้: {url}\n'
+        'รองรับ: biquge365 / 69shu / shubaowb / zhys / 4jiwx / shuixxs'
+    )
+
+
 async def main():
-    novel_name = os.environ.get('NOVEL_NAME', '萌宝驾到豪门全家宠上天')
-    site = os.environ.get('SITE', 'shuixxs')
     output_dir = os.environ.get('OUTPUT_DIR', '.')
+    workers = int(os.environ.get('WORKERS', '3'))
+    delay = float(os.environ.get('DELAY', '2'))
+    min_chars = int(os.environ.get('MIN_CHARS', '300'))
+
+    novel_url = os.environ.get('NOVEL_URL', '').strip()
+    novel_name = os.environ.get('NOVEL_NAME', '').strip()
+
+    # Legacy mode: SITE + BOOK_ID still work if NOVEL_URL is empty
+    site = os.environ.get('SITE', '').strip()
+    book_id = os.environ.get('BOOK_ID', '').strip()
+
+    if novel_url:
+        try:
+            site, book_id = parse_novel_url(novel_url)
+            print(f'URL parsed: site={site}  book_id={book_id}')
+        except ValueError as e:
+            print(e)
+            sys.exit(1)
+    elif not site or not book_id:
+        print('ต้องใส่ NOVEL_URL หรือ SITE+BOOK_ID')
+        sys.exit(1)
+
+    if not novel_name:
+        novel_name = f'{site}_{book_id.replace("/", "_")}'
+
     safe_name = re.sub(r'[\\/:*?"<>|]', '_', novel_name)
     output_file = os.path.join(output_dir, f'{safe_name}.txt')
-
-    book_id = os.environ.get('BOOK_ID', 'YA9K')
-    workers = int(os.environ.get('WORKERS', '8'))
-    delay = float(os.environ.get('DELAY', '1.5'))
-    min_chars = int(os.environ.get('MIN_CHARS', '300'))
 
     if site in ('shuixxs', '4jiwx'):
         total = int(os.environ.get('TOTAL_CHAPTERS', '503'))
@@ -764,7 +822,7 @@ async def main():
     elif site == 'biquge365':
         success = await download_biquge365(book_id, output_file, novel_name, workers, delay, min_chars)
     else:
-        print(f'Unknown site: {site}')
+        print(f'ไม่รู้จัก site: {site}')
         sys.exit(1)
 
     if not success:
