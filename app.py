@@ -2,7 +2,13 @@
 """Novel Downloader — Streamlit web app (self-adapting universal scraper)
 
 Architecture:
-  Scan → Analyze sample chapters → Build SiteProfile → Download with profile → QC
+  Scan → Detect Issues → Fix → Download with profile → QC
+
+3-step workflow:
+  1. Scan: fetch TOC + analyze sample chapters → build SiteProfile
+  2. Fix:  detect issues (low content, empty titles, no multipage, etc.)
+           and attempt automatic fixes (desktop URLs, different headers, etc.)
+  3. Download: use the (possibly fixed) profile for reliable extraction + QC
 
 The system learns each website's structure by examining sample chapters during
 the scan phase, then uses that knowledge for reliable extraction.
@@ -396,6 +402,359 @@ async def analyze_site(session, chapters, log):
         'sample_char_counts': char_counts_smart,
         'low_quality': low_quality,
     }
+
+
+# ── Issue Detection & Fix ───────────────────────────────────────────────────
+
+def detect_issues(scan_info):
+    """Analyze scan results and return a list of issues with severity and fixability.
+
+    Each issue: {id, severity, icon, title, detail, fixable, fixed}
+    severity: 'critical' | 'warning' | 'info'
+    """
+    issues = []
+    chapters = scan_info.get('chapters', [])
+    profile = scan_info.get('profile', {})
+    avg_chars = profile.get('avg_chars', 0)
+    mp = profile.get('multipage_pattern')
+    sample_counts = profile.get('sample_char_counts', [])
+
+    # 1. Content quality
+    if avg_chars < 100:
+        issues.append({
+            'id': 'content_critical',
+            'severity': 'critical',
+            'icon': '🔴',
+            'title': 'เนื้อหาน้อยมาก',
+            'detail': f'เฉลี่ยเพียง ~{avg_chars} ตัวอักษรจีน/ตอน — '
+                      f'เว็บอาจใช้ JavaScript โหลดเนื้อหา หรือต้อง login',
+            'fixable': True,
+            'fixed': False,
+        })
+    elif avg_chars < 500:
+        issues.append({
+            'id': 'content_low',
+            'severity': 'warning',
+            'icon': '🟡',
+            'title': 'เนื้อหาค่อนข้างน้อย',
+            'detail': f'เฉลี่ย ~{avg_chars} ตัวอักษรจีน/ตอน — '
+                      f'ปกติควรได้ 1,500-3,000 อาจได้แค่หน้าแรกของแต่ละตอน',
+            'fixable': True,
+            'fixed': False,
+        })
+    else:
+        issues.append({
+            'id': 'content_ok',
+            'severity': 'info',
+            'icon': '🟢',
+            'title': 'เนื้อหาดี',
+            'detail': f'เฉลี่ย ~{avg_chars} ตัวอักษรจีน/ตอน',
+            'fixable': False,
+            'fixed': True,
+        })
+
+    # 2. Empty titles
+    empty_titles = sum(1 for _, t in chapters if not t.strip())
+    if empty_titles > len(chapters) * 0.5:
+        issues.append({
+            'id': 'titles_empty',
+            'severity': 'warning',
+            'icon': '🟡',
+            'title': 'ชื่อตอนว่างเปล่า',
+            'detail': f'{empty_titles}/{len(chapters)} ตอนไม่มีชื่อ — '
+                      f'จะใช้ชื่อจากหน้าตอนแทน (อาจทำให้เรียงลำดับไม่ถูกต้อง)',
+            'fixable': True,
+            'fixed': False,
+        })
+    else:
+        issues.append({
+            'id': 'titles_ok',
+            'severity': 'info',
+            'icon': '🟢',
+            'title': 'ชื่อตอนครบ',
+            'detail': f'{len(chapters) - empty_titles}/{len(chapters)} ตอนมีชื่อ',
+            'fixable': False,
+            'fixed': True,
+        })
+
+    # 3. Multi-page
+    if mp:
+        issues.append({
+            'id': 'multipage_ok',
+            'severity': 'info',
+            'icon': '🟢',
+            'title': 'พบระบบหน้าต่อ',
+            'detail': f'รูปแบบ: {mp} — จะดาวน์โหลดทุกหน้าของแต่ละตอน',
+            'fixable': False,
+            'fixed': True,
+        })
+    else:
+        if avg_chars < 800:
+            issues.append({
+                'id': 'multipage_missing',
+                'severity': 'warning',
+                'icon': '🟡',
+                'title': 'ไม่พบระบบหน้าต่อ',
+                'detail': 'เนื้อหาน้อย + ไม่พบหน้าต่อ — อาจได้แค่หน้าแรก',
+                'fixable': True,
+                'fixed': False,
+            })
+        else:
+            issues.append({
+                'id': 'multipage_none',
+                'severity': 'info',
+                'icon': '🟢',
+                'title': 'ตอนละ 1 หน้า',
+                'detail': 'ไม่มีระบบหน้าต่อ — เนื้อหาอยู่ในหน้าเดียวครบแล้ว',
+                'fixable': False,
+                'fixed': True,
+            })
+
+    # 4. Chapter count sanity
+    if len(chapters) == 0:
+        issues.append({
+            'id': 'chapters_zero',
+            'severity': 'critical',
+            'icon': '🔴',
+            'title': 'ไม่พบตอน',
+            'detail': 'สารบัญว่างเปล่า — URL อาจไม่ถูกต้อง',
+            'fixable': False,
+            'fixed': False,
+        })
+    elif len(chapters) < 10:
+        issues.append({
+            'id': 'chapters_few',
+            'severity': 'warning',
+            'icon': '🟡',
+            'title': f'พบน้อย ({len(chapters)} ตอน)',
+            'detail': 'อาจไม่ครบ — สารบัญอาจมีหลายหน้าที่ยังไม่ถูกสแกน',
+            'fixable': False,
+            'fixed': False,
+        })
+    else:
+        issues.append({
+            'id': 'chapters_ok',
+            'severity': 'info',
+            'icon': '🟢',
+            'title': f'จำนวนตอน ({len(chapters)} ตอน)',
+            'detail': 'จำนวนตอนดูสมเหตุสมผล',
+            'fixable': False,
+            'fixed': True,
+        })
+
+    # 5. Sample variance — one very low sample among decent ones
+    if len(sample_counts) >= 3 and avg_chars > 200:
+        low_samples = [c for c in sample_counts if c < avg_chars * 0.3]
+        if low_samples:
+            issues.append({
+                'id': 'variance_high',
+                'severity': 'warning',
+                'icon': '🟡',
+                'title': 'คุณภาพไม่สม่ำเสมอ',
+                'detail': f'ตัวอย่างบางตอนได้เพียง {min(sample_counts)} อักษร '
+                          f'(เฉลี่ย {avg_chars}) — บางตอนอาจได้เนื้อหาไม่ครบ',
+                'fixable': False,
+                'fixed': False,
+            })
+
+    return issues
+
+
+async def fix_issues(scan_info, issues, log):
+    """Attempt to fix detected issues. Modifies scan_info in-place.
+
+    Strategies:
+    - Low content: try desktop URL (remove 'm.' prefix), different User-Agent
+    - Empty titles: fetch titles from chapter pages in batches
+    - Missing multi-page: try additional URL patterns more aggressively
+    Returns updated issues list.
+    """
+    chapters = scan_info['chapters']
+    profile = scan_info.get('profile', {})
+    fixable_ids = {i['id'] for i in issues if i['fixable'] and not i['fixed']}
+
+    if not fixable_ids:
+        log('✅ ไม่มีปัญหาที่ต้องแก้ไข')
+        return issues
+
+    connector = aiohttp.TCPConnector(limit=5)
+    async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
+
+        # ── Fix 1: Low content — try desktop URL ────────────────────────
+        if 'content_critical' in fixable_ids or 'content_low' in fixable_ids:
+            log('🔧 กำลังลองวิธีแก้ปัญหาเนื้อหาน้อย...')
+
+            # Strategy A: try desktop domain (remove m. prefix)
+            sample_url = chapters[0][0] if chapters else ''
+            parsed = urlparse(sample_url)
+            host = parsed.netloc
+            desktop_host = None
+            if host.startswith('m.'):
+                desktop_host = host[2:]
+            elif host.startswith('wap.'):
+                desktop_host = 'www.' + host[4:]
+
+            improved = False
+            if desktop_host:
+                log(f'  ↳ ลอง desktop URL: {desktop_host}')
+                test_url = sample_url.replace(host, desktop_host)
+                html = await fetch_html(session, test_url)
+                if html:
+                    lines = smart_extract(html)
+                    cn = sum(count_chinese(l) for l in lines)
+                    old_avg = profile.get('avg_chars', 0)
+                    if cn > old_avg * 1.5 and cn > 200:
+                        log(f'  ✅ Desktop URL ดีกว่า: {cn} อักษร (เดิม ~{old_avg})')
+                        new_chapters = []
+                        for url, title in chapters:
+                            new_chapters.append((url.replace(host, desktop_host), title))
+                        scan_info['chapters'] = new_chapters
+                        scan_info['domain'] = desktop_host
+                        chapters = new_chapters
+                        improved = True
+
+            # Strategy B: try different User-Agent (Googlebot, mobile)
+            if not improved:
+                log('  ↳ ลอง User-Agent อื่น...')
+                alt_agents = [
+                    ('Googlebot', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'),
+                    ('Mobile', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15'),
+                ]
+                test_url = chapters[len(chapters)//2][0] if chapters else ''
+                for name, ua in alt_agents:
+                    try:
+                        hdrs = dict(HEADERS)
+                        hdrs['User-Agent'] = ua
+                        async with session.get(test_url,
+                                               headers=hdrs,
+                                               timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                            if resp.status == 200:
+                                html = await resp.text(errors='replace')
+                                lines = smart_extract(html)
+                                cn = sum(count_chinese(l) for l in lines)
+                                old_avg = profile.get('avg_chars', 0)
+                                if cn > old_avg * 1.5 and cn > 200:
+                                    log(f'  ✅ {name} UA ดีกว่า: {cn} อักษร (เดิม ~{old_avg})')
+                                    improved = True
+                                    break
+                    except Exception:
+                        pass
+
+            if not improved:
+                log('  ❌ ไม่สามารถแก้ปัญหาเนื้อหาน้อยได้ — เว็บนี้อาจต้องใช้ browser จริง')
+
+        # ── Fix 2: Empty titles — fetch from chapter pages ──────────────
+        if 'titles_empty' in fixable_ids:
+            log('🔧 กำลังดึงชื่อตอนจากหน้าตอน...')
+            empty_indices = [i for i, (_, t) in enumerate(chapters) if not t.strip()]
+            batch_indices = empty_indices[:min(50, len(empty_indices))]
+
+            fetched = 0
+            sem = asyncio.Semaphore(5)
+
+            async def fetch_title(idx):
+                nonlocal fetched
+                url = chapters[idx][0]
+                async with sem:
+                    html = await fetch_html(session, url)
+                    if html:
+                        title = extract_title(html)
+                        if title:
+                            chapters[idx] = (url, clean_title(title))
+                            fetched += 1
+                    await asyncio.sleep(0.3)
+
+            batch_size = 10
+            for bs in range(0, len(batch_indices), batch_size):
+                batch = batch_indices[bs:bs+batch_size]
+                await asyncio.gather(*[fetch_title(i) for i in batch])
+                log(f'  ↳ ดึงชื่อตอนแล้ว {min(bs+batch_size, len(batch_indices))}/{len(batch_indices)}')
+
+            if fetched > 0:
+                log(f'  ✅ ดึงชื่อตอนสำเร็จ {fetched}/{len(batch_indices)} ตอน')
+                scan_info['chapters'] = chapters
+            else:
+                log('  ❌ ไม่สามารถดึงชื่อตอนจากหน้าตอนได้')
+
+        # ── Fix 3: Missing multi-page — try more patterns ───────────────
+        if 'multipage_missing' in fixable_ids:
+            log('🔧 กำลังค้นหาระบบหน้าต่อเพิ่มเติม...')
+            test_indices = [0, len(chapters)//3, len(chapters)//2, len(chapters)*2//3]
+            found_pattern = None
+
+            for idx in test_indices:
+                if idx >= len(chapters):
+                    continue
+                url = chapters[idx][0]
+                html = await fetch_html(session, url)
+                if not html:
+                    continue
+
+                lines = smart_extract(html)
+                first_snippet = ''.join(lines[:2])
+
+                # Try more aggressive URL patterns
+                extra_candidates = []
+                m = re.match(r'^(.*?)(\d+)(\.s?html?)$', url)
+                if m:
+                    base, num, ext = m.group(1), m.group(2), m.group(3)
+                    extra_candidates.append(f'{base}{num}_2{ext}')
+                    extra_candidates.append(f'{base}{num}-2{ext}')
+                    extra_candidates.append(f'{base}{num}/2{ext}')
+                sep = '&' if '?' in url else '?'
+                extra_candidates.append(f'{url}{sep}page=2')
+                extra_candidates.append(f'{url}{sep}p=2')
+
+                # Also check for 下一页 links in HTML
+                next_m = re.search(
+                    r'<a[^>]+href="([^"]+)"[^>]*>\s*(?:下一页|下一頁|next\s*page)\s*</a>',
+                    html, re.IGNORECASE
+                )
+                if next_m:
+                    href = next_m.group(1)
+                    if not href.startswith('http'):
+                        href = urljoin(url, href)
+                    extra_candidates.insert(0, href)
+
+                for candidate_url in extra_candidates:
+                    html2 = await fetch_html(session, candidate_url)
+                    if html2 is None:
+                        continue
+                    lines2 = smart_extract(html2)
+                    cn2 = sum(count_chinese(l) for l in lines2)
+                    page2_start = ''.join(lines2[:2])
+                    if cn2 > 80 and page2_start != first_snippet:
+                        if '_2.' in candidate_url or '-2.' in candidate_url:
+                            found_pattern = 'underscore'
+                        elif 'page=' in candidate_url or 'p=' in candidate_url:
+                            found_pattern = 'query'
+                        else:
+                            found_pattern = 'underscore'
+                        log(f'  ✅ พบระบบหน้าต่อ: {found_pattern} (+{cn2} อักษร)')
+                        break
+                if found_pattern:
+                    break
+                await asyncio.sleep(0.3)
+
+            if found_pattern:
+                profile['multipage_pattern'] = found_pattern
+                scan_info['profile'] = profile
+            else:
+                log('  ❌ ไม่พบระบบหน้าต่อเพิ่มเติม')
+
+        # ── Re-analyze after fixes ──────────────────────────────────────
+        log('🔍 กำลังวิเคราะห์ซ้ำหลังแก้ไข...')
+        new_profile = await analyze_site(session, chapters, log)
+
+        # Keep multipage pattern if we found one in fix
+        if profile.get('multipage_pattern') and not new_profile.get('multipage_pattern'):
+            new_profile['multipage_pattern'] = profile['multipage_pattern']
+
+        scan_info['profile'] = new_profile
+        scan_info['chapters'] = chapters
+
+    # Re-detect issues with updated data
+    return detect_issues(scan_info)
 
 
 # ── Chapter next-page fallback ───────────────────────────────────────────────
@@ -997,7 +1356,7 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
 
 st.set_page_config(page_title='Novel Downloader', page_icon='📚', layout='centered')
 st.title('📚 Novel Downloader')
-st.markdown('วางลิงก์นิยายแล้วกด **สแกน** — รองรับทุกเว็บนิยายจีน')
+st.markdown('วางลิงก์นิยายแล้วกด **สแกน** → ตรวจปัญหา → **แก้ไข** → **โหลด**')
 
 # ── Step 1: Scan ─────────────────────────────────────────────────────────────
 
@@ -1008,7 +1367,7 @@ with st.form('scan_form'):
         value=st.session_state.get('scan_url', ''),
     )
     scan_submitted = st.form_submit_button(
-        '🔍 สแกน', type='primary', use_container_width=True
+        '🔍 ขั้นตอนที่ 1: สแกน', type='primary', use_container_width=True
     )
 
 if scan_submitted and url_input.strip():
@@ -1027,17 +1386,21 @@ if scan_submitted and url_input.strip():
     if err:
         st.error(f'สแกนล้มเหลว: {err}')
         st.session_state.pop('scan_info', None)
+        st.session_state.pop('issues', None)
     else:
         st.session_state['scan_url'] = url_input.strip()
         st.session_state['scan_info'] = scan_info
+        st.session_state['issues'] = detect_issues(scan_info)
         st.session_state.pop('download_result', None)
+        st.session_state.pop('fix_done', None)
 
 elif scan_submitted:
     st.warning('กรุณาใส่ URL ก่อนค่ะ')
 
-# ── Show scan result ─────────────────────────────────────────────────────────
+# ── Show scan result + Issue Report ──────────────────────────────────────────
 
 scan_info = st.session_state.get('scan_info')
+issues = st.session_state.get('issues', [])
 
 if scan_info:
     chapters = scan_info['chapters']
@@ -1050,85 +1413,155 @@ if scan_info:
         f'ตอนสุดท้าย: {chapters[-1][1] or chapters[-1][0]}'
     )
 
-    if profile:
-        mp = profile.get('multipage_pattern')
-        avg = profile.get('avg_chars', 0)
-        low = profile.get('low_quality', False)
-        info_text = (
-            f'🔍 **ผลวิเคราะห์เว็บ:**  \n'
-            f'เฉลี่ย ~{avg} ตัวอักษรจีน/ตอน  \n'
-            f'หน้าต่อ: {"มี (" + mp + ")" if mp else "ไม่พบ (ตอนละ 1 หน้า)"}  \n'
-            f'คุณภาพ: {"ดี" if avg > 1500 else "ปานกลาง" if avg > 500 else "ต่ำ"}'
-        )
-        if low:
-            st.warning(
-                '⚠️ **เว็บนี้เนื้อหาน้อยมาก (~' + str(avg) + ' ตัวอักษร/ตอน)**  \n'
-                'เว็บนี้อาจใช้ JavaScript ในการโหลดเนื้อหา หรือต้องการ login  \n'
-                'ดาวน์โหลดได้ แต่แต่ละตอนอาจได้เนื้อหาไม่ครบค่ะ'
-            )
-        else:
-            st.info(info_text)
+    # ── Issue Report ─────────────────────────────────────────────────────
+    if issues:
+        st.divider()
+        st.subheader('📋 รายงานการตรวจสอบ')
 
-    # ── Step 2: Download settings ────────────────────────────────────────
+        has_fixable = any(i['fixable'] and not i['fixed'] for i in issues)
+        all_ok = all(i['severity'] == 'info' or i['fixed'] for i in issues)
+        criticals = [i for i in issues if i['severity'] == 'critical' and not i['fixed']]
+        warnings = [i for i in issues if i['severity'] == 'warning' and not i['fixed']]
+
+        for issue in issues:
+            if issue['fixed'] or issue['severity'] == 'info':
+                st.markdown(f"✅ **{issue['title']}** — {issue['detail']}")
+            elif issue['severity'] == 'critical':
+                st.markdown(f"❌ **{issue['title']}** — {issue['detail']}")
+            else:
+                st.markdown(f"⚠️ **{issue['title']}** — {issue['detail']}")
+
+        if all_ok:
+            st.success('🎉 ตรวจสอบผ่านทุกข้อ — พร้อมดาวน์โหลดค่ะ!')
+        elif criticals:
+            st.error(
+                f'พบปัญหาร้ายแรง {len(criticals)} ข้อ'
+                + (f', คำเตือน {len(warnings)} ข้อ' if warnings else '')
+                + (' — กด **แก้ไข** เพื่อลองแก้ปัญหาอัตโนมัติ' if has_fixable else '')
+            )
+        elif warnings:
+            st.warning(
+                f'พบคำเตือน {len(warnings)} ข้อ'
+                + (' — กด **แก้ไข** เพื่อลองแก้ปัญหาอัตโนมัติ' if has_fixable else '')
+            )
+
+        # ── Step 2: Fix Button ───────────────────────────────────────────
+        if has_fixable:
+            st.divider()
+            st.subheader('🔧 ขั้นตอนที่ 2: แก้ไขปัญหา')
+            fixable_list = [i for i in issues if i['fixable'] and not i['fixed']]
+            st.markdown('**จะลองแก้ไข:**')
+            for i in fixable_list:
+                st.markdown(f"- {i['icon']} {i['title']}")
+
+            if st.button('🔧 แก้ไข', type='primary', use_container_width=True):
+                fix_log_area = st.empty()
+                fix_logs = []
+
+                def fix_log(msg):
+                    fix_logs.append(msg)
+                    fix_log_area.text_area(
+                        'Fix Log', '\n'.join(fix_logs), height=220,
+                        label_visibility='collapsed',
+                    )
+
+                with st.spinner('กำลังแก้ไขปัญหาอัตโนมัติ...'):
+                    new_issues = asyncio.run(
+                        fix_issues(scan_info, issues, fix_log)
+                    )
+
+                st.session_state['issues'] = new_issues
+                st.session_state['fix_done'] = True
+                st.rerun()
+
+        # Show fix result if just fixed
+        if st.session_state.get('fix_done'):
+            still_bad = [i for i in issues if i['severity'] != 'info' and not i['fixed']]
+            if not still_bad:
+                st.success('✅ แก้ไขเสร็จสิ้น — ปัญหาทั้งหมดได้รับการแก้ไขแล้วค่ะ!')
+            else:
+                st.info(
+                    f'แก้ไขเสร็จสิ้น — ยังเหลือปัญหา {len(still_bad)} ข้อ '
+                    f'ที่ไม่สามารถแก้ไขอัตโนมัติได้ '
+                    f'(ดาวน์โหลดได้ แต่อาจได้เนื้อหาไม่ครบ)'
+                )
+
+    # ── Step 3: Download settings ────────────────────────────────────────
 
     st.divider()
-    st.subheader('⚙️ ตั้งค่าการโหลด')
+    can_download = not any(i['severity'] == 'critical' and not i['fixed'] for i in issues)
 
-    novel_name = st.text_input(
-        'ชื่อไฟล์',
-        value=scan_info['title'],
-        placeholder='ชื่อไฟล์ที่บันทึก',
-    )
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        workers = st.slider('Workers', 1, 8, 3)
-    with c2:
-        delay = st.slider('Delay (วิ)', 0.5, 5.0, 2.0, step=0.5)
-    with c3:
-        min_chars = st.number_input(
-            'QC ขั้นต่ำตัวอักษร', min_value=50, max_value=2000, value=300, step=50
+    if can_download:
+        st.subheader('⬇️ ขั้นตอนที่ 3: ดาวน์โหลด')
+
+        novel_name = st.text_input(
+            'ชื่อไฟล์',
+            value=scan_info['title'],
+            placeholder='ชื่อไฟล์ที่บันทึก',
         )
-
-    if st.button('⬇️ โหลด', type='primary', use_container_width=True):
-        log_area = st.empty()
-        progress_bar = st.progress(0.0, text='กำลังโหลด...')
-        logs = []
-
-        def log(msg):
-            logs.append(msg)
-            log_area.text_area(
-                'Log', value='\n'.join(logs), height=220,
-                label_visibility='collapsed',
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            workers = st.slider('Workers', 1, 8, 3)
+        with c2:
+            delay = st.slider('Delay (วิ)', 0.5, 5.0, 2.0, step=0.5)
+        with c3:
+            min_chars = st.number_input(
+                'QC ขั้นต่ำตัวอักษร', min_value=50, max_value=2000, value=300, step=50
             )
 
-        def set_progress(val):
-            progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val * 100:.0f}%')
-
-        try:
-            zip_bytes, zip_name, summary = asyncio.run(
-                run_download(
-                    scan_info, novel_name, workers, float(delay),
-                    int(min_chars), log, set_progress,
-                )
+        unfixed_warnings = [i for i in issues if i['severity'] == 'warning' and not i['fixed']]
+        if unfixed_warnings:
+            st.warning(
+                '⚠️ ยังมีคำเตือนที่ยังไม่ได้แก้ไข — ดาวน์โหลดได้ แต่อาจไม่สมบูรณ์  \n'
+                + '  \n'.join(f"- {w['title']}" for w in unfixed_warnings)
             )
-            progress_bar.progress(1.0, text='เสร็จแล้ว!')
-            if zip_bytes:
-                st.success(summary)
-                st.download_button(
-                    label='📥 โหลดไฟล์ (.zip มี TXT + QC JSON)',
-                    data=zip_bytes,
-                    file_name=zip_name,
-                    mime='application/zip',
-                    use_container_width=True,
+
+        if st.button('⬇️ โหลดเลย!', type='primary', use_container_width=True):
+            log_area = st.empty()
+            progress_bar = st.progress(0.0, text='กำลังโหลด...')
+            logs = []
+
+            def log(msg):
+                logs.append(msg)
+                log_area.text_area(
+                    'Log', value='\n'.join(logs), height=220,
+                    label_visibility='collapsed',
                 )
-            else:
-                st.error(summary)
-        except Exception as e:
-            st.error(f'เกิดข้อผิดพลาด: {e}')
+
+            def set_progress(val):
+                progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val * 100:.0f}%')
+
+            try:
+                zip_bytes, zip_name, summary = asyncio.run(
+                    run_download(
+                        scan_info, novel_name, workers, float(delay),
+                        int(min_chars), log, set_progress,
+                    )
+                )
+                progress_bar.progress(1.0, text='เสร็จแล้ว!')
+                if zip_bytes:
+                    st.success(summary)
+                    st.download_button(
+                        label='📥 โหลดไฟล์ (.zip มี TXT + QC JSON)',
+                        data=zip_bytes,
+                        file_name=zip_name,
+                        mime='application/zip',
+                        use_container_width=True,
+                    )
+                else:
+                    st.error(summary)
+            except Exception as e:
+                st.error(f'เกิดข้อผิดพลาด: {e}')
+    else:
+        st.error(
+            '❌ ไม่สามารถดาวน์โหลดได้ — มีปัญหาร้ายแรงที่ยังไม่ได้แก้ไข  \n'
+            'กรุณากด **แก้ไข** ด้านบน หรือลองเว็บอื่นค่ะ'
+        )
 
 st.markdown("""
 ---
-**ตัวอย่าง URL ที่รองรับ:**
+**วิธีใช้:** สแกน → ตรวจปัญหา → แก้ไข (ถ้ามี) → โหลด
+**ตัวอย่าง URL:**
 - `https://m.biquge365.net/shu/528722/`
 - `https://www.69shu.xyz/index/2/2829/1.html/`
 - `https://shubaowb.com/novel/YH2B.html`
