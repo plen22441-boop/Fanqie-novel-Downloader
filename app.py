@@ -553,7 +553,7 @@ def detect_issues(scan_info):
                 'title': 'คุณภาพไม่สม่ำเสมอ',
                 'detail': f'ตัวอย่างบางตอนได้เพียง {min(sample_counts)} อักษร '
                           f'(เฉลี่ย {avg_chars}) — บางตอนอาจได้เนื้อหาไม่ครบ',
-                'fixable': False,
+                'fixable': True,
                 'fixed': False,
             })
 
@@ -741,6 +741,38 @@ async def fix_issues(scan_info, issues, log):
                 scan_info['profile'] = profile
             else:
                 log('  ❌ ไม่พบระบบหน้าต่อเพิ่มเติม')
+
+        # ── Fix 4: High variance — re-sample the low-scoring chapters ────
+        if 'variance_high' in fixable_ids:
+            log('🔧 กำลังตรวจสอบตอนที่ได้คะแนนต่ำซ้ำ...')
+            sample_counts = profile.get('sample_char_counts', [])
+            avg = profile.get('avg_chars', 0)
+            if sample_counts and avg > 200:
+                n = len(chapters)
+                indices = sorted(set([0, max(0, n // 4), n // 2, min(n - 1, 3 * n // 4)]))
+                low_idx = [i for i, c in zip(indices, sample_counts) if c < avg * 0.3]
+                for idx in low_idx:
+                    url = chapters[idx][0]
+                    for attempt_ua in [
+                        HEADERS['User-Agent'],
+                        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                    ]:
+                        try:
+                            hdrs = dict(HEADERS)
+                            hdrs['User-Agent'] = attempt_ua
+                            async with session.get(url, headers=hdrs,
+                                                   timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                                if resp.status == 200:
+                                    html = await resp.text(errors='replace')
+                                    lines = smart_extract(html)
+                                    cn = sum(count_chinese(l) for l in lines)
+                                    if cn > avg * 0.5:
+                                        log(f'  ✅ ตอนที่ {idx+1} ดีขึ้น: {cn} อักษร')
+                                        break
+                        except Exception:
+                            pass
+                    await asyncio.sleep(0.3)
+                log('  ℹ️ ความแตกต่างอาจเกิดจากเนื้อหาตอนสั้นจริง — จะตรวจละเอียดอีกครั้งตอนดาวน์โหลด')
 
         # ── Re-analyze after fixes ──────────────────────────────────────
         log('🔍 กำลังวิเคราะห์ซ้ำหลังแก้ไข...')
