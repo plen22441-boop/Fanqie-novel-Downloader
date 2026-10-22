@@ -154,12 +154,58 @@ async def get_chapters_biquge365(session, book_id, log):
 
     def extract(html, seen):
         found = []
-        for m in re.compile(rf'<a[^>]*href="(/shu/{book_id}/(\d+)\.html)"[^>]*>(.*?)</a>', re.DOTALL).finditer(html):
+        # Collect ALL anchor hrefs first for debug
+        all_hrefs = re.findall(r'href="([^"]{5,})"', html)
+        chapter_like = [h for h in all_hrefs if re.search(r'\d{4,}', h) and '.html' in h]
+        if chapter_like:
+            log(f'  [debug] ตัวอย่าง href ที่มีเลข: {chapter_like[:3]}')
+
+        # Pattern 1: /shu/{book_id}/DIGITS.html  (relative)
+        for m in re.finditer(rf'href="(/shu/{book_id}/(\d+)\.html)"', html):
             url = f'https://{domain}{m.group(1)}'
-            title = re.sub(r'<[^>]+>', '', m.group(3)).strip()
-            if url not in seen and title:
+            if url not in seen:
                 seen.add(url)
-                found.append((url, title))
+                found.append((url, ''))
+
+        # Pattern 2: full URL https://...biquge365.net/shu/{book_id}/DIGITS.html
+        for m in re.finditer(rf'href="(https?://[^"]*biquge365[^"]+/shu/{book_id}/(\d+)\.html)"', html):
+            url = m.group(1)
+            if url not in seen:
+                seen.add(url)
+                found.append((url, ''))
+
+        # Pattern 3: just DIGITS.html (relative to current TOC page)
+        for m in re.finditer(r'href="(\d{5,}\.html)"', html):
+            url = f'https://{domain}/shu/{book_id}/{m.group(1)}'
+            if url not in seen:
+                seen.add(url)
+                found.append((url, ''))
+
+        # Fill titles from nearby text
+        if not found:
+            # Fallback: any link with digits that is under this book
+            for m in re.finditer(rf'<a[^>]*href="([^"]*{book_id}[^"]*\d+\.html[^"]*)"[^>]*>(.*?)</a>', html, re.DOTALL):
+                href = m.group(1)
+                url = href if href.startswith('http') else f'https://{domain}{href}'
+                title = re.sub(r'<[^>]+>', '', m.group(2)).strip()
+                if url not in seen and title and len(title) <= 80:
+                    seen.add(url)
+                    found.append((url, title))
+
+        # Try to recover titles using <a> tag scan
+        if found:
+            title_map = {}
+            for m in re.finditer(r'<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html, re.DOTALL):
+                t = re.sub(r'<[^>]+>', '', m.group(2)).strip()
+                if t and len(t) <= 80:
+                    title_map[m.group(1)] = t
+            result = []
+            for url, title in found:
+                path = url.replace(f'https://{domain}', '')
+                if not title:
+                    title = title_map.get(path) or title_map.get(url) or ''
+                result.append((url, title))
+            return result
         return found
 
     def next_page(html, pn):
@@ -176,7 +222,9 @@ async def get_chapters_biquge365(session, book_id, log):
     while toc_url:
         html = await fetch_html(session, toc_url)
         if not html:
+            log(f'  [debug] ดึงหน้า {toc_url} ล้มเหลว (ไม่ได้ HTML)')
             break
+        log(f'  [debug] HTML {len(html)} chars | ตัวอย่าง: {html[400:600].replace(chr(10)," ")}')
         new = extract(html, seen)
         chapters.extend(new)
         log(f'สารบัญหน้า {pn}: +{len(new)} ตอน (รวม {len(chapters)})')
