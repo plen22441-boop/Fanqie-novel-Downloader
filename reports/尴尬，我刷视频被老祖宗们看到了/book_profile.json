@@ -1,0 +1,42 @@
+{
+  "title": "尴尬，我刷视频被老祖宗们看到了",
+  "title_th": "เขิน! บรรพบุรุษแอบดูฉันเล่นโซเชียล",
+  "author": "ไม่ทราบ",
+  "source": "raw_zh",
+  "platform_target": "mynovel",
+  "source_stats": {
+    "fanqie_score": 6.5,
+    "qq_readers": "ไม่ทราบ",
+    "chapters_total_cn": 577,
+    "status": "จบแล้ว",
+    "note": "Phase 1 — ประเมินจาก metadata เท่านั้น | Modern + System/Time Portal + Live Streaming + Comedy"
+  },
+  "genres": ["modern", "comedy", "drama", "system", "romance"],
+  "tropes": ["op_mc", "face_slapping", "misunderstanding"],
+  "chapters_total": 577,
+  "chapters_read": 0,
+  "chapters_sampled": [],
+  "free_chapters": 30,
+  "translation_quality": 7,
+  "translation_difficulty": 4,
+  "scores": {
+    "hook":        { "score": 7.0, "evidence": "[Phase 1] Concept บรรพบุรุษดูวิดีโอสมัยใหม่ — ฮาและน่าสนใจ แต่ตลาดนี้อิ่มตัวพอควรในจีน" },
+    "prose":       { "score": 6.0, "evidence": "[Phase 1] fanqie 6.5 คุณภาพทั่วไป" },
+    "pacing":      { "score": 7.0, "evidence": "[Phase 1] Comedy format มักมีจังหวะเร็ว ตลกต่อเนื่อง" },
+    "characters":  { "score": 6.5, "evidence": "[Phase 1] บรรพบุรุษ react สิ่งใหม่ — concept ตัวละครน่ารัก แต่อาจซ้ำหลังไปหน่อย" },
+    "romance":     { "score": 6.0, "evidence": "[Phase 1] ประมาณการ — romance อาจไม่ใช่ focal point" },
+    "world":       { "score": 6.5, "evidence": "[Phase 1] Time portal/system mechanics — ทั่วไปในแนวนี้" },
+    "plot":        { "score": 6.0, "evidence": "[Phase 1] Episodic comedy format — พล็อตอาจไม่ deep แต่สนุกสะสม" },
+    "emotion":     { "score": 6.5, "evidence": "[Phase 1] Comedy + Family bond = อบอุ่นนิดหน่อย" },
+    "cliffhanger": { "score": 6.0, "evidence": "[Phase 1] Comedy มักไม่มี cliffhanger แรง" },
+    "originality": { "score": 6.0, "evidence": "[Phase 1] แนวบรรพบุรุษดูสมัยใหม่พบบ่อยในตลาดจีน — ในไทยยังไม่อิ่มมาก" }
+  },
+  "translation_notes": {
+    "difficulty_breakdown": "มุกภาษาจีน/วัฒนธรรมจีนที่แปลงเป็นไทยอาจหายมุก — ความยากหลักคือ localize มุกตลก",
+    "cultural_notes": "บรรพบุรุษ react สิ่งใหม่ — ต้องเลือกว่าจะอธิบายบริบทมากแค่ไหน"
+  },
+  "editor_recommendations": [
+    "[Phase 1] ตลาดไทยสาย comedy portal ยังไม่อิ่ม — แต่ fanqie 6.5 บ่งชี้คุณภาพปานกลาง",
+    "ต้องอ่านเนื้อจริงก่อน — มุกจะ land ในไทยไหมเป็นคำถามหลัก"
+  ]
+}

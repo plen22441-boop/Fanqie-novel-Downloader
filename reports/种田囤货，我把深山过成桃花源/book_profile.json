@@ -1,0 +1,42 @@
+{
+  "title": "种田囤货，我把深山过成桃花源",
+  "title_th": "ทำไร่สะสมของ ฉันเปลี่ยนดอยลึกให้เป็นสวรรค์",
+  "author": "发财金手指",
+  "source": "raw_zh",
+  "platform_target": "mynovel",
+  "source_stats": {
+    "fanqie_score": 8.0,
+    "qq_readers": 27348,
+    "chapters_total_cn": 516,
+    "status": "จบแล้ว",
+    "note": "Phase 1 — ประเมินจาก metadata เท่านั้น | Farming + Ancient Romance + Transmigration + Cuisine + Lighthearted"
+  },
+  "genres": ["farming", "historical", "transmigration", "romance", "comedy", "drama"],
+  "tropes": ["strong_fl", "face_slapping", "found_family", "op_mc"],
+  "chapters_total": 516,
+  "chapters_read": 0,
+  "chapters_sampled": [],
+  "free_chapters": 30,
+  "translation_quality": 7,
+  "translation_difficulty": 6,
+  "scores": {
+    "hook":        { "score": 6.5, "evidence": "[Phase 1] 种田文 เปิดช้าเป็นปกติ แต่ concept ทำลึกดอยให้เป็นสวรรค์ + cuisine น่าสนใจ" },
+    "prose":       { "score": 7.0, "evidence": "[Phase 1] fanqie 8.0 บ่งชี้คุณภาพโอเค" },
+    "pacing":      { "score": 6.0, "evidence": "[Phase 1] แนว farming ปกติช้า เน้นชีวิตประจำวัน" },
+    "characters":  { "score": 7.0, "evidence": "[Phase 1] 种田文 มักมีตัวละครหมู่บ้านน่ารัก คาดว่า found family ดี" },
+    "romance":     { "score": 6.5, "evidence": "[Phase 1] Ancient Romance = มีพระเอก แต่มักเป็น slow burn" },
+    "world":       { "score": 7.5, "evidence": "[Phase 1] ฉากโบราณจีน + ทำไร่ + อาหาร — สร้างโลกได้ดีแนวนี้" },
+    "plot":        { "score": 6.5, "evidence": "[Phase 1] พล็อตหลัก = ปลูกฝัง/สะสมของ/ตบหน้าคนชั่ว มาตรฐาน" },
+    "emotion":     { "score": 7.0, "evidence": "[Phase 1] Lighthearted + found family = อบอุ่นใจ" },
+    "cliffhanger": { "score": 5.5, "evidence": "[Phase 1] 种田文 มักจบตอนอบอุ่น ไม่ค่อยมี cliffhanger แรง" },
+    "originality": { "score": 6.0, "evidence": "[Phase 1] สูตร 古代种田+transmigration พบบ่อยในตลาด แต่ concept ดอยลึก+cuisine ต่างนิดหน่อย" }
+  },
+  "translation_notes": {
+    "difficulty_breakdown": "ศัพท์การเกษตร/อาหารโบราณจีน ต้องอธิบาย",
+    "cultural_notes": "ฉากชนบทจีนโบราณ — ผู้อ่านไทยคุ้นเคยพอควร"
+  },
+  "editor_recommendations": [
+    "[Phase 1] แนว farming + cuisine ฮิตในไทย แต่ตลาดอิ่มตัวพอควร — ต้องอ่านเนื้อจริงเพื่อดูว่ามีจุดต่างอะไร",
+    "ถ้า cuisine element แรง อาจโปรโมตสาย foodie ได้"
+  ]
+}
