@@ -11,17 +11,9 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
 from playwright.sync_api import sync_playwright, TimeoutError as PwTimeout
+import trafilatura
 
 SEPARATOR = "─" * 40
-
-CONTENT_SELECTORS = [
-    "#chaptercontent", "#BookText", "#content", "#booktxt", "#htmlContent",
-    ".chapter-content", ".read-content", ".novel-content", ".chapter-txt",
-    ".readcontent", ".duanzhang", ".box_con #content", "article .content",
-    "#nr1", "#nr2", ".neirong", ".zuopin_content", "#novelcontent",
-    "#chapterBody", ".chaptercontent", "#reader-content", ".text-content",
-    ".content", "#articleContent", ".article-content",
-]
 
 
 def clean_text(t):
@@ -31,17 +23,20 @@ def clean_text(t):
 
 
 def extract_content_from_page(page):
-    for sel in CONTENT_SELECTORS:
-        try:
-            el = page.query_selector(sel)
-            if el:
-                t = el.inner_text()
-                if len(t.replace(" ", "").replace("\n", "")) > 80:
-                    return clean_text(t)
-        except Exception:
-            pass
+    html = page.content()
 
-    # Fallback: find div with most <p> children
+    # Primary: trafilatura — no selectors needed, works on any site
+    text = trafilatura.extract(
+        html,
+        include_comments=False,
+        include_tables=False,
+        no_fallback=False,
+        favor_recall=True,
+    )
+    if text and len(text.replace(" ", "").replace("\n", "")) > 80:
+        return clean_text(text)
+
+    # Fallback: find div with most <p> children (keeps existing robustness)
     try:
         result = page.evaluate("""() => {
             const divs = document.querySelectorAll('div');
