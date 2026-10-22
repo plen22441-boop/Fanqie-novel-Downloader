@@ -51,9 +51,14 @@ class TextExtractor(HTMLParser):
 
 JUNK_RE = re.compile(
     r'当前位置|上一章|下一章|回目录|©\s*20\d\d|document\.domain|'
-    r'google|adsbygoogle|function\(i,s|var\s+_hmt|百度|本站|书签|收藏|推荐',
+    r'google|adsbygoogle|function\(i,s|var\s+_hmt|百度|本站|书签|收藏|推荐|'
+    r'首页|返回目录|关灯|护眼|字号|章节报错|一秒记住|笔趣阁|更新快|无弹窗|'
+    r'本章未完|点击下一页|请点击下一页|最新章节|设为首页|加入书架|手机版|'
+    r'请记住本站|如遇到内容乱|\/\/',
     re.IGNORECASE
 )
+
+PAGE_MARKER_RE = re.compile(r'[（(]第\s*\d+\s*/\s*\d+\s*页[）)]')
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -68,10 +73,21 @@ def clean_lines(paragraphs):
     return [p.strip() for p in paragraphs if p.strip() and len(p.strip()) > 1 and not JUNK_RE.search(p)]
 
 
+def clean_title(title):
+    if not title:
+        return title
+    title = re.sub(r'[_—\-\s]*笔趣阁\S*', '', title)
+    title = PAGE_MARKER_RE.sub('', title)
+    return title.strip()
+
+
 def extract_text(html):
     parser = TextExtractor()
     parser.feed(html)
     lines = clean_lines(parser._paragraphs)
+    # Also strip page markers from lines
+    lines = [PAGE_MARKER_RE.sub('', l).strip() for l in lines]
+    lines = [l for l in lines if l]
     if len(lines) >= 3:
         return lines
     return clean_lines(''.join(parser._all_text).split('\n'))
@@ -82,7 +98,35 @@ def extract_title(html):
     if not m:
         m = re.search(r'<h2[^>]*>(.*?)</h2>', html, re.DOTALL | re.IGNORECASE)
     if m:
-        return re.sub(r'<[^>]+>', '', m.group(1)).strip()
+        raw = re.sub(r'<[^>]+>', '', m.group(1)).strip()
+        return clean_title(raw)
+    return None
+
+
+def _chapter_next_page(html, current_url):
+    """Return URL of next chapter-page, or None if this is the last page."""
+    # Only look for next page if there's an incomplete-chapter marker
+    if not re.search(r'本章未完|点击下一页|下一页继续|未完待续', html):
+        return None
+    # Try to find explicit 下一页 link
+    for pat in [
+        r'<a[^>]+href="([^"]*\d+_\d+\.html[^"]*)"[^>]*>\s*下一页\s*</a>',
+        r'href="([^"]*\d+_\d+\.html)"[^>]*>[^<]*下一页',
+        r'下一页[^<]*<a[^>]+href="([^"]+)"',
+    ]:
+        m = re.search(pat, html, re.IGNORECASE)
+        if m:
+            href = m.group(1)
+            if href.startswith('http'):
+                return href
+            dm = re.match(r'(https?://[^/]+)', current_url)
+            if dm:
+                return dm.group(1) + (href if href.startswith('/') else '/' + href)
+    # Construct next page URL from current URL pattern
+    m = re.match(r'(.*?/\d+/)(\d+)(?:_(\d+))?\.html', current_url)
+    if m:
+        base, cid, pn = m.group(1), m.group(2), m.group(3)
+        return f'{base}{cid}_{int(pn)+1 if pn else 2}.html'
     return None
 
 
@@ -116,27 +160,49 @@ def parse_novel_url(url):
 
 # ── Chapter downloader ────────────────────────────────────────────────────────
 
-async def download_chapter(session, url, semaphore, delay=1.5):
+async def _fetch_one(session, url):
+    """Fetch a URL, return (html, error_str) — retries on transient errors."""
+    for retry in range(4):
+        try:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                if resp.status == 200:
+                    return await resp.text(), None
+                if resp.status in (403, 502):
+                    await asyncio.sleep(5 * (retry + 1))
+                else:
+                    return None, f'HTTP {resp.status}'
+        except asyncio.TimeoutError:
+            await asyncio.sleep(3 * (retry + 1))
+        except Exception as e:
+            await asyncio.sleep(3 * (retry + 1))
+    return None, 'max retries'
+
+
+async def download_chapter(session, url, semaphore, delay=1.5, multipage=False):
     async with semaphore:
-        for retry in range(4):
-            try:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
-                    if resp.status == 200:
-                        html = await resp.text()
-                        lines = extract_text(html)
-                        title = extract_title(html)
-                        if lines:
-                            return {'ok': True, 'title': title, 'text': '\n\n'.join(lines)}
-                        return {'ok': False, 'error': 'empty'}
-                    elif resp.status in (403, 502):
-                        await asyncio.sleep(5 * (retry + 1))
-                    else:
-                        return {'ok': False, 'error': f'HTTP {resp.status}'}
-            except asyncio.TimeoutError:
-                await asyncio.sleep(3 * (retry + 1))
-            except Exception:
-                await asyncio.sleep(3 * (retry + 1))
-        return {'ok': False, 'error': 'max retries'}
+        html, err = await _fetch_one(session, url)
+        if html is None:
+            return {'ok': False, 'error': err}
+
+        title = extract_title(html)
+        all_lines = extract_text(html)
+
+        if multipage:
+            cur_url = url
+            for _ in range(19):  # max 20 pages total
+                nxt = _chapter_next_page(html, cur_url)
+                if not nxt or nxt == cur_url:
+                    break
+                await asyncio.sleep(delay * 0.4)
+                html, err = await _fetch_one(session, nxt)
+                if html is None:
+                    break
+                all_lines.extend(extract_text(html))
+                cur_url = nxt
+
+        if all_lines:
+            return {'ok': True, 'title': title, 'text': '\n\n'.join(all_lines)}
+        return {'ok': False, 'error': 'empty'}
     await asyncio.sleep(delay)
 
 
@@ -154,11 +220,6 @@ async def get_chapters_biquge365(session, book_id, log):
 
     def extract(html, seen):
         found = []
-        # Collect ALL anchor hrefs first for debug
-        all_hrefs = re.findall(r'href="([^"]{5,})"', html)
-        chapter_like = [h for h in all_hrefs if re.search(r'\d{4,}', h) and '.html' in h]
-        if chapter_like:
-            log(f'  [debug] ตัวอย่าง href ที่มีเลข: {chapter_like[:3]}')
 
         # Pattern 1: /shu/{book_id}/DIGITS.html  (relative)
         for m in re.finditer(rf'href="(/shu/{book_id}/(\d+)\.html)"', html):
@@ -224,7 +285,6 @@ async def get_chapters_biquge365(session, book_id, log):
         if not html:
             log(f'  [debug] ดึงหน้า {toc_url} ล้มเหลว (ไม่ได้ HTML)')
             break
-        log(f'  [debug] HTML {len(html)} chars | ตัวอย่าง: {html[400:600].replace(chr(10)," ")}')
         new = extract(html, seen)
         chapters.extend(new)
         log(f'สารบัญหน้า {pn}: +{len(new)} ตอน (รวม {len(chapters)})')
@@ -361,8 +421,10 @@ async def run_download(url, novel_name, workers, delay, min_chars, log_fn, progr
         cnt_ok = cnt_short = cnt_fail = 0
         qc_short, qc_failed = [], []
 
+        use_multipage = (site == 'biquge365')
+
         async def dl(idx, u, t):
-            r = await download_chapter(session, u, semaphore, delay)
+            r = await download_chapter(session, u, semaphore, delay, multipage=use_multipage)
             return idx, t, r
 
         batch_size = 20
