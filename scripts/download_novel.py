@@ -416,6 +416,161 @@ async def download_shubaowb(book_id, output_file, novel_name, workers=8, delay=1
     return ok > 0
 
 
+async def download_69shu(book_path, output_file, novel_name, workers=8, delay=1.5, min_chars=300):
+    """
+    Download from www.69shu.xyz
+    book_path: path segment after /index/, e.g. "2/2829"
+    Catalog: https://www.69shu.xyz/index/{book_path}/{page}.html/
+    """
+    domain = 'www.69shu.xyz'
+    book_num = book_path.split('/')[-1]
+    print(f'=== Downloading from {domain} ===')
+    print(f'Book path: /index/{book_path}/ | Book num: {book_num} | min_chars: {min_chars}')
+
+    connector = aiohttp.TCPConnector(limit=workers + 2, force_close=False)
+
+    def extract_chapters(html, seen):
+        pattern = re.compile(
+            rf'<a[^>]*href="(/{book_num}/[^"]+\.html[^"]*)"[^>]*>(.*?)</a>',
+            re.DOTALL
+        )
+        found = []
+        for m in pattern.finditer(html):
+            href = m.group(1).rstrip('/')
+            url = f'https://{domain}{href}'
+            title = re.sub(r'<[^>]+>', '', m.group(2)).strip()
+            if url not in seen and title and len(title) <= 80:
+                seen.add(url)
+                found.append((url, title))
+        return found
+
+    async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
+        chapters = []
+        seen = set()
+        page = 1
+
+        while True:
+            toc_url = f'https://{domain}/index/{book_path}/{page}.html/'
+            print(f'Fetching TOC page {page}: {toc_url}', flush=True)
+            try:
+                async with session.get(toc_url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                    if resp.status != 200:
+                        print(f'TOC page {page} returned {resp.status} — stop')
+                        break
+                    html = await resp.text()
+            except Exception as e:
+                print(f'Cannot fetch TOC page {page}: {e}')
+                break
+
+            new_ch = extract_chapters(html, seen)
+            if not new_ch:
+                print(f'No new chapters on page {page} — TOC scan complete')
+                break
+            chapters.extend(new_ch)
+            print(f'  → {len(new_ch)} chapters (total: {len(chapters)})', flush=True)
+
+            # check if next page link exists in HTML
+            has_next = re.search(
+                rf'href="[^"]*/{re.escape(book_path)}/{page + 1}\.html/?[^"]*"', html
+            )
+            if not has_next:
+                break
+            page += 1
+            await asyncio.sleep(0.5)
+
+        if not chapters:
+            print('No chapters found — check book_path or site structure')
+            return False
+
+        print(f'Total: {len(chapters)} chapters — downloading...')
+
+        semaphore = asyncio.Semaphore(workers)
+        raw_results = []
+        cnt_ok = cnt_short = cnt_fail = 0
+        qc_short = []
+        qc_failed = []
+
+        async def dl(idx, url, toc_title):
+            r = await download_chapter(session, url, semaphore, delay)
+            return idx, toc_title, r
+
+        batch_size = 20
+        for bs in range(0, len(chapters), batch_size):
+            batch = chapters[bs:bs + batch_size]
+            batch_res = await asyncio.gather(*[dl(bs + i, url, t) for i, (url, t) in enumerate(batch)])
+
+            for idx, toc_title, r in sorted(batch_res, key=lambda x: x[0]):
+                ch_url = chapters[idx][0]
+                if r['ok']:
+                    title = r['title'] or toc_title or f'第{idx + 1}章'
+                    text = r['text']
+                    is_short = len(text) < min_chars
+                    raw_results.append((idx, title, text, is_short))
+                    if is_short:
+                        cnt_short += 1
+                        qc_short.append({'no': idx + 1, 'title': title, 'chars': len(text), 'url': ch_url})
+                    else:
+                        cnt_ok += 1
+                else:
+                    cnt_fail += 1
+                    label = toc_title or f'第{idx + 1}章'
+                    raw_results.append((idx, label, f'[下载失败: {r["error"]}]', False))
+                    qc_failed.append({'no': idx + 1, 'title': label, 'error': r['error'], 'url': ch_url})
+
+            done = bs + len(batch)
+            print(f'Progress: {done}/{len(chapters)} — OK:{cnt_ok} Short:{cnt_short} Failed:{cnt_fail}', flush=True)
+            await asyncio.sleep(0.5)
+
+    raw_results.sort(key=lambda x: x[0])
+
+    # QC header embedded in TXT
+    sep = '=' * 50
+    qc_header_lines = [
+        sep,
+        f'QC REPORT — {novel_name}',
+        f'Site: {domain}  |  Book path: /index/{book_path}/',
+        f'Chapters: {len(chapters)}  |  OK: {cnt_ok}  |  Short(<{min_chars}): {cnt_short}  |  Failed: {cnt_fail}',
+    ]
+    if qc_short:
+        qc_header_lines.append('Short chapters:')
+        for s in qc_short:
+            qc_header_lines.append(f'  #{s["no"]} {s["title"]} ({s["chars"]} chars)')
+    if qc_failed:
+        qc_header_lines.append('Failed chapters:')
+        for f in qc_failed:
+            qc_header_lines.append(f'  #{f["no"]} {f["title"]} — {f["error"]}')
+    qc_header_lines.append(sep)
+
+    body = '\n'.join(f'\n{t}\n\n{text}' for _, t, text, _ in raw_results)
+    full_text = '﻿' + novel_name + '\n\n' + '\n'.join(qc_header_lines) + '\n\n' + body
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(full_text)
+
+    # QC JSON report
+    qc_data = {
+        'tool': 'Fanqie Novel Downloader',
+        'book': novel_name,
+        'site': domain,
+        'book_path': book_path,
+        'total_chapters': len(chapters),
+        'ok': cnt_ok,
+        'short': cnt_short,
+        'failed': cnt_fail,
+        'min_chars': min_chars,
+        'short_chapters': qc_short,
+        'failed_chapters': qc_failed,
+    }
+    qc_file = output_file.replace('.txt', '_QC.json')
+    with open(qc_file, 'w', encoding='utf-8') as f:
+        json.dump(qc_data, f, ensure_ascii=False, indent=2)
+
+    print(f'\n=== Done! OK:{cnt_ok}  Short:{cnt_short}  Failed:{cnt_fail} ===')
+    print(f'TXT : {output_file}')
+    print(f'QC  : {qc_file}')
+    return (cnt_ok + cnt_short) > 0
+
+
 async def main():
     novel_name = os.environ.get('NOVEL_NAME', '萌宝驾到豪门全家宠上天')
     site = os.environ.get('SITE', 'shuixxs')
@@ -426,6 +581,7 @@ async def main():
     book_id = os.environ.get('BOOK_ID', 'YA9K')
     workers = int(os.environ.get('WORKERS', '8'))
     delay = float(os.environ.get('DELAY', '1.5'))
+    min_chars = int(os.environ.get('MIN_CHARS', '300'))
 
     if site in ('shuixxs', '4jiwx'):
         total = int(os.environ.get('TOTAL_CHAPTERS', '503'))
@@ -434,6 +590,8 @@ async def main():
         success = await download_zhys(book_id, output_file, novel_name, workers, delay)
     elif site == 'shubaowb':
         success = await download_shubaowb(book_id, output_file, novel_name, workers, delay)
+    elif site == '69shu':
+        success = await download_69shu(book_id, output_file, novel_name, workers, delay, min_chars)
     else:
         print(f'Unknown site: {site}')
         sys.exit(1)
