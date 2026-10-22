@@ -275,33 +275,20 @@ async def download_zhys(book_id, output_file, novel_name, workers=8, delay=1.5):
 
 
 async def download_shubaowb(book_id, output_file, novel_name, workers=8, delay=1.5):
-    """Download from shubaowb.com — catalog page at /novel/{book_id}.html"""
+    """Download from shubaowb.com — catalog page at /novel/{book_id}.html (multi-page TOC)"""
     domain = 'shubaowb.com'
     print(f'=== Downloading from {domain} ===')
     print(f'Book ID: {book_id}, Workers: {workers}')
 
     connector = aiohttp.TCPConnector(limit=workers + 2, force_close=False)
 
-    async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
-        print('Fetching table of contents...', flush=True)
-        toc_url = f'https://{domain}/novel/{book_id}.html'
-        try:
-            async with session.get(toc_url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
-                if resp.status != 200:
-                    print(f'TOC returned {resp.status}')
-                    return False
-                html = await resp.text()
-        except Exception as e:
-            print(f'Cannot fetch TOC: {e}')
-            return False
-
-        # Extract chapter links — shubaowb uses /read/{book_id}/{chapter_id}.html
+    def extract_chapters_from_html(html, seen):
+        """Extract chapter (url, title) pairs from one TOC page, skipping duplicates."""
         link_pattern = re.compile(
             rf'<a[^>]*href="([^"]*?/read/{book_id}/[^"]+)"[^>]*>(.*?)</a>',
             re.DOTALL
         )
-        chapters = []
-        seen = set()
+        found = []
         for m in link_pattern.finditer(html):
             href = m.group(1)
             if not href.startswith('http'):
@@ -309,10 +296,74 @@ async def download_shubaowb(book_id, output_file, novel_name, workers=8, delay=1
             title = re.sub(r'<[^>]+>', '', m.group(2)).strip()
             if href not in seen:
                 seen.add(href)
-                chapters.append((href, title))
+                found.append((href, title))
+        return found
+
+    def find_next_toc_page(html, current_page):
+        """Return the URL of the next TOC page, or None if this is the last."""
+        # Pattern: /novel/{book_id}_{page}.html  or  /novel/{book_id}/{page}.html
+        next_page = current_page + 1
+        patterns = [
+            rf'href="(/novel/{book_id}_{next_page}\.html)"',
+            rf'href="(/novel/{book_id}/{next_page}\.html)"',
+            rf'href="(/novel/{book_id}\.html\?page={next_page})"',
+            rf'href="([^"]*[?&]page={next_page}[^"]*)"',
+        ]
+        for pat in patterns:
+            m = re.search(pat, html)
+            if m:
+                href = m.group(1)
+                if not href.startswith('http'):
+                    href = f'https://{domain}{href}'
+                return href
+        # Generic "next page" anchor containing next page number
+        m = re.search(rf'<a[^>]*href="([^"]+)"[^>]*>\s*(?:下一页|next|{next_page})\s*</a>', html, re.IGNORECASE)
+        if m:
+            href = m.group(1)
+            if not href.startswith('http'):
+                href = f'https://{domain}{href}'
+            return href
+        return None
+
+    async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
+        chapters = []
+        seen = set()
+        page_num = 1
+        toc_url = f'https://{domain}/novel/{book_id}.html'
+
+        while toc_url:
+            print(f'Fetching TOC page {page_num}: {toc_url}', flush=True)
+            try:
+                async with session.get(toc_url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                    if resp.status != 200:
+                        print(f'TOC page {page_num} returned {resp.status}')
+                        break
+                    html = await resp.text()
+            except Exception as e:
+                print(f'Cannot fetch TOC page {page_num}: {e}')
+                break
+
+            new_chapters = extract_chapters_from_html(html, seen)
+            chapters.extend(new_chapters)
+            print(f'  → {len(new_chapters)} new chapters (total: {len(chapters)})', flush=True)
+
+            if not new_chapters:
+                break  # no new chapters found on this page — stop paginating
+
+            next_url = find_next_toc_page(html, page_num)
+            toc_url = next_url
+            page_num += 1
+            if next_url:
+                await asyncio.sleep(0.5)
 
         if not chapters:
-            # Fallback: look for any internal chapter-like links
+            # Fallback: look for any internal chapter-like links on page 1
+            toc_url = f'https://{domain}/novel/{book_id}.html'
+            try:
+                async with session.get(toc_url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                    html = await resp.text() if resp.status == 200 else ''
+            except Exception:
+                html = ''
             fallback = re.compile(r'href="(/[^"]*(?:chapter|read|chap)[^"]*)"')
             for m in fallback.finditer(html):
                 href = f'https://{domain}{m.group(1)}'
@@ -320,7 +371,7 @@ async def download_shubaowb(book_id, output_file, novel_name, workers=8, delay=1
                     seen.add(href)
                     chapters.append((href, ''))
 
-        print(f'Found {len(chapters)} chapters in TOC')
+        print(f'Total chapters found across all TOC pages: {len(chapters)}')
 
         if len(chapters) < 1:
             print('No chapters found — check the book ID or site structure')
