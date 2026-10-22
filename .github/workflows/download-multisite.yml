@@ -3,30 +3,18 @@ name: Download Novel — Multi-site
 on:
   workflow_dispatch:
     inputs:
-      novel_name:
-        description: "ชื่อนิยาย"
+      novel_url:
+        description: "วางลิงก์นิยายได้เลย (รองรับ biquge365 / 69shu / shubaowb / zhys / 4jiwx / shuixxs)"
         required: true
-        default: "萌宝驾到豪门全家宠上天"
+        default: "https://m.biquge365.net/shu/528722/"
         type: string
-      site:
-        description: "เว็บที่จะโหลด"
-        required: true
-        default: "4jiwx"
-        type: choice
-        options:
-          - 4jiwx
-          - shuixxs
-          - zhys
-          - shubaowb
-          - 69shu
-          - biquge365
-      book_id:
-        description: "รหัสหนังสือ (69shu ใส่ path เช่น 2/2829)"
-        required: true
-        default: "YH2B"
+      novel_name:
+        description: "ชื่อไฟล์ที่บันทึก (ไม่ใส่ก็ได้ ระบบตั้งชื่อให้)"
+        required: false
+        default: ""
         type: string
       total_chapters:
-        description: "จำนวนตอน (เฉพาะ shuixxs/4jiwx)"
+        description: "จำนวนตอน (เฉพาะ shuixxs/4jiwx เท่านั้น)"
         required: false
         default: "523"
         type: string
@@ -38,10 +26,10 @@ on:
       delay:
         description: "หน่วง (วินาที)"
         required: false
-        default: "3"
+        default: "2"
         type: string
       min_chars:
-        description: "QC: ขั้นต่ำตัวอักษรต่อตอน (ใช้กับ 69shu, shubaowb, biquge365)"
+        description: "QC: ขั้นต่ำตัวอักษรต่อตอน"
         required: false
         default: "300"
         type: string
@@ -66,9 +54,8 @@ jobs:
 
       - name: Download novel
         env:
+          NOVEL_URL: ${{ inputs.novel_url }}
           NOVEL_NAME: ${{ inputs.novel_name }}
-          SITE: ${{ inputs.site }}
-          BOOK_ID: ${{ inputs.book_id }}
           TOTAL_CHAPTERS: ${{ inputs.total_chapters }}
           WORKERS: ${{ inputs.workers }}
           DELAY: ${{ inputs.delay }}
@@ -112,7 +99,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: novel-${{ inputs.novel_name }}
+          name: novel-download
           path: |
             output/*.txt
             output/*.json
