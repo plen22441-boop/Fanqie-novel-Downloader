@@ -17,6 +17,7 @@ on:
           - 4jiwx
           - shuixxs
           - zhys
+          - shubaowb
       book_id:
         description: "รหัสหนังสือ"
         required: true

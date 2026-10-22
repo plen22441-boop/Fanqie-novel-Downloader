@@ -274,6 +274,97 @@ async def download_zhys(book_id, output_file, novel_name, workers=8, delay=1.5):
     return ok > 0
 
 
+async def download_shubaowb(book_id, output_file, novel_name, workers=8, delay=1.5):
+    """Download from shubaowb.com — catalog page at /novel/{book_id}.html"""
+    domain = 'shubaowb.com'
+    print(f'=== Downloading from {domain} ===')
+    print(f'Book ID: {book_id}, Workers: {workers}')
+
+    connector = aiohttp.TCPConnector(limit=workers + 2, force_close=False)
+
+    async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
+        print('Fetching table of contents...', flush=True)
+        toc_url = f'https://{domain}/novel/{book_id}.html'
+        try:
+            async with session.get(toc_url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                if resp.status != 200:
+                    print(f'TOC returned {resp.status}')
+                    return False
+                html = await resp.text()
+        except Exception as e:
+            print(f'Cannot fetch TOC: {e}')
+            return False
+
+        # Extract chapter links — shubaowb uses /read/{book_id}/{chapter_id}.html
+        link_pattern = re.compile(
+            rf'<a[^>]*href="([^"]*?/read/{book_id}/[^"]+)"[^>]*>(.*?)</a>',
+            re.DOTALL
+        )
+        chapters = []
+        seen = set()
+        for m in link_pattern.finditer(html):
+            href = m.group(1)
+            if not href.startswith('http'):
+                href = f'https://{domain}{href}'
+            title = re.sub(r'<[^>]+>', '', m.group(2)).strip()
+            if href not in seen:
+                seen.add(href)
+                chapters.append((href, title))
+
+        if not chapters:
+            # Fallback: look for any internal chapter-like links
+            fallback = re.compile(r'href="(/[^"]*(?:chapter|read|chap)[^"]*)"')
+            for m in fallback.finditer(html):
+                href = f'https://{domain}{m.group(1)}'
+                if href not in seen:
+                    seen.add(href)
+                    chapters.append((href, ''))
+
+        print(f'Found {len(chapters)} chapters in TOC')
+
+        if len(chapters) < 1:
+            print('No chapters found — check the book ID or site structure')
+            return False
+
+        semaphore = asyncio.Semaphore(workers)
+        results = []
+        ok = 0
+        fail = 0
+
+        async def dl(idx, url, title):
+            r = await download_chapter(session, url, semaphore, delay)
+            return idx, title, r
+
+        batch_size = 20
+        for batch_start in range(0, len(chapters), batch_size):
+            batch = chapters[batch_start:batch_start + batch_size]
+            batch_tasks = [dl(batch_start + i, url, title) for i, (url, title) in enumerate(batch)]
+            batch_results = await asyncio.gather(*batch_tasks)
+
+            for idx, toc_title, r in sorted(batch_results, key=lambda x: x[0]):
+                if r['ok']:
+                    t = r['title'] or toc_title or f'第{idx + 1}章'
+                    results.append((idx, f'\n{t}\n\n{r["text"]}'))
+                    ok += 1
+                else:
+                    label = toc_title or f'Chapter {idx + 1}'
+                    results.append((idx, f'\n{label}\n\n[下载失败: {r["error"]}]'))
+                    fail += 1
+
+            done = batch_start + len(batch)
+            print(f'Progress: {done}/{len(chapters)} (OK: {ok}, Failed: {fail})', flush=True)
+            await asyncio.sleep(0.5)
+
+    results.sort(key=lambda x: x[0])
+    text = '﻿' + novel_name + '\n\n' + '\n'.join(r[1] for r in results)
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(text)
+
+    print(f'\n=== Done! OK: {ok}, Failed: {fail} ===')
+    print(f'Saved to: {output_file}')
+    return ok > 0
+
+
 async def main():
     novel_name = os.environ.get('NOVEL_NAME', '萌宝驾到豪门全家宠上天')
     site = os.environ.get('SITE', 'shuixxs')
@@ -290,6 +381,8 @@ async def main():
         success = await download_sequential(site, book_id, total, output_file, novel_name, workers, delay)
     elif site == 'zhys':
         success = await download_zhys(book_id, output_file, novel_name, workers, delay)
+    elif site == 'shubaowb':
+        success = await download_shubaowb(book_id, output_file, novel_name, workers, delay)
     else:
         print(f'Unknown site: {site}')
         sys.exit(1)
