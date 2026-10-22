@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Novel Downloader — Streamlit web app (universal)"""
+"""Novel Downloader — Streamlit web app (self-adapting universal scraper)
+
+Architecture:
+  Scan → Analyze sample chapters → Build SiteProfile → Download with profile → QC
+
+The system learns each website's structure by examining sample chapters during
+the scan phase, then uses that knowledge for reliable extraction.
+"""
 
 import asyncio
 import aiohttp
@@ -7,12 +14,13 @@ import re
 import json
 import io
 import zipfile
+import statistics
 from urllib.parse import urlparse, urljoin
 import streamlit as st
 from html.parser import HTMLParser
 
 
-# ── Text cleaning ─────────────────────────────────────────────────────────────
+# ── Junk / Navigation Filters ────────────────────────────────────────────────
 
 JUNK_RE = re.compile(
     r'当前位置|上一章|下一章|回目录|©\s*20\d\d|document\.domain|'
@@ -20,6 +28,14 @@ JUNK_RE = re.compile(
     r'首页|返回目录|关灯|护眼|字号|章节报错|一秒记住|笔趣阁|更新快|无弹窗|'
     r'本章未完|点击下一页|请点击下一页|最新章节|设为首页|加入书架|手机版|'
     r'请记住本站|如遇到内容乱|验证码|\/\/',
+    re.IGNORECASE,
+)
+
+JUNK_SECTION_RE = re.compile(
+    r'<(?:div|section|ul|ol)[^>]+(?:id|class)="[^"]*'
+    r'(?:recommend|related|similar|tuijian|hot|rank|listmain|booklist|'
+    r'guess|like|other[_-]?novel|bottom|foot|sidebar|widget|ad[_-s]|banner)'
+    r'[^"]*"[^>]*>[\s\S]*?</(?:div|section|ul|ol)>',
     re.IGNORECASE,
 )
 
@@ -33,6 +49,8 @@ _NAV_EXACT = {
 
 _CHAPTER_HDR_RE = re.compile(r'^第\s*\d+\s*[章节話话回]')
 
+
+# ── Text cleaning ────────────────────────────────────────────────────────────
 
 def clean_lines(paragraphs):
     result = []
@@ -66,7 +84,11 @@ def clean_title(title):
     return title.strip()
 
 
-# ── HTML parsing ──────────────────────────────────────────────────────────────
+def count_chinese(text):
+    return len(re.findall(r'[一-鿿]', text))
+
+
+# ── HTML parsing ─────────────────────────────────────────────────────────────
 
 class TextExtractor(HTMLParser):
     def __init__(self):
@@ -105,16 +127,25 @@ class TextExtractor(HTMLParser):
         self._all_text.append(data)
 
 
-def find_content_div(html):
-    """Extract the main story content from a chapter page."""
+def _strip_html_junk(html):
+    """Remove script/style/nav/footer/aside/form and recommendation sections."""
     stripped = re.sub(
-        r'<(script|style|nav|header|footer|aside|iframe|form)[^>]*>[\s\S]*?</\1>',
+        r'<(script|style|nav|header|footer|aside|iframe|form|button)'
+        r'[^>]*>[\s\S]*?</\1>',
         '', html, flags=re.IGNORECASE,
     )
+    stripped = JUNK_SECTION_RE.sub('', stripped)
+    return stripped
+
+
+def find_content_div(html):
+    """Extract the main story content div, stripping junk and recommendations."""
+    stripped = _strip_html_junk(html)
 
     CONTENT_PAT = re.compile(
         r'<(?:div|section|article)[^>]+(?:id|class)="[^"]*'
-        r'(?:content|article|chapter|read|text|novel|book|chap|body)[^"]*"[^>]*>'
+        r'(?:content|article|chapter|read|text|novel|book|chap|body|'
+        r'BookContent|readcontent|booktext|nr_content|zhangjieTXT)[^"]*"[^>]*>'
         r'([\s\S]*?)'
         r'</(?:div|section|article)>',
         re.IGNORECASE,
@@ -123,7 +154,7 @@ def find_content_div(html):
     best_count = 0
     for m in CONTENT_PAT.finditer(stripped):
         inner = re.sub(r'<[^>]+>', ' ', m.group(1))
-        cn = len(re.findall(r'[一-鿿]', inner))
+        cn = count_chinese(inner)
         if cn > best_count:
             best_count = cn
             best_text = inner
@@ -135,7 +166,7 @@ def find_content_div(html):
         stripped, re.IGNORECASE,
     ):
         inner = re.sub(r'<[^>]+>', ' ', m.group(1))
-        cn = len(re.findall(r'[一-鿿]', inner))
+        cn = count_chinese(inner)
         if cn > best_count:
             best_count = cn
             best_text = inner
@@ -147,7 +178,6 @@ def find_content_div(html):
 
 
 def extract_text_from_html(html):
-    """Parse HTML, prefer <p> paragraphs, fall back to all text."""
     parser = TextExtractor()
     parser.feed(html)
     lines = clean_lines(parser._paragraphs)
@@ -159,7 +189,6 @@ def extract_text_from_html(html):
 
 
 def extract_text_from_content(content_text):
-    """Parse pre-stripped content text (from find_content_div)."""
     raw_lines = re.split(r'[\n\r]+|<br\s*/?>|(?<=。)(?=\s)', content_text)
     lines = clean_lines(raw_lines)
     return _remove_leading_headings(lines)
@@ -180,6 +209,18 @@ def extract_title(html):
     return None
 
 
+def smart_extract(html, use_content_div=True):
+    """Try content-div extraction first, fall back to full HTML extraction."""
+    if use_content_div:
+        content = find_content_div(html)
+        lines = extract_text_from_content(content)
+        if len(lines) >= 3:
+            return lines
+    return extract_text_from_html(html)
+
+
+# ── HTTP helpers ─────────────────────────────────────────────────────────────
+
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                   'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -188,8 +229,6 @@ HEADERS = {
     'Connection': 'keep-alive',
 }
 
-
-# ── HTTP helpers ──────────────────────────────────────────────────────────────
 
 async def _fetch_one(session, url):
     for retry in range(4):
@@ -203,7 +242,7 @@ async def _fetch_one(session, url):
                     return None, f'HTTP {resp.status}'
         except asyncio.TimeoutError:
             await asyncio.sleep(3 * (retry + 1))
-        except Exception as e:
+        except Exception:
             await asyncio.sleep(3 * (retry + 1))
     return None, 'max retries'
 
@@ -213,7 +252,7 @@ async def fetch_html(session, url):
     return html
 
 
-# ── URL parsing ───────────────────────────────────────────────────────────────
+# ── URL parsing ──────────────────────────────────────────────────────────────
 
 def parse_novel_url(url):
     url = url.strip().rstrip('/')
@@ -238,18 +277,106 @@ def parse_novel_url(url):
     return 'universal', url
 
 
-# ── Chapter next-page helper ──────────────────────────────────────────────────
+# ── Site Analysis ────────────────────────────────────────────────────────────
 
-def _chapter_next_page(html, current_url, try_url_first=False):
-    # URL-first mode: derive page-2 URL directly (for sites with predictable patterns)
-    if try_url_first:
-        m = re.match(r'(.*?/\d+/)(\d+)(?:_(\d+))?\.html', current_url)
+def _candidate_page2_urls(url):
+    """Generate candidate page-2 URLs to probe for multi-page chapters."""
+    candidates = []
+    m = re.match(r'^(.*?)(\d+)(\.html?)$', url)
+    if m:
+        candidates.append(f'{m.group(1)}{m.group(2)}_2{m.group(3)}')
+    sep = '&' if '?' in url else '?'
+    candidates.append(f'{url}{sep}page=2')
+    return candidates
+
+
+def _get_next_page_url(base_url, page_num, pattern):
+    """Build URL for page N using the discovered multi-page pattern."""
+    if pattern == 'underscore':
+        m = re.match(r'^(.*?\d+?)(?:_\d+)?(\.html?)$', base_url)
         if m:
-            base, cid, pn = m.group(1), m.group(2), m.group(3)
-            return f'{base}{cid}_{int(pn)+1 if pn else 2}.html'
+            return f'{m.group(1)}_{page_num}{m.group(2)}'
+    elif pattern == 'query':
+        base = re.sub(r'[?&]page=\d+', '', base_url)
+        sep = '&' if '?' in base else '?'
+        return f'{base}{sep}page={page_num}'
+    return None
 
-    if not re.search(r'本章未完|点击下一页|下一页继续|未完待续', html):
-        return None
+
+async def analyze_site(session, chapters, log):
+    """Fetch sample chapters to learn the site's content structure and pagination.
+
+    Returns a profile dict used by the downloader.
+    """
+    if not chapters:
+        return {'multipage_pattern': None, 'avg_chars': 0,
+                'use_content_div': True, 'sample_char_counts': []}
+
+    n = len(chapters)
+    indices = sorted(set([0, max(0, n // 4), n // 2, min(n - 1, 3 * n // 4)]))
+    if len(indices) > 4:
+        indices = indices[:4]
+    samples = [chapters[i][0] for i in indices]
+
+    char_counts_div, char_counts_raw = [], []
+    multipage_pattern = None
+    multipage_extra_chars = 0
+
+    for url in samples:
+        html = await fetch_html(session, url)
+        if not html:
+            continue
+
+        content = find_content_div(html)
+        lines_div = extract_text_from_content(content)
+        cn_div = sum(count_chinese(l) for l in lines_div)
+        char_counts_div.append(cn_div)
+
+        lines_raw = extract_text_from_html(html)
+        cn_raw = sum(count_chinese(l) for l in lines_raw)
+        char_counts_raw.append(cn_raw)
+
+        if multipage_pattern is None:
+            for candidate_url in _candidate_page2_urls(url):
+                html2 = await fetch_html(session, candidate_url)
+                if html2 is None:
+                    continue
+                lines2 = smart_extract(html2)
+                cn2 = sum(count_chinese(l) for l in lines2)
+                if cn2 > 80 and ''.join(lines2[:2]) != ''.join(lines_div[:2]):
+                    multipage_pattern = (
+                        'underscore' if '_2.html' in candidate_url else 'query'
+                    )
+                    multipage_extra_chars = cn2
+                    log(f'🔍 พบระบบหน้าต่อ ({multipage_pattern}) — '
+                        f'หน้า 2 มี {cn2} ตัวอักษรจีน')
+                    break
+
+        await asyncio.sleep(0.3)
+
+    avg_div = statistics.mean(char_counts_div) if char_counts_div else 0
+    avg_raw = statistics.mean(char_counts_raw) if char_counts_raw else 0
+    use_content_div = avg_div >= avg_raw * 0.7 if avg_raw > 0 else True
+    avg_chars = int(max(avg_div, avg_raw))
+    if multipage_pattern:
+        avg_chars += multipage_extra_chars
+
+    quality = 'ดี' if avg_chars > 1500 else 'ปานกลาง' if avg_chars > 500 else 'ต่ำ'
+    log(f'🔍 วิเคราะห์เสร็จ — เฉลี่ย ~{avg_chars} อักษรจีน/ตอน, คุณภาพ: {quality}, '
+        f'หน้าต่อ: {"มี" if multipage_pattern else "ไม่พบ"}')
+
+    return {
+        'multipage_pattern': multipage_pattern,
+        'avg_chars': avg_chars,
+        'use_content_div': use_content_div,
+        'sample_char_counts': char_counts_div or char_counts_raw,
+    }
+
+
+# ── Chapter next-page fallback ───────────────────────────────────────────────
+
+def _chapter_next_page_fallback(html, current_url):
+    """Detect next page using HTML text markers (fallback when no pattern known)."""
     for pat in [
         r'<a[^>]+href="([^"]*\d+_\d+\.html[^"]*)"[^>]*>\s*下一页\s*</a>',
         r'href="([^"]*\d+_\d+\.html)"[^>]*>[^<]*下一页',
@@ -265,61 +392,69 @@ def _chapter_next_page(html, current_url, try_url_first=False):
     m = re.match(r'(.*?/\d+/)(\d+)(?:_(\d+))?\.html', current_url)
     if m:
         base, cid, pn = m.group(1), m.group(2), m.group(3)
-        return f'{base}{cid}_{int(pn)+1 if pn else 2}.html'
+        return f'{base}{cid}_{int(pn) + 1 if pn else 2}.html'
     return None
 
 
-# ── Chapter downloader ────────────────────────────────────────────────────────
+# ── Chapter downloader ───────────────────────────────────────────────────────
 
-async def download_chapter(session, url, semaphore, delay=1.5,
-                           multipage=False, use_content_div=False,
-                           try_url_first=False):
+async def download_chapter(session, url, semaphore, delay, profile):
+    """Download one chapter using the site profile for smart extraction."""
     async with semaphore:
         html, err = await _fetch_one(session, url)
         if html is None:
             return {'ok': False, 'error': err}
 
         title = extract_title(html)
-
-        def _extract(h):
-            if use_content_div:
-                content = find_content_div(h)
-                lines = extract_text_from_content(content)
-                if len(lines) < 3:
-                    lines = extract_text_from_html(h)
-            else:
-                lines = extract_text_from_html(h)
-            return lines
-
-        all_lines = _extract(html)
+        use_cd = profile.get('use_content_div', True)
+        all_lines = smart_extract(html, use_content_div=use_cd)
         first_snippet = ''.join(all_lines[:3])
 
-        if multipage:
-            cur_url = url
-            for _ in range(19):
-                nxt = _chapter_next_page(html, cur_url, try_url_first=try_url_first)
-                if not nxt or nxt == cur_url:
+        mp = profile.get('multipage_pattern')
+        if mp:
+            # Use discovered URL pattern for page 2, 3, ...
+            for pn in range(2, 21):
+                nxt = _get_next_page_url(url, pn, mp)
+                if not nxt:
                     break
-                await asyncio.sleep(delay * 0.4)
-                html2, err2 = await _fetch_one(session, nxt)
-                if html2 is None:
+                await asyncio.sleep(delay * 0.3)
+                h2, _ = await _fetch_one(session, nxt)
+                if h2 is None:
                     break
-                extra = _extract(html2)
-                # Stop if duplicate content (redirect loop) or nearly empty page
-                if not extra or sum(len(l) for l in extra) < 30:
+                extra = smart_extract(h2, use_content_div=use_cd)
+                if not extra or sum(count_chinese(l) for l in extra) < 30:
                     break
                 if ''.join(extra[:3]) == first_snippet:
                     break
                 all_lines.extend(extra)
-                html, cur_url = html2, nxt
+        elif re.search(r'本章未完|点击下一页|下一页继续|未完待续', html or ''):
+            # Text-marker fallback
+            cur_url, cur_html = url, html
+            for _ in range(19):
+                nxt = _chapter_next_page_fallback(cur_html, cur_url)
+                if not nxt or nxt == cur_url:
+                    break
+                await asyncio.sleep(delay * 0.3)
+                h2, _ = await _fetch_one(session, nxt)
+                if h2 is None:
+                    break
+                extra = smart_extract(h2, use_content_div=use_cd)
+                if not extra or sum(count_chinese(l) for l in extra) < 30:
+                    break
+                if ''.join(extra[:3]) == first_snippet:
+                    break
+                all_lines.extend(extra)
+                cur_html, cur_url = h2, nxt
 
         if all_lines:
-            return {'ok': True, 'title': title, 'text': '\n\n'.join(all_lines)}
+            text = '\n\n'.join(all_lines)
+            cn = count_chinese(text)
+            return {'ok': True, 'title': title, 'text': text, 'cn_chars': cn}
         return {'ok': False, 'error': 'empty'}
     await asyncio.sleep(delay)
 
 
-# ── TOC scrapers ──────────────────────────────────────────────────────────────
+# ── TOC scrapers ─────────────────────────────────────────────────────────────
 
 async def get_chapters_biquge365(session, book_id, log):
     domain = 'm.biquge365.net'
@@ -371,9 +506,9 @@ async def get_chapters_biquge365(session, book_id, log):
 
     def next_page(html, pn):
         for pat in [
-            rf'href="([^"]*\?p={pn+1}[^"]*)"',
+            rf'href="([^"]*\?p={pn + 1}[^"]*)"',
             r'href="([^"]+)"[^>]*>\s*(?:下一页|下一頁)\s*</a>',
-            rf'href="(/shu/{book_id}/index_{pn+1}\.html)"',
+            rf'href="(/shu/{book_id}/index_{pn + 1}\.html)"',
         ]:
             m = re.search(pat, html, re.IGNORECASE)
             if m:
@@ -426,7 +561,7 @@ async def get_chapters_69shu(session, book_path, log):
         chapters.extend(new)
         log(f'สารบัญหน้า {page}: +{len(new)} ตอน (รวม {len(chapters)})')
         if not re.search(
-            rf'href="[^"]*/{re.escape(book_path)}/{page+1}\.html/?[^"]*"', html
+            rf'href="[^"]*/{re.escape(book_path)}/{page + 1}\.html/?[^"]*"', html
         ):
             break
         page += 1
@@ -453,7 +588,7 @@ async def get_chapters_shubaowb(session, book_id, log):
 
     def next_page(html, pn):
         for pat in [
-            rf'href="(/novel/{book_id}_{pn+1}\.html)"',
+            rf'href="(/novel/{book_id}_{pn + 1}\.html)"',
             r'href="([^"]+)"[^>]*>\s*(?:下一页|next)\s*</a>',
         ]:
             m = re.search(pat, html, re.IGNORECASE)
@@ -495,7 +630,7 @@ async def get_chapters_zhys(session, book_id, log):
         url = f'https://{domain}/read/{book_id}/{cid}.html'
         if url not in seen:
             seen.add(url)
-            chapters.append((url, title or f'Chapter {len(chapters)+1}'))
+            chapters.append((url, title or f'Chapter {len(chapters) + 1}'))
     log(f'พบ {len(chapters)} ตอน')
     return chapters, domain
 
@@ -518,7 +653,6 @@ async def get_chapters_universal(session, toc_url, log):
         ):
             href = m.group(1).strip()
             text = re.sub(r'<[^>]+>', '', m.group(2)).strip()
-
             if SKIP_HREF.search(href):
                 continue
             if not re.search(r'\d{3,}', href):
@@ -527,19 +661,14 @@ async def get_chapters_universal(session, toc_url, log):
                 continue
             if re.match(r'^[\s\W]+$', text):
                 continue
-
-            # Make absolute
             if href.startswith('http'):
                 abs_url = href
             elif href.startswith('/'):
                 abs_url = base_domain + href
             else:
                 abs_url = urljoin(toc_url, href)
-
-            # Must be same domain
             if urlparse(abs_url).netloc != parsed.netloc:
                 continue
-
             if abs_url not in seen:
                 seen.add(abs_url)
                 found.append((abs_url, text))
@@ -548,9 +677,9 @@ async def get_chapters_universal(session, toc_url, log):
     def find_next_toc_page(html, current_url, pn):
         for pat in [
             r'<a[^>]+href="([^"]+)"[^>]*>\s*(?:下一页|下一頁)\s*</a>',
-            rf'href="([^"]*[?/]p(?:age)?[=_/]{pn+1}[^"]*)"',
-            rf'href="([^"]*index_{pn+1}\.html[^"]*)"',
-            rf'href="([^"]*/{pn+1}\.html[^"]*)"',
+            rf'href="([^"]*[?/]p(?:age)?[=_/]{pn + 1}[^"]*)"',
+            rf'href="([^"]*index_{pn + 1}\.html[^"]*)"',
+            rf'href="([^"]*/{pn + 1}\.html[^"]*)"',
         ]:
             m = re.search(pat, html, re.IGNORECASE)
             if m:
@@ -568,7 +697,6 @@ async def get_chapters_universal(session, toc_url, log):
     current_url = toc_url
     pn = 1
 
-    # Fetch book title from first TOC page
     first_html = await fetch_html(session, toc_url)
     if not first_html:
         return [], parsed.netloc, None
@@ -597,33 +725,57 @@ async def get_chapters_universal(session, toc_url, log):
     return chapters, parsed.netloc, book_title
 
 
-# ── Scan (step 1) ─────────────────────────────────────────────────────────────
+# ── Sort ─────────────────────────────────────────────────────────────────────
 
-async def scan_novel(url):
+def _sort_chapters(chapters):
+    """Sort by 第N章 if most titles have chapter numbers; otherwise keep TOC order."""
+    titled = sum(1 for _, t in chapters if re.search(r'第\s*\d+\s*[章节話话回]', t))
+
+    if titled >= len(chapters) * 0.3:
+        def key(pair):
+            idx, (url, title) = pair
+            m = re.search(r'第\s*(\d+)\s*[章节話话回]', title)
+            if m:
+                return (0, int(m.group(1)))
+            return (1, idx)
+        indexed = sorted(enumerate(chapters), key=key)
+        return [ch for _, ch in indexed]
+
+    return list(chapters)
+
+
+# ── Scan (step 1) ────────────────────────────────────────────────────────────
+
+async def scan_novel(url, log=None):
+    if log is None:
+        log = lambda _: None
     connector = aiohttp.TCPConnector(limit=5)
     async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
         site, book_id = parse_novel_url(url)
 
         if site == 'biquge365':
-            chapters, domain = await get_chapters_biquge365(session, book_id, lambda _: None)
+            chapters, domain = await get_chapters_biquge365(session, book_id, log)
             html = await fetch_html(session, f'https://{domain}/shu/{book_id}/')
             title = extract_title(html) if html else f'biquge365_{book_id}'
         elif site == '69shu':
-            chapters, domain = await get_chapters_69shu(session, book_id, lambda _: None)
+            chapters, domain = await get_chapters_69shu(session, book_id, log)
             title = f'69shu_{book_id}'
         elif site == 'shubaowb':
-            chapters, domain = await get_chapters_shubaowb(session, book_id, lambda _: None)
+            chapters, domain = await get_chapters_shubaowb(session, book_id, log)
             title = f'shubaowb_{book_id}'
         elif site == 'zhys':
-            chapters, domain = await get_chapters_zhys(session, book_id, lambda _: None)
+            chapters, domain = await get_chapters_zhys(session, book_id, log)
             title = f'zhys_{book_id}'
         elif site == 'universal':
-            chapters, domain, title = await get_chapters_universal(session, url, lambda _: None)
+            chapters, domain, title = await get_chapters_universal(session, url, log)
         else:
             return None, f'site "{site}" ยังไม่รองรับ'
 
         if not chapters:
             return None, 'ไม่พบตอนในสารบัญ — ลองตรวจสอบ URL อีกครั้ง'
+
+        log(f'🔍 กำลังวิเคราะห์โครงสร้างเว็บ ({min(4, len(chapters))} ตัวอย่าง)...')
+        profile = await analyze_site(session, chapters, log)
 
         return {
             'site': site,
@@ -631,77 +783,61 @@ async def scan_novel(url):
             'domain': domain,
             'title': title or f'{site}_{book_id}',
             'chapters': chapters,
+            'profile': profile,
         }, None
 
 
-# ── Download engine (step 2) ──────────────────────────────────────────────────
-
-def _sort_chapters(chapters):
-    """Sort by 第N章 in title; fall back to largest number in URL stem."""
-    def chapter_key(item):
-        url, title = item
-        m = re.search(r'第\s*(\d+)\s*[章节話话回]', title)
-        if m:
-            return int(m.group(1))
-        stem = url.rstrip('/').split('/')[-1].split('.')[0]
-        nums = re.findall(r'\d+', stem)
-        return int(nums[0]) if nums else 0
-    return sorted(chapters, key=chapter_key)
-
+# ── Download engine (step 2) ─────────────────────────────────────────────────
 
 async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn, progress_fn):
     site = scan_info['site']
     book_id = scan_info['book_id']
     domain = scan_info['domain']
+    profile = scan_info.get('profile', {})
     chapters = _sort_chapters(scan_info['chapters'])
 
     if not novel_name.strip():
-        novel_name = scan_info['title'] or f'{site}_{str(book_id).replace("/","_")}'
-
-    use_multipage = (site in ('biquge365', 'universal'))
-    use_content_div = (site in ('biquge365', 'universal'))
-    try_url_first = (site == 'biquge365')
+        novel_name = scan_info['title'] or f'{site}_{str(book_id).replace("/", "_")}'
 
     connector = aiohttp.TCPConnector(limit=workers + 2)
     async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
         log_fn(f'📚 {len(chapters)} ตอน — เริ่มโหลด...')
+        if profile.get('multipage_pattern'):
+            log_fn(f'   (หน้าต่อ: {profile["multipage_pattern"]})')
         semaphore = asyncio.Semaphore(workers)
         raw_results = []
         cnt_ok = cnt_short = cnt_fail = 0
         qc_short, qc_failed = [], []
 
         async def dl(idx, u, t):
-            r = await download_chapter(
-                session, u, semaphore, delay,
-                multipage=use_multipage,
-                use_content_div=use_content_div,
-                try_url_first=try_url_first,
-            )
+            r = await download_chapter(session, u, semaphore, delay, profile)
             return idx, t, r
 
         batch_size = 20
         for bs in range(0, len(chapters), batch_size):
             batch = chapters[bs:bs + batch_size]
-            res = await asyncio.gather(*[dl(bs + i, u, t) for i, (u, t) in enumerate(batch)])
+            res = await asyncio.gather(
+                *[dl(bs + i, u, t) for i, (u, t) in enumerate(batch)]
+            )
             for idx, toc_title, r in sorted(res, key=lambda x: x[0]):
                 ch_url = chapters[idx][0]
                 if r['ok']:
-                    title = r['title'] or toc_title or f'第{idx+1}章'
+                    title = r['title'] or toc_title or f'第{idx + 1}章'
                     text = r['text']
-                    is_short = len(text) < min_chars
-                    raw_results.append((idx, title, text))
-                    if is_short:
+                    cn = r.get('cn_chars', count_chinese(text))
+                    raw_results.append((idx, title, text, cn))
+                    if cn < min_chars:
                         cnt_short += 1
                         qc_short.append({
                             'no': idx + 1, 'title': title,
-                            'chars': len(text), 'url': ch_url,
+                            'chars': cn, 'url': ch_url,
                         })
                     else:
                         cnt_ok += 1
                 else:
                     cnt_fail += 1
-                    label = toc_title or f'第{idx+1}章'
-                    raw_results.append((idx, label, f'[โหลดล้มเหลว: {r["error"]}]'))
+                    label = toc_title or f'第{idx + 1}章'
+                    raw_results.append((idx, label, f'[โหลดล้มเหลว: {r["error"]}]', 0))
                     qc_failed.append({
                         'no': idx + 1, 'title': label,
                         'error': r['error'], 'url': ch_url,
@@ -712,13 +848,75 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
             await asyncio.sleep(0.2)
 
     raw_results.sort(key=lambda x: x[0])
+
+    # ── Post-download QC ─────────────────────────────────────────────────
+    ok_chars = [cn for _, _, _, cn in raw_results if cn > 0]
+    median_chars = int(statistics.median(ok_chars)) if ok_chars else 0
+
+    # Detect common junk suffix that appears in many chapters
+    if len(raw_results) > 10:
+        endings = {}
+        for _, _, text, cn in raw_results:
+            if cn > 50:
+                last = text.strip()[-80:]
+                endings[last] = endings.get(last, 0) + 1
+        common_junk = [e for e, c in endings.items() if c > len(raw_results) * 0.3]
+        if common_junk:
+            cleaned_count = 0
+            cleaned = []
+            for idx, title, text, cn in raw_results:
+                for suffix in common_junk:
+                    if text.endswith(suffix):
+                        text = text[:-len(suffix)].rstrip()
+                        cn = count_chinese(text)
+                        cleaned_count += 1
+                cleaned.append((idx, title, text, cn))
+            raw_results = cleaned
+            if cleaned_count:
+                log_fn(f'🧹 ลบข้อความซ้ำท้ายตอนออก {cleaned_count} ตอน')
+
+    # Flag chapters far below median
+    qc_suspicious = []
+    if median_chars > 200:
+        for idx, title, text, cn in raw_results:
+            if 0 < cn < median_chars * 0.35:
+                qc_suspicious.append({
+                    'no': idx + 1, 'title': title,
+                    'chars': cn, 'expected': median_chars,
+                })
+
+    # Check for missing chapter numbers
+    qc_missing = []
+    numbered = {}
+    for idx, title, text, cn in raw_results:
+        m_num = re.search(r'第\s*(\d+)\s*[章节話话回]', title)
+        if m_num:
+            numbered[int(m_num.group(1))] = idx
+    if len(numbered) > len(raw_results) * 0.3 and numbered:
+        expected_range = set(range(min(numbered), max(numbered) + 1))
+        missing = sorted(expected_range - set(numbered.keys()))
+        if missing:
+            qc_missing = missing[:30]
+
+    # ── Build output ─────────────────────────────────────────────────────
     sep = '=' * 50
     qc_lines = [
         sep,
         f'QC REPORT — {novel_name}',
         f'Site: {domain}  |  Book: {book_id}',
-        f'ตอนทั้งหมด: {len(chapters)}  OK: {cnt_ok}  สั้น(<{min_chars}): {cnt_short}  ล้มเหลว: {cnt_fail}',
+        f'ตอนทั้งหมด: {len(chapters)}  OK: {cnt_ok}  '
+        f'สั้น(<{min_chars}): {cnt_short}  ล้มเหลว: {cnt_fail}',
+        f'ค่ากลาง: {median_chars} ตัวอักษรจีน/ตอน',
     ]
+    if profile.get('multipage_pattern'):
+        qc_lines.append(f'Multi-page: {profile["multipage_pattern"]}')
+    if qc_suspicious:
+        qc_lines += [
+            f'⚠️ ตอนสั้นผิดปกติ (<35% ของค่ากลาง {median_chars}):'
+        ] + [
+            f'  #{s["no"]} {s["title"]} ({s["chars"]} อักษร, คาด ~{s["expected"]})'
+            for s in qc_suspicious[:20]
+        ]
     if qc_short:
         qc_lines += ['ตอนสั้น:'] + [
             f'  #{s["no"]} {s["title"]} ({s["chars"]} chars)' for s in qc_short[:20]
@@ -727,41 +925,56 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
         qc_lines += ['ตอนล้มเหลว:'] + [
             f'  #{f["no"]} {f["title"]} — {f["error"]}' for f in qc_failed[:20]
         ]
+    if qc_missing:
+        qc_lines.append(
+            f'ตอนที่อาจหายไป: {", ".join(f"第{n}章" for n in qc_missing)}'
+        )
     qc_lines.append(sep)
 
-    body = '\n'.join(f'\n{t}\n\n{txt}' for _, t, txt in raw_results)
+    body = '\n'.join(f'\n{t}\n\n{txt}' for _, t, txt, _ in raw_results)
     txt_content = '﻿' + novel_name + '\n\n' + '\n'.join(qc_lines) + '\n\n' + body
 
     qc_data = {
         'book': novel_name, 'site': domain, 'book_id': book_id,
         'total_chapters': len(chapters), 'ok': cnt_ok, 'short': cnt_short,
         'failed': cnt_fail, 'min_chars': min_chars,
+        'median_chars': median_chars,
+        'multipage_pattern': profile.get('multipage_pattern'),
+        'avg_chars_from_scan': profile.get('avg_chars', 0),
         'short_chapters': qc_short, 'failed_chapters': qc_failed,
+        'suspicious_chapters': qc_suspicious,
+        'missing_chapters': qc_missing,
     }
 
     safe = re.sub(r'[\\/:*?"<>|]', '_', novel_name)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(f'{safe}.txt', txt_content.encode('utf-8'))
-        zf.writestr(f'{safe}_QC.json', json.dumps(qc_data, ensure_ascii=False, indent=2))
+        zf.writestr(f'{safe}_QC.json',
+                     json.dumps(qc_data, ensure_ascii=False, indent=2))
     buf.seek(0)
 
     summary = (
         f'✅ เสร็จแล้ว!\n'
         f'ตอนทั้งหมด: {len(chapters)}\n'
-        f'OK: {cnt_ok}  |  สั้น: {cnt_short}  |  ล้มเหลว: {cnt_fail}'
+        f'OK: {cnt_ok}  |  สั้น: {cnt_short}  |  ล้มเหลว: {cnt_fail}\n'
+        f'ค่ากลาง: {median_chars} ตัวอักษรจีน/ตอน'
     )
+    if qc_missing:
+        summary += f'\n⚠️ ตอนที่อาจหายไป: {len(qc_missing)} ตอน'
+    if qc_suspicious:
+        summary += f'\n⚠️ ตอนสั้นผิดปกติ: {len(qc_suspicious)} ตอน'
     log_fn(summary)
     return buf.getvalue(), f'{safe}.zip', summary
 
 
-# ── Streamlit UI ──────────────────────────────────────────────────────────────
+# ── Streamlit UI ─────────────────────────────────────────────────────────────
 
 st.set_page_config(page_title='Novel Downloader', page_icon='📚', layout='centered')
 st.title('📚 Novel Downloader')
 st.markdown('วางลิงก์นิยายแล้วกด **สแกน** — รองรับทุกเว็บนิยายจีน')
 
-# ── Step 1: Scan ──────────────────────────────────────────────────────────────
+# ── Step 1: Scan ─────────────────────────────────────────────────────────────
 
 with st.form('scan_form'):
     url_input = st.text_input(
@@ -769,11 +982,23 @@ with st.form('scan_form'):
         placeholder='https://m.biquge365.net/shu/528722/',
         value=st.session_state.get('scan_url', ''),
     )
-    scan_submitted = st.form_submit_button('🔍 สแกน', type='primary', use_container_width=True)
+    scan_submitted = st.form_submit_button(
+        '🔍 สแกน', type='primary', use_container_width=True
+    )
 
 if scan_submitted and url_input.strip():
-    with st.spinner('กำลังสแกนสารบัญ...'):
-        scan_info, err = asyncio.run(scan_novel(url_input.strip()))
+    scan_log_area = st.empty()
+    scan_logs = []
+
+    def scan_log(msg):
+        scan_logs.append(msg)
+        scan_log_area.text_area(
+            'Scan Log', '\n'.join(scan_logs), height=180,
+            label_visibility='collapsed',
+        )
+
+    with st.spinner('กำลังสแกนสารบัญ + วิเคราะห์โครงสร้างเว็บ...'):
+        scan_info, err = asyncio.run(scan_novel(url_input.strip(), log=scan_log))
     if err:
         st.error(f'สแกนล้มเหลว: {err}')
         st.session_state.pop('scan_info', None)
@@ -785,12 +1010,14 @@ if scan_submitted and url_input.strip():
 elif scan_submitted:
     st.warning('กรุณาใส่ URL ก่อนค่ะ')
 
-# ── Show scan result ──────────────────────────────────────────────────────────
+# ── Show scan result ─────────────────────────────────────────────────────────
 
 scan_info = st.session_state.get('scan_info')
 
 if scan_info:
     chapters = scan_info['chapters']
+    profile = scan_info.get('profile', {})
+
     st.success(
         f'**{scan_info["title"]}**  \n'
         f'พบ **{len(chapters)} ตอน** บน {scan_info["domain"]}  \n'
@@ -798,7 +1025,18 @@ if scan_info:
         f'ตอนสุดท้าย: {chapters[-1][1] or chapters[-1][0]}'
     )
 
-    # ── Step 2: Download settings ─────────────────────────────────────────────
+    if profile:
+        mp = profile.get('multipage_pattern')
+        avg = profile.get('avg_chars', 0)
+        st.info(
+            f'🔍 **ผลวิเคราะห์เว็บ:**  \n'
+            f'เฉลี่ย ~{avg} ตัวอักษรจีน/ตอน  \n'
+            f'หน้าต่อ: {"มี (" + mp + ")" if mp else "ไม่พบ (ตอนละ 1 หน้า)"}  \n'
+            f'วิธีดึง: '
+            f'{"Content Div" if profile.get("use_content_div") else "Full HTML"}'
+        )
+
+    # ── Step 2: Download settings ────────────────────────────────────────
 
     st.divider()
     st.subheader('⚙️ ตั้งค่าการโหลด')
@@ -826,11 +1064,12 @@ if scan_info:
         def log(msg):
             logs.append(msg)
             log_area.text_area(
-                'Log', value='\n'.join(logs), height=220, label_visibility='collapsed'
+                'Log', value='\n'.join(logs), height=220,
+                label_visibility='collapsed',
             )
 
         def set_progress(val):
-            progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val*100:.0f}%')
+            progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val * 100:.0f}%')
 
         try:
             zip_bytes, zip_name, summary = asyncio.run(
