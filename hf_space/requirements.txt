@@ -1,2 +1,2 @@
 aiohttp
-streamlit>=1.32
+gradio>=4.0
