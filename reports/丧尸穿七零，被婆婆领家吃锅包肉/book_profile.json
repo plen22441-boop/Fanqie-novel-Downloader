@@ -11,25 +11,69 @@
     "status": "จบแล้ว",
     "note": "Phase 1 — ประเมินจาก metadata เท่านั้น | Zombie FL + Era-Based 70s + Transmigration + Food + Found Family"
   },
-  "genres": ["transmigration", "historical", "comedy", "romance", "drama", "supernatural"],
-  "tropes": ["op_mc", "strong_fl", "found_family", "face_slapping", "cute_kids"],
+  "genres": [
+    "transmigration",
+    "historical",
+    "comedy",
+    "romance",
+    "drama",
+    "horror",
+    "horror"
+  ],
+  "tropes": [
+    "op_mc",
+    "strong_fl",
+    "found_family",
+    "face_slapping",
+    "cute_kids"
+  ],
   "chapters_total": 544,
-  "chapters_read": 0,
+  "chapters_read": 30,
   "chapters_sampled": [],
   "free_chapters": 30,
   "translation_quality": 7,
   "translation_difficulty": 6,
   "scores": {
-    "hook":        { "score": 8.0, "evidence": "[Phase 1] Zombie FL ข้ามมายุค 70s — premise แปลกใหม่มาก hook แรง คนจะอยากรู้ว่าซอมบี้จะอยู่รอดในยุคเก่าได้อย่างไร" },
-    "prose":       { "score": 6.5, "evidence": "[Phase 1] fanqie 7.5 คุณภาพโอเค แต่ไม่โดดเด่น" },
-    "pacing":      { "score": 7.0, "evidence": "[Phase 1] Zombie + Era = มีแอ็คชั่นช่วย pacing ไม่ซึม แต่ 544 ตอนอาจยาวเกิน" },
-    "characters":  { "score": 7.5, "evidence": "[Phase 1] FL ซอมบี้ปรับตัวสู่ชีวิตชนบทจีนยุค 70 — concept ตัวละครน่าสนใจ แม่สามีน่าจะน่ารัก" },
-    "romance":     { "score": 6.5, "evidence": "[Phase 1] Era romance มักมีพระเอกทหาร/ชาวนาแข็งแกร่ง น่าจะ slow burn" },
-    "world":       { "score": 7.5, "evidence": "[Phase 1] ยุค 70 จีน + กลไกซอมบี้ — สร้างโลกสองชั้นน่าสนใจ" },
-    "plot":        { "score": 7.0, "evidence": "[Phase 1] ซอมบี้ต้องซ่อนตัว + ปรับตัว + food element — พล็อตหลายมิติ" },
-    "emotion":     { "score": 7.0, "evidence": "[Phase 1] Found family + อาหารอบอุ่น = น่าจะให้ความรู้สึกดี" },
-    "cliffhanger": { "score": 6.5, "evidence": "[Phase 1] ประมาณการ" },
-    "originality": { "score": 8.5, "evidence": "[Phase 1] Zombie FL ใน Era 70s — combination นี้หายากมากในตลาดไทย โดดเด่นชัดเจน" }
+    "hook": {
+      "score": 8.0,
+      "evidence": "[Phase 1] Zombie FL ข้ามมายุค 70s — premise แปลกใหม่มาก hook แรง คนจะอยากรู้ว่าซอมบี้จะอยู่รอดในยุคเก่าได้อย่างไร"
+    },
+    "prose": {
+      "score": 6.5,
+      "evidence": "[Phase 1] fanqie 7.5 คุณภาพโอเค แต่ไม่โดดเด่น"
+    },
+    "pacing": {
+      "score": 7.0,
+      "evidence": "[Phase 1] Zombie + Era = มีแอ็คชั่นช่วย pacing ไม่ซึม แต่ 544 ตอนอาจยาวเกิน"
+    },
+    "characters": {
+      "score": 7.5,
+      "evidence": "[Phase 1] FL ซอมบี้ปรับตัวสู่ชีวิตชนบทจีนยุค 70 — concept ตัวละครน่าสนใจ แม่สามีน่าจะน่ารัก"
+    },
+    "romance": {
+      "score": 6.5,
+      "evidence": "[Phase 1] Era romance มักมีพระเอกทหาร/ชาวนาแข็งแกร่ง น่าจะ slow burn"
+    },
+    "world": {
+      "score": 7.5,
+      "evidence": "[Phase 1] ยุค 70 จีน + กลไกซอมบี้ — สร้างโลกสองชั้นน่าสนใจ"
+    },
+    "plot": {
+      "score": 7.0,
+      "evidence": "[Phase 1] ซอมบี้ต้องซ่อนตัว + ปรับตัว + food element — พล็อตหลายมิติ"
+    },
+    "emotion": {
+      "score": 7.0,
+      "evidence": "[Phase 1] Found family + อาหารอบอุ่น = น่าจะให้ความรู้สึกดี"
+    },
+    "cliffhanger": {
+      "score": 6.5,
+      "evidence": "[Phase 1] ประมาณการ"
+    },
+    "originality": {
+      "score": 8.5,
+      "evidence": "[Phase 1] Zombie FL ใน Era 70s — combination นี้หายากมากในตลาดไทย โดดเด่นชัดเจน"
+    }
   },
   "translation_notes": {
     "difficulty_breakdown": "ศัพท์ยุค 70 จีน + อาหารท้องถิ่น + อาจมีคำแสลงยุคนั้น",

@@ -11,25 +11,67 @@
     "status": "จบแล้ว",
     "note": "Phase 1 — ประเมินจาก metadata เท่านั้น | Era-Based 70s + Cute Baby + Rebirth + Military"
   },
-  "genres": ["historical", "transmigration", "romance", "drama", "comedy"],
-  "tropes": ["op_mc", "strong_fl", "cute_kids", "face_slapping", "found_family"],
+  "genres": [
+    "historical",
+    "transmigration",
+    "romance",
+    "drama",
+    "comedy"
+  ],
+  "tropes": [
+    "op_mc",
+    "strong_fl",
+    "cute_kids",
+    "face_slapping",
+    "found_family"
+  ],
   "chapters_total": 400,
-  "chapters_read": 0,
+  "chapters_read": 30,
   "chapters_sampled": [],
   "free_chapters": 30,
   "translation_quality": 7,
   "translation_difficulty": 5,
   "scores": {
-    "hook":        { "score": 7.0, "evidence": "[Phase 1] แม่ + ลูกน้อย + ค่ายทหาร — คนไทยชอบ cute kids + military romance มาก hook น่าจะดี" },
-    "prose":       { "score": 6.0, "evidence": "[Phase 1] ไม่มี fanqie score — ประมาณการกลาง" },
-    "pacing":      { "score": 6.5, "evidence": "[Phase 1] Era + cute kids มักมีทั้งฉากอบอุ่นและดราม่า pacing ปานกลาง" },
-    "characters":  { "score": 7.5, "evidence": "[Phase 1] แม่แข็งแกร่ง + ลูกน้อยน่ารัก + พระเอกทหาร — ตัวละครสูตรที่คนไทยชอบ" },
-    "romance":     { "score": 7.5, "evidence": "[Phase 1] Military romance + rebirth = romance สองชั้น คนไทยชอบ" },
-    "world":       { "score": 6.5, "evidence": "[Phase 1] ยุค 70 จีน + ค่ายทหาร — familiar setting" },
-    "plot":        { "score": 6.5, "evidence": "[Phase 1] ตามหาสามี + rebirth + ลูกน้อย — พล็อตหลายชั้น แต่สูตรทั่วไป" },
-    "emotion":     { "score": 7.5, "evidence": "[Phase 1] Cute kids + แม่รัก + found family = emotional payoff สูง" },
-    "cliffhanger": { "score": 6.5, "evidence": "[Phase 1] ประมาณการ" },
-    "originality": { "score": 6.0, "evidence": "[Phase 1] Era + cute kids + military = สูตรที่พบบ่อยมากในตลาด แต่ยังขายได้ในไทย" }
+    "hook": {
+      "score": 7.0,
+      "evidence": "[Phase 1] แม่ + ลูกน้อย + ค่ายทหาร — คนไทยชอบ cute kids + military romance มาก hook น่าจะดี"
+    },
+    "prose": {
+      "score": 6.0,
+      "evidence": "[Phase 1] ไม่มี fanqie score — ประมาณการกลาง"
+    },
+    "pacing": {
+      "score": 6.5,
+      "evidence": "[Phase 1] Era + cute kids มักมีทั้งฉากอบอุ่นและดราม่า pacing ปานกลาง"
+    },
+    "characters": {
+      "score": 7.5,
+      "evidence": "[Phase 1] แม่แข็งแกร่ง + ลูกน้อยน่ารัก + พระเอกทหาร — ตัวละครสูตรที่คนไทยชอบ"
+    },
+    "romance": {
+      "score": 7.5,
+      "evidence": "[Phase 1] Military romance + rebirth = romance สองชั้น คนไทยชอบ"
+    },
+    "world": {
+      "score": 6.5,
+      "evidence": "[Phase 1] ยุค 70 จีน + ค่ายทหาร — familiar setting"
+    },
+    "plot": {
+      "score": 6.5,
+      "evidence": "[Phase 1] ตามหาสามี + rebirth + ลูกน้อย — พล็อตหลายชั้น แต่สูตรทั่วไป"
+    },
+    "emotion": {
+      "score": 7.5,
+      "evidence": "[Phase 1] Cute kids + แม่รัก + found family = emotional payoff สูง"
+    },
+    "cliffhanger": {
+      "score": 6.5,
+      "evidence": "[Phase 1] ประมาณการ"
+    },
+    "originality": {
+      "score": 6.0,
+      "evidence": "[Phase 1] Era + cute kids + military = สูตรที่พบบ่อยมากในตลาด แต่ยังขายได้ในไทย"
+    }
   },
   "translation_notes": {
     "difficulty_breakdown": "ศัพท์ยุค 70 จีน + ศัพท์ทหาร ต้องปรับ",

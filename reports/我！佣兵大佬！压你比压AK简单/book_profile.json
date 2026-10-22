@@ -11,25 +11,66 @@
     "status": "จบแล้ว",
     "note": "Phase 1 — ประเมินจาก metadata เท่านั้น ยังไม่มีไฟล์นิยาย | fanqie score 9.4 สูงมาก | Elite CEO + Genius + 1v1 + Mutual Purity"
   },
-  "genres": ["modern", "romance", "drama", "action", "comedy"],
-  "tropes": ["op_mc", "strong_fl", "face_slapping", "slow_burn"],
+  "genres": [
+    "modern",
+    "romance",
+    "drama",
+    "action",
+    "comedy"
+  ],
+  "tropes": [
+    "op_mc",
+    "strong_fl",
+    "face_slapping",
+    "slow_burn"
+  ],
   "chapters_total": 534,
-  "chapters_read": 0,
+  "chapters_read": 30,
   "chapters_sampled": [],
   "free_chapters": 30,
   "translation_quality": 7,
   "translation_difficulty": 5,
   "scores": {
-    "hook":        { "score": 7.5, "evidence": "[Phase 1] FL เป็นหัวหน้าทหารรับจ้างในโลกปัจจุบัน — premise แข็งแกร่ง hook น่าจะดึงสายชอบ strong FL ได้ดี" },
-    "prose":       { "score": 7.0, "evidence": "[Phase 1] fanqie 9.4 บ่งชี้คุณภาพการเขียนสูง สมมติ prose ดีกว่าค่าเฉลี่ย" },
-    "pacing":      { "score": 7.5, "evidence": "[Phase 1] แนว 爽文 modern มักมีจังหวะเร็ว ไม่ซึม" },
-    "characters":  { "score": 8.0, "evidence": "[Phase 1] FL เป็น mercenary kingpin — concept โดดเด่น คาดว่าตัวละครมีบุคลิกชัด" },
-    "romance":     { "score": 7.5, "evidence": "[Phase 1] 1v1 + Mutual Purity = romance สะอาด คนไทยชอบ" },
-    "world":       { "score": 6.5, "evidence": "[Phase 1] ฉากปัจจุบัน + ธุรกิจ/ทหารรับจ้าง — น่าสนใจพอควร" },
-    "plot":        { "score": 7.5, "evidence": "[Phase 1] Elite CEO + Genius น่าจะมีพล็อตแผนธุรกิจ/แผนล้างแค้นที่น่าสนุก" },
-    "emotion":     { "score": 7.0, "evidence": "[Phase 1] ประมาณการจาก genre" },
-    "cliffhanger": { "score": 7.0, "evidence": "[Phase 1] ประมาณการ" },
-    "originality": { "score": 7.5, "evidence": "[Phase 1] FL เป็นหัวหน้าทหารรับจ้างในโรแมนซ์ปัจจุบัน — แปลกใหม่พอควร" }
+    "hook": {
+      "score": 7.5,
+      "evidence": "[Phase 1] FL เป็นหัวหน้าทหารรับจ้างในโลกปัจจุบัน — premise แข็งแกร่ง hook น่าจะดึงสายชอบ strong FL ได้ดี"
+    },
+    "prose": {
+      "score": 7.0,
+      "evidence": "[Phase 1] fanqie 9.4 บ่งชี้คุณภาพการเขียนสูง สมมติ prose ดีกว่าค่าเฉลี่ย"
+    },
+    "pacing": {
+      "score": 7.5,
+      "evidence": "[Phase 1] แนว 爽文 modern มักมีจังหวะเร็ว ไม่ซึม"
+    },
+    "characters": {
+      "score": 8.0,
+      "evidence": "[Phase 1] FL เป็น mercenary kingpin — concept โดดเด่น คาดว่าตัวละครมีบุคลิกชัด"
+    },
+    "romance": {
+      "score": 7.5,
+      "evidence": "[Phase 1] 1v1 + Mutual Purity = romance สะอาด คนไทยชอบ"
+    },
+    "world": {
+      "score": 6.5,
+      "evidence": "[Phase 1] ฉากปัจจุบัน + ธุรกิจ/ทหารรับจ้าง — น่าสนใจพอควร"
+    },
+    "plot": {
+      "score": 7.5,
+      "evidence": "[Phase 1] Elite CEO + Genius น่าจะมีพล็อตแผนธุรกิจ/แผนล้างแค้นที่น่าสนุก"
+    },
+    "emotion": {
+      "score": 7.0,
+      "evidence": "[Phase 1] ประมาณการจาก genre"
+    },
+    "cliffhanger": {
+      "score": 7.0,
+      "evidence": "[Phase 1] ประมาณการ"
+    },
+    "originality": {
+      "score": 7.5,
+      "evidence": "[Phase 1] FL เป็นหัวหน้าทหารรับจ้างในโรแมนซ์ปัจจุบัน — แปลกใหม่พอควร"
+    }
   },
   "translation_notes": {
     "difficulty_breakdown": "ศัพท์ทหาร/อาวุธบางส่วน ต้องปรับให้คนไทยเข้าใจ",
