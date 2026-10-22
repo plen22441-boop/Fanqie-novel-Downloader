@@ -19,7 +19,7 @@ JUNK_RE = re.compile(
     r'google|adsbygoogle|function\(i,s|var\s+_hmt|百度|本站|书签|收藏|推荐|'
     r'首页|返回目录|关灯|护眼|字号|章节报错|一秒记住|笔趣阁|更新快|无弹窗|'
     r'本章未完|点击下一页|请点击下一页|最新章节|设为首页|加入书架|手机版|'
-    r'请记住本站|如遇到内容乱|\/\/',
+    r'请记住本站|如遇到内容乱|验证码|\/\/',
     re.IGNORECASE,
 )
 
@@ -28,7 +28,7 @@ PAGE_MARKER_RE = re.compile(r'[（(]第\s*\d+\s*/\s*\d+\s*页[）)]')
 _NAV_EXACT = {
     '返回', '目录', '首页', '书签', '收藏', '推荐', '关灯', '护眼',
     '上一章', '下一章', '上一页', '下一页', '回目录', '加入书架',
-    '提交关闭', '提交', '关闭', '确定', '取消', '登录', '注册',
+    '提交关闭',
 }
 
 _CHAPTER_HDR_RE = re.compile(r'^第\s*\d+\s*[章节話话回]')
@@ -240,7 +240,14 @@ def parse_novel_url(url):
 
 # ── Chapter next-page helper ──────────────────────────────────────────────────
 
-def _chapter_next_page(html, current_url):
+def _chapter_next_page(html, current_url, try_url_first=False):
+    # URL-first mode: derive page-2 URL directly (for sites with predictable patterns)
+    if try_url_first:
+        m = re.match(r'(.*?/\d+/)(\d+)(?:_(\d+))?\.html', current_url)
+        if m:
+            base, cid, pn = m.group(1), m.group(2), m.group(3)
+            return f'{base}{cid}_{int(pn)+1 if pn else 2}.html'
+
     if not re.search(r'本章未完|点击下一页|下一页继续|未完待续', html):
         return None
     for pat in [
@@ -265,7 +272,8 @@ def _chapter_next_page(html, current_url):
 # ── Chapter downloader ────────────────────────────────────────────────────────
 
 async def download_chapter(session, url, semaphore, delay=1.5,
-                           multipage=False, use_content_div=False):
+                           multipage=False, use_content_div=False,
+                           try_url_first=False):
     async with semaphore:
         html, err = await _fetch_one(session, url)
         if html is None:
@@ -273,33 +281,37 @@ async def download_chapter(session, url, semaphore, delay=1.5,
 
         title = extract_title(html)
 
-        if use_content_div:
-            content = find_content_div(html)
-            all_lines = extract_text_from_content(content)
-            if len(all_lines) < 3:
-                all_lines = extract_text_from_html(html)
-        else:
-            all_lines = extract_text_from_html(html)
+        def _extract(h):
+            if use_content_div:
+                content = find_content_div(h)
+                lines = extract_text_from_content(content)
+                if len(lines) < 3:
+                    lines = extract_text_from_html(h)
+            else:
+                lines = extract_text_from_html(h)
+            return lines
 
-        if multipage or use_content_div:
+        all_lines = _extract(html)
+        first_snippet = ''.join(all_lines[:3])
+
+        if multipage:
             cur_url = url
             for _ in range(19):
-                nxt = _chapter_next_page(html, cur_url)
+                nxt = _chapter_next_page(html, cur_url, try_url_first=try_url_first)
                 if not nxt or nxt == cur_url:
                     break
                 await asyncio.sleep(delay * 0.4)
-                html, err = await _fetch_one(session, nxt)
-                if html is None:
+                html2, err2 = await _fetch_one(session, nxt)
+                if html2 is None:
                     break
-                if use_content_div:
-                    content = find_content_div(html)
-                    extra = extract_text_from_content(content)
-                    if len(extra) < 3:
-                        extra = extract_text_from_html(html)
-                else:
-                    extra = extract_text_from_html(html)
+                extra = _extract(html2)
+                # Stop if duplicate content (redirect loop) or nearly empty page
+                if not extra or sum(len(l) for l in extra) < 30:
+                    break
+                if ''.join(extra[:3]) == first_snippet:
+                    break
                 all_lines.extend(extra)
-                cur_url = nxt
+                html, cur_url = html2, nxt
 
         if all_lines:
             return {'ok': True, 'title': title, 'text': '\n\n'.join(all_lines)}
@@ -625,11 +637,16 @@ async def scan_novel(url):
 # ── Download engine (step 2) ──────────────────────────────────────────────────
 
 def _sort_chapters(chapters):
-    """Sort chapters by the numeric chapter ID in the URL (ascending = correct order)."""
-    def url_key(item):
-        nums = re.findall(r'\d+', item[0].rstrip('/').split('/')[-1].split('.')[0])
+    """Sort by 第N章 in title; fall back to largest number in URL stem."""
+    def chapter_key(item):
+        url, title = item
+        m = re.search(r'第\s*(\d+)\s*[章节話话回]', title)
+        if m:
+            return int(m.group(1))
+        stem = url.rstrip('/').split('/')[-1].split('.')[0]
+        nums = re.findall(r'\d+', stem)
         return int(nums[0]) if nums else 0
-    return sorted(chapters, key=url_key)
+    return sorted(chapters, key=chapter_key)
 
 
 async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn, progress_fn):
@@ -641,8 +658,9 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
     if not novel_name.strip():
         novel_name = scan_info['title'] or f'{site}_{str(book_id).replace("/","_")}'
 
-    use_multipage = (site == 'biquge365')
-    use_content_div = (site == 'universal')
+    use_multipage = (site in ('biquge365', 'universal'))
+    use_content_div = (site in ('biquge365', 'universal'))
+    try_url_first = (site == 'biquge365')
 
     connector = aiohttp.TCPConnector(limit=workers + 2)
     async with aiohttp.ClientSession(headers=HEADERS, connector=connector) as session:
@@ -657,6 +675,7 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
                 session, u, semaphore, delay,
                 multipage=use_multipage,
                 use_content_div=use_content_div,
+                try_url_first=try_url_first,
             )
             return idx, t, r
 
