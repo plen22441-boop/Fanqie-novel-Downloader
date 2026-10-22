@@ -17,8 +17,10 @@ on:
           - 4jiwx
           - shuixxs
           - zhys
+          - shubaowb
+          - 69shu
       book_id:
-        description: "รหัสหนังสือ"
+        description: "รหัสหนังสือ (69shu ใส่ path เช่น 2/2829)"
         required: true
         default: "YH2B"
         type: string
@@ -36,6 +38,11 @@ on:
         description: "หน่วง (วินาที)"
         required: false
         default: "3"
+        type: string
+      min_chars:
+        description: "QC: ขั้นต่ำตัวอักษรต่อตอน (ใช้กับ 69shu, shubaowb)"
+        required: false
+        default: "300"
         type: string
 
 jobs:
@@ -64,6 +71,7 @@ jobs:
           TOTAL_CHAPTERS: ${{ inputs.total_chapters }}
           WORKERS: ${{ inputs.workers }}
           DELAY: ${{ inputs.delay }}
+          MIN_CHARS: ${{ inputs.min_chars }}
           OUTPUT_DIR: ./output
         run: |
           mkdir -p output
@@ -75,16 +83,36 @@ jobs:
           echo "=== Files ==="
           ls -lh output/ 2>/dev/null || echo "No output"
           echo ""
-          echo "=== First 30 lines ==="
-          head -30 output/*.txt 2>/dev/null || true
+          echo "=== QC Summary ==="
+          python3 -c "
+          import json, glob, sys
+          files = glob.glob('output/*_QC.json')
+          if not files:
+              print('No QC report (site may not support QC yet)')
+              sys.exit(0)
+          for f in files:
+              d = json.load(open(f, encoding='utf-8'))
+              print(f'Book   : {d[\"book\"]}')
+              print(f'Total  : {d[\"total_chapters\"]}  OK:{d[\"ok\"]}  Short:{d[\"short\"]}  Failed:{d[\"failed\"]}')
+              if d['short_chapters']:
+                  print('Short  :')
+                  for s in d['short_chapters'][:10]:
+                      print(f'  #{s[\"no\"]} {s[\"title\"]} ({s[\"chars\"]} chars)')
+              if d['failed_chapters']:
+                  print('Failed :')
+                  for f2 in d['failed_chapters'][:10]:
+                      print(f'  #{f2[\"no\"]} {f2[\"title\"]} — {f2[\"error\"]}')
+          " 2>/dev/null || true
           echo ""
-          echo "=== Chapter count ==="
-          grep -c "^第.*章" output/*.txt 2>/dev/null || true
+          echo "=== First 20 lines of TXT ==="
+          head -20 output/*.txt 2>/dev/null || true
 
       - name: Upload result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: novel-${{ inputs.novel_name }}
-          path: output/*.txt
+          path: |
+            output/*.txt
+            output/*.json
           retention-days: 30
