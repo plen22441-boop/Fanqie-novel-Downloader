@@ -546,16 +546,28 @@ def detect_issues(scan_info):
     if len(sample_counts) >= 3 and avg_chars > 200:
         low_samples = [c for c in sample_counts if c < avg_chars * 0.3]
         if low_samples:
-            issues.append({
-                'id': 'variance_high',
-                'severity': 'warning',
-                'icon': '🟡',
-                'title': 'คุณภาพไม่สม่ำเสมอ',
-                'detail': f'ตัวอย่างบางตอนได้เพียง {min(sample_counts)} อักษร '
-                          f'(เฉลี่ย {avg_chars}) — บางตอนอาจได้เนื้อหาไม่ครบ',
-                'fixable': True,
-                'fixed': False,
-            })
+            if profile.get('variance_checked'):
+                issues.append({
+                    'id': 'variance_checked',
+                    'severity': 'info',
+                    'icon': '🟢',
+                    'title': 'คุณภาพตรวจแล้ว',
+                    'detail': f'ตรวจซ้ำแล้ว — ตอนสั้นเป็นเนื้อหาจริง (ไม่ใช่ข้อผิดพลาด) '
+                              f'ระบบ QC จะตรวจอีกครั้งหลังดาวน์โหลด',
+                    'fixable': False,
+                    'fixed': True,
+                })
+            else:
+                issues.append({
+                    'id': 'variance_high',
+                    'severity': 'warning',
+                    'icon': '🟡',
+                    'title': 'คุณภาพไม่สม่ำเสมอ',
+                    'detail': f'ตัวอย่างบางตอนได้เพียง {min(sample_counts)} อักษร '
+                              f'(เฉลี่ย {avg_chars}) — บางตอนอาจได้เนื้อหาไม่ครบ',
+                    'fixable': True,
+                    'fixed': False,
+                })
 
     return issues
 
@@ -773,6 +785,8 @@ async def fix_issues(scan_info, issues, log):
                             pass
                     await asyncio.sleep(0.3)
                 log('  ℹ️ ความแตกต่างอาจเกิดจากเนื้อหาตอนสั้นจริง — จะตรวจละเอียดอีกครั้งตอนดาวน์โหลด')
+            profile['variance_checked'] = True
+            scan_info['profile'] = profile
 
         # ── Re-analyze after fixes ──────────────────────────────────────
         log('🔍 กำลังวิเคราะห์ซ้ำหลังแก้ไข...')
