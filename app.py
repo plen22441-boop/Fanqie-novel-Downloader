@@ -18,8 +18,6 @@ import asyncio
 import aiohttp
 import re
 import json
-import io
-import zipfile
 import statistics
 from urllib.parse import urlparse, urljoin
 import streamlit as st
@@ -542,32 +540,20 @@ def detect_issues(scan_info):
             'fixed': True,
         })
 
-    # 5. Sample variance — one very low sample among decent ones
+    # 5. Sample variance — info only, auto-fixed during post-download QC
     if len(sample_counts) >= 3 and avg_chars > 200:
         low_samples = [c for c in sample_counts if c < avg_chars * 0.3]
         if low_samples:
-            if profile.get('variance_checked'):
-                issues.append({
-                    'id': 'variance_checked',
-                    'severity': 'info',
-                    'icon': '🟢',
-                    'title': 'คุณภาพตรวจแล้ว',
-                    'detail': f'ตรวจซ้ำแล้ว — ตอนสั้นเป็นเนื้อหาจริง (ไม่ใช่ข้อผิดพลาด) '
-                              f'ระบบ QC จะตรวจอีกครั้งหลังดาวน์โหลด',
-                    'fixable': False,
-                    'fixed': True,
-                })
-            else:
-                issues.append({
-                    'id': 'variance_high',
-                    'severity': 'warning',
-                    'icon': '🟡',
-                    'title': 'คุณภาพไม่สม่ำเสมอ',
-                    'detail': f'ตัวอย่างบางตอนได้เพียง {min(sample_counts)} อักษร '
-                              f'(เฉลี่ย {avg_chars}) — บางตอนอาจได้เนื้อหาไม่ครบ',
-                    'fixable': True,
-                    'fixed': False,
-                })
+            issues.append({
+                'id': 'variance_info',
+                'severity': 'info',
+                'icon': '🔵',
+                'title': 'คุณภาพไม่สม่ำเสมอ',
+                'detail': f'ตัวอย่างบางตอนได้เพียง {min(sample_counts)} อักษร '
+                          f'(เฉลี่ย {avg_chars}) — ระบบ QC จะโหลดซ้ำตอนสั้นผิดปกติอัตโนมัติหลังดาวน์โหลด',
+                'fixable': False,
+                'fixed': True,
+            })
 
     return issues
 
@@ -753,40 +739,6 @@ async def fix_issues(scan_info, issues, log):
                 scan_info['profile'] = profile
             else:
                 log('  ❌ ไม่พบระบบหน้าต่อเพิ่มเติม')
-
-        # ── Fix 4: High variance — re-sample the low-scoring chapters ────
-        if 'variance_high' in fixable_ids:
-            log('🔧 กำลังตรวจสอบตอนที่ได้คะแนนต่ำซ้ำ...')
-            sample_counts = profile.get('sample_char_counts', [])
-            avg = profile.get('avg_chars', 0)
-            if sample_counts and avg > 200:
-                n = len(chapters)
-                indices = sorted(set([0, max(0, n // 4), n // 2, min(n - 1, 3 * n // 4)]))
-                low_idx = [i for i, c in zip(indices, sample_counts) if c < avg * 0.3]
-                for idx in low_idx:
-                    url = chapters[idx][0]
-                    for attempt_ua in [
-                        HEADERS['User-Agent'],
-                        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-                    ]:
-                        try:
-                            hdrs = dict(HEADERS)
-                            hdrs['User-Agent'] = attempt_ua
-                            async with session.get(url, headers=hdrs,
-                                                   timeout=aiohttp.ClientTimeout(total=20)) as resp:
-                                if resp.status == 200:
-                                    html = await resp.text(errors='replace')
-                                    lines = smart_extract(html)
-                                    cn = sum(count_chinese(l) for l in lines)
-                                    if cn > avg * 0.5:
-                                        log(f'  ✅ ตอนที่ {idx+1} ดีขึ้น: {cn} อักษร')
-                                        break
-                        except Exception:
-                            pass
-                    await asyncio.sleep(0.3)
-                log('  ℹ️ ความแตกต่างอาจเกิดจากเนื้อหาตอนสั้นจริง — จะตรวจละเอียดอีกครั้งตอนดาวน์โหลด')
-            profile['variance_checked'] = True
-            scan_info['profile'] = profile
 
         # ── Re-analyze after fixes ──────────────────────────────────────
         log('🔍 กำลังวิเคราะห์ซ้ำหลังแก้ไข...')
@@ -1237,7 +1189,6 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
         semaphore = asyncio.Semaphore(workers)
         raw_results = []
         cnt_ok = cnt_short = cnt_fail = 0
-        qc_short, qc_failed = [], []
 
         async def dl(idx, u, t):
             r = await download_chapter(session, u, semaphore, delay, profile)
@@ -1250,7 +1201,6 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
                 *[dl(bs + i, u, t) for i, (u, t) in enumerate(batch)]
             )
             for idx, toc_title, r in sorted(res, key=lambda x: x[0]):
-                ch_url = chapters[idx][0]
                 if r['ok']:
                     title = r['title'] or toc_title or f'第{idx + 1}章'
                     text = r['text']
@@ -1258,64 +1208,133 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
                     raw_results.append((idx, title, text, cn))
                     if cn < min_chars:
                         cnt_short += 1
-                        qc_short.append({
-                            'no': idx + 1, 'title': title,
-                            'chars': cn, 'url': ch_url,
-                        })
                     else:
                         cnt_ok += 1
                 else:
                     cnt_fail += 1
                     label = toc_title or f'第{idx + 1}章'
-                    raw_results.append((idx, label, f'[โหลดล้มเหลว: {r["error"]}]', 0))
-                    qc_failed.append({
-                        'no': idx + 1, 'title': label,
-                        'error': r['error'], 'url': ch_url,
-                    })
+                    raw_results.append((idx, label, '', 0))
             done = bs + len(batch)
             progress_fn(done / len(chapters))
             log_fn(f'  {done}/{len(chapters)} — OK:{cnt_ok}  สั้น:{cnt_short}  ล้มเหลว:{cnt_fail}')
             await asyncio.sleep(0.2)
 
-    raw_results.sort(key=lambda x: x[0])
+        raw_results.sort(key=lambda x: x[0])
 
-    # ── Post-download QC ─────────────────────────────────────────────────
+        # ── Post-download QC: Auto-fix ──────────────────────────────────
+        log_fn('🔍 QC: กำลังตรวจสอบและแก้ไขอัตโนมัติ...')
+
+        ok_chars = [cn for _, _, _, cn in raw_results if cn > 0]
+        median_chars = int(statistics.median(ok_chars)) if ok_chars else 0
+
+        # QC 1: Remove common junk suffix
+        if len(raw_results) > 10:
+            endings = {}
+            for _, _, text, cn in raw_results:
+                if cn > 50:
+                    last = text.strip()[-80:]
+                    endings[last] = endings.get(last, 0) + 1
+            common_junk = [e for e, c in endings.items() if c > len(raw_results) * 0.3]
+            if common_junk:
+                cleaned_count = 0
+                cleaned = []
+                for idx, title, text, cn in raw_results:
+                    for suffix in common_junk:
+                        if text.endswith(suffix):
+                            text = text[:-len(suffix)].rstrip()
+                            cn = count_chinese(text)
+                            cleaned_count += 1
+                    cleaned.append((idx, title, text, cn))
+                raw_results = cleaned
+                if cleaned_count:
+                    log_fn(f'  🧹 ลบข้อความซ้ำท้ายตอน: {cleaned_count} ตอน')
+
+        # QC 2: Detect foreign content (content from other novels mixed in)
+        if median_chars > 200 and len(raw_results) > 20:
+            foreign_count = 0
+            cleaned = []
+            for idx, title, text, cn in raw_results:
+                if cn > 0:
+                    lines = text.split('\n\n')
+                    kept = []
+                    for line in lines:
+                        line_cn = count_chinese(line)
+                        if line_cn > 0 and not re.search(
+                            r'(?:推荐|相关|猜你喜欢|热门推荐|排行榜|最新入库|'
+                            r'本站所有|Copyright|版权|ICP|备案)',
+                            line
+                        ):
+                            kept.append(line)
+                    new_text = '\n\n'.join(kept)
+                    new_cn = count_chinese(new_text)
+                    if new_cn < cn:
+                        foreign_count += 1
+                    cleaned.append((idx, title, new_text, new_cn))
+                else:
+                    cleaned.append((idx, title, text, cn))
+            raw_results = cleaned
+            if foreign_count:
+                log_fn(f'  🧹 ลบเนื้อหาแนะนำ/โฆษณา: {foreign_count} ตอน')
+
+        # QC 3: Re-download suspicious short chapters and failed chapters
+        suspicious_indices = []
+        failed_indices = []
+        if median_chars > 200:
+            for i, (idx, title, text, cn) in enumerate(raw_results):
+                if cn == 0:
+                    failed_indices.append(i)
+                elif cn < median_chars * 0.35 and cn < min_chars:
+                    suspicious_indices.append(i)
+
+        retry_indices = failed_indices + suspicious_indices
+        if retry_indices:
+            retry_count = min(len(retry_indices), 30)
+            retry_indices = retry_indices[:retry_count]
+            log_fn(f'  🔄 โหลดซ้ำตอนที่มีปัญหา: {retry_count} ตอน...')
+
+            fixed = 0
+            for ri in retry_indices:
+                idx, title, old_text, old_cn = raw_results[ri]
+                ch_url = chapters[idx][0]
+                r = await download_chapter(session, ch_url, semaphore, delay, profile)
+                if r['ok']:
+                    new_cn = r.get('cn_chars', count_chinese(r['text']))
+                    if new_cn > old_cn:
+                        new_title = r['title'] or title
+                        raw_results[ri] = (idx, new_title, r['text'], new_cn)
+                        fixed += 1
+                await asyncio.sleep(delay * 0.5)
+
+            if fixed:
+                log_fn(f'  ✅ โหลดซ้ำสำเร็จ: {fixed}/{retry_count} ตอน')
+            else:
+                log_fn(f'  ℹ️ โหลดซ้ำแล้วแต่ไม่ได้เนื้อหาเพิ่ม (เว็บอาจจำกัดเนื้อหา)')
+
+    # ── Final QC report ──────────────────────────────────────────────────
+    raw_results.sort(key=lambda x: x[0])
     ok_chars = [cn for _, _, _, cn in raw_results if cn > 0]
     median_chars = int(statistics.median(ok_chars)) if ok_chars else 0
 
-    # Detect common junk suffix that appears in many chapters
-    if len(raw_results) > 10:
-        endings = {}
-        for _, _, text, cn in raw_results:
-            if cn > 50:
-                last = text.strip()[-80:]
-                endings[last] = endings.get(last, 0) + 1
-        common_junk = [e for e, c in endings.items() if c > len(raw_results) * 0.3]
-        if common_junk:
-            cleaned_count = 0
-            cleaned = []
-            for idx, title, text, cn in raw_results:
-                for suffix in common_junk:
-                    if text.endswith(suffix):
-                        text = text[:-len(suffix)].rstrip()
-                        cn = count_chinese(text)
-                        cleaned_count += 1
-                cleaned.append((idx, title, text, cn))
-            raw_results = cleaned
-            if cleaned_count:
-                log_fn(f'🧹 ลบข้อความซ้ำท้ายตอนออก {cleaned_count} ตอน')
+    # Recount after fixes
+    cnt_ok = cnt_short = cnt_fail = 0
+    qc_short, qc_failed, qc_suspicious = [], [], []
+    for idx, title, text, cn in raw_results:
+        ch_url = chapters[idx][0] if idx < len(chapters) else ''
+        if cn == 0:
+            cnt_fail += 1
+            qc_failed.append({'no': idx + 1, 'title': title, 'url': ch_url})
+        elif cn < min_chars:
+            cnt_short += 1
+            qc_short.append({'no': idx + 1, 'title': title, 'chars': cn, 'url': ch_url})
+        else:
+            cnt_ok += 1
+        if median_chars > 200 and 0 < cn < median_chars * 0.35:
+            qc_suspicious.append({
+                'no': idx + 1, 'title': title,
+                'chars': cn, 'expected': median_chars,
+            })
 
-    # Flag chapters far below median
-    qc_suspicious = []
-    if median_chars > 200:
-        for idx, title, text, cn in raw_results:
-            if 0 < cn < median_chars * 0.35:
-                qc_suspicious.append({
-                    'no': idx + 1, 'title': title,
-                    'chars': cn, 'expected': median_chars,
-                })
-
-    # Check for missing chapter numbers
+    # Check missing chapter numbers
     qc_missing = []
     numbered = {}
     for idx, title, text, cn in raw_results:
@@ -1328,7 +1347,7 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
         if missing:
             qc_missing = missing[:30]
 
-    # ── Build output ─────────────────────────────────────────────────────
+    # ── Build .txt output ────────────────────────────────────────────────
     sep = '=' * 50
     qc_lines = [
         sep,
@@ -1353,7 +1372,7 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
         ]
     if qc_failed:
         qc_lines += ['ตอนล้มเหลว:'] + [
-            f'  #{f["no"]} {f["title"]} — {f["error"]}' for f in qc_failed[:20]
+            f'  #{f["no"]} {f["title"]}' for f in qc_failed[:20]
         ]
     if qc_missing:
         qc_lines.append(
@@ -1361,28 +1380,11 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
         )
     qc_lines.append(sep)
 
-    body = '\n'.join(f'\n{t}\n\n{txt}' for _, t, txt, _ in raw_results)
+    body = '\n'.join(f'\n{t}\n\n{txt}' for _, t, txt, _ in raw_results if txt)
     txt_content = '﻿' + novel_name + '\n\n' + '\n'.join(qc_lines) + '\n\n' + body
 
-    qc_data = {
-        'book': novel_name, 'site': domain, 'book_id': book_id,
-        'total_chapters': len(chapters), 'ok': cnt_ok, 'short': cnt_short,
-        'failed': cnt_fail, 'min_chars': min_chars,
-        'median_chars': median_chars,
-        'multipage_pattern': profile.get('multipage_pattern'),
-        'avg_chars_from_scan': profile.get('avg_chars', 0),
-        'short_chapters': qc_short, 'failed_chapters': qc_failed,
-        'suspicious_chapters': qc_suspicious,
-        'missing_chapters': qc_missing,
-    }
-
     safe = re.sub(r'[\\/:*?"<>|]', '_', novel_name)
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(f'{safe}.txt', txt_content.encode('utf-8'))
-        zf.writestr(f'{safe}_QC.json',
-                     json.dumps(qc_data, ensure_ascii=False, indent=2))
-    buf.seek(0)
+    txt_bytes = txt_content.encode('utf-8')
 
     summary = (
         f'✅ เสร็จแล้ว!\n'
@@ -1393,9 +1395,11 @@ async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn,
     if qc_missing:
         summary += f'\n⚠️ ตอนที่อาจหายไป: {len(qc_missing)} ตอน'
     if qc_suspicious:
-        summary += f'\n⚠️ ตอนสั้นผิดปกติ: {len(qc_suspicious)} ตอน'
+        summary += f'\n⚠️ ตอนสั้นผิดปกติ: {len(qc_suspicious)} ตอน (โหลดซ้ำแล้ว)'
+    if cnt_fail == 0 and cnt_short == 0 and not qc_missing:
+        summary += '\n🎉 ครบถ้วน — ไม่พบปัญหา!'
     log_fn(summary)
-    return buf.getvalue(), f'{safe}.zip', summary
+    return txt_bytes, f'{safe}.txt', summary
 
 
 # ── Streamlit UI ─────────────────────────────────────────────────────────────
@@ -1578,20 +1582,20 @@ if scan_info:
                 progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val * 100:.0f}%')
 
             try:
-                zip_bytes, zip_name, summary = asyncio.run(
+                txt_bytes, txt_name, summary = asyncio.run(
                     run_download(
                         scan_info, novel_name, workers, float(delay),
                         int(min_chars), log, set_progress,
                     )
                 )
                 progress_bar.progress(1.0, text='เสร็จแล้ว!')
-                if zip_bytes:
+                if txt_bytes:
                     st.success(summary)
                     st.download_button(
-                        label='📥 โหลดไฟล์ (.zip มี TXT + QC JSON)',
-                        data=zip_bytes,
-                        file_name=zip_name,
-                        mime='application/zip',
+                        label='📥 โหลดไฟล์ .txt',
+                        data=txt_bytes,
+                        file_name=txt_name,
+                        mime='text/plain; charset=utf-8',
                         use_container_width=True,
                     )
                 else:
