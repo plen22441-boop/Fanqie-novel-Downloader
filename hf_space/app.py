@@ -23,6 +23,12 @@ from urllib.parse import urlparse, urljoin
 import streamlit as st
 from html.parser import HTMLParser
 
+try:
+    import cloudscraper as _cloudscraper
+    _HAS_CLOUDSCRAPER = True
+except ImportError:
+    _HAS_CLOUDSCRAPER = False
+
 
 # ── Junk / Navigation Filters ────────────────────────────────────────────────
 
@@ -258,14 +264,64 @@ HEADERS = {
     'Connection': 'keep-alive',
 }
 
+CF_CHALLENGE_RE = re.compile(
+    r'正在验证浏览器|正在進行安全驗證|Checking your browser|'
+    r'cf-browser-verification|__cf_chl|cf_clearance|'
+    r'Just a moment\.\.\.|Enable JavaScript and cookies',
+    re.IGNORECASE,
+)
+
+_cf_scraper = None
+
+def _get_cf_scraper():
+    global _cf_scraper
+    if _cf_scraper is None and _HAS_CLOUDSCRAPER:
+        _cf_scraper = _cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+        )
+    return _cf_scraper
+
+
+def _fetch_with_cloudscraper(url):
+    """Synchronous Cloudflare bypass fetch."""
+    scraper = _get_cf_scraper()
+    if not scraper:
+        return None, 'cloudscraper not available'
+    try:
+        resp = scraper.get(url, timeout=30)
+        if resp.status_code == 200:
+            return resp.text, None
+        return None, f'HTTP {resp.status_code}'
+    except Exception as e:
+        return None, str(e)
+
 
 async def _fetch_one(session, url):
     for retry in range(4):
         try:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=25)) as resp:
                 if resp.status == 200:
-                    return await resp.text(errors='replace'), None
+                    html = await resp.text(errors='replace')
+                    # Cloudflare challenge page — try cloudscraper
+                    if CF_CHALLENGE_RE.search(html[:2000]):
+                        if _HAS_CLOUDSCRAPER:
+                            loop = asyncio.get_event_loop()
+                            cf_html, cf_err = await loop.run_in_executor(
+                                None, _fetch_with_cloudscraper, url
+                            )
+                            if cf_html and not CF_CHALLENGE_RE.search(cf_html[:2000]):
+                                return cf_html, None
+                        # still challenge page — return as-is (caller will see near-zero chars)
+                        return html, None
+                    return html, None
                 if resp.status in (403, 429, 502, 503):
+                    if resp.status == 403 and _HAS_CLOUDSCRAPER:
+                        loop = asyncio.get_event_loop()
+                        cf_html, cf_err = await loop.run_in_executor(
+                            None, _fetch_with_cloudscraper, url
+                        )
+                        if cf_html:
+                            return cf_html, None
                     await asyncio.sleep(5 * (retry + 1))
                 else:
                     return None, f'HTTP {resp.status}'
@@ -279,6 +335,13 @@ async def _fetch_one(session, url):
 async def fetch_html(session, url):
     html, _ = await _fetch_one(session, url)
     return html
+
+
+def is_cf_blocked(html):
+    """True if HTML is a Cloudflare challenge page with no real content."""
+    if not html:
+        return False
+    return bool(CF_CHALLENGE_RE.search(html[:3000])) and count_chinese(html[:3000]) < 50
 
 
 # ── URL parsing ──────────────────────────────────────────────────────────────
@@ -351,11 +414,29 @@ async def analyze_site(session, chapters, log):
     char_counts_smart = []
     multipage_pattern = None
     multipage_extra_chars = 0
+    cf_blocked = False
 
     for url in samples:
         html = await fetch_html(session, url)
         if not html:
             continue
+
+        if is_cf_blocked(html):
+            cf_blocked = True
+            log('🔒 ตรวจพบ Cloudflare protection — กำลังลอง cloudscraper...')
+            if _HAS_CLOUDSCRAPER:
+                loop = asyncio.get_event_loop()
+                cf_html, _ = await loop.run_in_executor(
+                    None, _fetch_with_cloudscraper, url
+                )
+                if cf_html and not is_cf_blocked(cf_html):
+                    html = cf_html
+                    cf_blocked = False
+                    log('✅ cloudscraper ผ่าน Cloudflare ได้!')
+            if cf_blocked:
+                log('❌ Cloudflare ยังบล็อคอยู่ — เนื้อหาจะไม่ครบ')
+                char_counts_smart.append(0)
+                continue
 
         # smart_extract already picks the best of all three methods
         lines = smart_extract(html)
@@ -399,6 +480,7 @@ async def analyze_site(session, chapters, log):
         'best_method': 'smart',
         'sample_char_counts': char_counts_smart,
         'low_quality': low_quality,
+        'cf_blocked': cf_blocked,
     }
 
 
@@ -416,6 +498,36 @@ def detect_issues(scan_info):
     avg_chars = profile.get('avg_chars', 0)
     mp = profile.get('multipage_pattern')
     sample_counts = profile.get('sample_char_counts', [])
+    cf_blocked = profile.get('cf_blocked', False)
+
+    # 0. Cloudflare protection check
+    if cf_blocked:
+        cf_bypassed = _HAS_CLOUDSCRAPER
+        issues.append({
+            'id': 'cf_blocked',
+            'severity': 'critical' if not cf_bypassed else 'warning',
+            'icon': '🔴' if not cf_bypassed else '🟡',
+            'title': 'Cloudflare Protection',
+            'detail': (
+                f'เว็บนี้ใช้ Cloudflare bot protection — '
+                + ('cloudscraper ลอง bypass แล้วแต่ยังไม่ผ่าน ดาวน์โหลดจะได้แค่หน้า error'
+                   if not cf_bypassed else
+                   'cloudscraper พร้อมใช้ แต่อาจยังไม่ผ่านทุก request')
+            ),
+            'fixable': False,
+            'fixed': cf_bypassed,
+        })
+    else:
+        if _HAS_CLOUDSCRAPER:
+            issues.append({
+                'id': 'cf_ok',
+                'severity': 'info',
+                'icon': '🟢',
+                'title': 'ไม่มี Cloudflare',
+                'detail': 'เว็บไม่บล็อค bot (cloudscraper พร้อมใช้เป็น fallback)',
+                'fixable': False,
+                'fixed': True,
+            })
 
     # 1. Content quality
     if avg_chars < 100:
