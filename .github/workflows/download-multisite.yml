@@ -19,6 +19,7 @@ on:
           - zhys
           - shubaowb
           - 69shu
+          - biquge365
       book_id:
         description: "รหัสหนังสือ (69shu ใส่ path เช่น 2/2829)"
         required: true
@@ -40,7 +41,7 @@ on:
         default: "3"
         type: string
       min_chars:
-        description: "QC: ขั้นต่ำตัวอักษรต่อตอน (ใช้กับ 69shu, shubaowb)"
+        description: "QC: ขั้นต่ำตัวอักษรต่อตอน (ใช้กับ 69shu, shubaowb, biquge365)"
         required: false
         default: "300"
         type: string
