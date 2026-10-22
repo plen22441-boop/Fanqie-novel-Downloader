@@ -28,6 +28,7 @@ PAGE_MARKER_RE = re.compile(r'[（(]第\s*\d+\s*/\s*\d+\s*页[）)]')
 _NAV_EXACT = {
     '返回', '目录', '首页', '书签', '收藏', '推荐', '关灯', '护眼',
     '上一章', '下一章', '上一页', '下一页', '回目录', '加入书架',
+    '提交关闭', '提交', '关闭', '确定', '取消', '登录', '注册',
 }
 
 _CHAPTER_HDR_RE = re.compile(r'^第\s*\d+\s*[章节話话回]')
@@ -623,11 +624,19 @@ async def scan_novel(url):
 
 # ── Download engine (step 2) ──────────────────────────────────────────────────
 
+def _sort_chapters(chapters):
+    """Sort chapters by the numeric chapter ID in the URL (ascending = correct order)."""
+    def url_key(item):
+        nums = re.findall(r'\d+', item[0].rstrip('/').split('/')[-1].split('.')[0])
+        return int(nums[0]) if nums else 0
+    return sorted(chapters, key=url_key)
+
+
 async def run_download(scan_info, novel_name, workers, delay, min_chars, log_fn, progress_fn):
     site = scan_info['site']
     book_id = scan_info['book_id']
     domain = scan_info['domain']
-    chapters = scan_info['chapters']
+    chapters = _sort_chapters(scan_info['chapters'])
 
     if not novel_name.strip():
         novel_name = scan_info['title'] or f'{site}_{str(book_id).replace("/","_")}'
