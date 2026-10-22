@@ -16,7 +16,8 @@ from html.parser import HTMLParser
 class TextExtractor(HTMLParser):
     def __init__(self):
         super().__init__()
-        self._skip = {'script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe'}
+        # h1/h2 excluded from body text — extracted separately by extract_title()
+        self._skip = {'script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'h1', 'h2'}
         self._in_skip = 0
         self._in_p = False
         self._paragraphs = []
@@ -69,8 +70,22 @@ HEADERS = {
 }
 
 
+_NAV_EXACT = {'返回', '目录', '首页', '书签', '收藏', '推荐', '关灯', '护眼',
+              '上一章', '下一章', '上一页', '下一页', '回目录', '加入书架'}
+
+
 def clean_lines(paragraphs):
-    return [p.strip() for p in paragraphs if p.strip() and len(p.strip()) > 1 and not JUNK_RE.search(p)]
+    result = []
+    for p in paragraphs:
+        p = p.strip()
+        if not p or len(p) <= 1:
+            continue
+        if p in _NAV_EXACT:
+            continue
+        if JUNK_RE.search(p):
+            continue
+        result.append(p)
+    return result
 
 
 def clean_title(title):
