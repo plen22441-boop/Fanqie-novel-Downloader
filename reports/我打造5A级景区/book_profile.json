@@ -1,0 +1,85 @@
+{
+  "title": "我打造5A级景区",
+  "title_th": "ฉันสร้างสถานที่ท่องเที่ยวระดับ 5A",
+  "author": "ไม่ทราบ",
+  "source": "raw_zh",
+  "platform_target": "mynovel",
+  "source_stats": {
+    "fanqie_score": 0.0,
+    "qq_readers": "6204",
+    "qq_score": 8.2,
+    "chapters_total_cn": 516,
+    "status": "ไม่ทราบ",
+    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Modern + Tourism Development + System/Level-up"
+  },
+  "genres": [
+    "modern",
+    "romance",
+    "drama",
+    "system",
+    "farming"
+  ],
+  "tropes": [
+    "op_mc",
+    "level_up",
+    "face_slapping",
+    "found_family"
+  ],
+  "chapters_total": 516,
+  "chapters_read": 30,
+  "chapters_sampled": [],
+  "free_chapters": 30,
+  "translation_quality": 7,
+  "translation_difficulty": 5,
+  "scores": {
+    "hook": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] การพัฒนาสถานที่ท่องเที่ยว concept น่าสนใจ แต่ไม่ได้ drama แบบ era"
+    },
+    "prose": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] modern novel มักมีภาษาอ่านง่าย"
+    },
+    "pacing": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] system/level-up ช่วยรักษา pace ได้ดี"
+    },
+    "characters": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] FL ที่พัฒนาธุรกิจท่องเที่ยว = competent heroine"
+    },
+    "romance": {
+      "score": 7.0,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] romance น่าจะเป็น subplot ไม่ใช่จุดหลัก"
+    },
+    "world": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] การสร้างสถานที่ท่องเที่ยวจีนสมัยใหม่ = world น่าสนใจ"
+    },
+    "plot": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] development + face_slapping competitors = plot มีทิศทางชัด"
+    },
+    "emotion": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] found_family + success story = warmth ดี"
+    },
+    "cliffhanger": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] business challenges + face_slapping = cliffhanger ได้บ้าง"
+    },
+    "originality": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] tourism development ไม่เคยเห็นในตลาดไทย แต่ modern บางกลุ่มไม่ชอบ"
+    }
+  },
+  "translation_notes": {
+    "difficulty_breakdown": "ยาก 5/10: modern novel ง่ายกว่า ศัพท์ธุรกิจ/ท่องเที่ยวบ้าง",
+    "cultural_notes": "ระบบจัดระดับแหล่งท่องเที่ยว 5A ของจีน ต้องอธิบาย"
+  },
+  "editor_recommendations": [
+    "Concept ท่องเที่ยวสร้าง = niche ใหม่ในตลาดไทย",
+    "QQ 8.2 ดี แต่ modern novel มักมีกลุ่มผู้อ่านแคบกว่า era ในไทย",
+    "เหมาะสำหรับผู้อ่านที่ชอบ 'farming' + ธุรกิจ"
+  ]
+}

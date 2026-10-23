@@ -1,0 +1,73 @@
+{
+  "title": "七个草包团宠后，玄学奶宝爆红了",
+  "title_th": "หลังจากลุงทั้งเจ็ดคนเป็นขยะ หนูน้อยพลังเทพก็โด่งดัง",
+  "author": "ไม่ทราบ",
+  "source": "raw_zh",
+  "platform_target": "mynovel",
+  "source_stats": {
+    "qq_score": 8.0,
+    "qq_readers": "4580",
+    "chapters_total_cn": 495,
+    "status": "ไม่ทราบ",
+    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Modern + Baby + Metaphysics + Family"
+  },
+  "genres": ["modern", "romance", "drama", "comedy", "mystery"],
+  "tropes": ["cute_kids", "found_family", "face_slapping", "op_mc"],
+  "chapters_total": 495,
+  "chapters_read": 30,
+  "chapters_sampled": [],
+  "free_chapters": 30,
+  "translation_quality": 7,
+  "translation_difficulty": 6,
+  "scores": {
+    "hook": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ครอบครัว 7 คนที่ไร้ความสามารถ + เด็กน้อยผู้มีพลังวิทยาศาสตร์ลึกลับ = hook น่าสนใจ แต่ธีมลูกน้อยน่ารักในวงการ metaphysics ยังไม่แปลกใหม่มากนัก"
+    },
+    "prose": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] คาดว่าสำนวนทั่วไปสำหรับนิยายสมัยใหม่+เด็กน้อย อ่านง่าย เข้าถึงได้"
+    },
+    "pacing": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] 495 บทพอดี คาดว่า pace สม่ำเสมอ มีทั้งฉากอบอุ่นครอบครัวและ face-slapping"
+    },
+    "characters": {
+      "score": 8.0,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ธีม 7 คนในครอบครัว + เด็กน้อยน่ารัก = โอกาสพัฒนาตัวละครหลายชั้น เด็กฉลาดพลัง玄学 มักทำให้ผู้อ่านติดใจ"
+    },
+    "romance": {
+      "score": 7.0,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] โรแมนซ์น่าจะเป็น subplot ไม่ใช่จุดขายหลัก เน้น family warmth มากกว่า"
+    },
+    "world": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ฉากสมัยใหม่ + 玄学 (โหราศาสตร์/ลึกลับ) = world ที่น่าสนใจและแปลกใหม่สำหรับตลาดไทย"
+    },
+    "plot": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] Plot หลัก: เด็กน้อยพลัง 玄学 ช่วยครอบครัว + โด่งดัง คาดว่ามี face-slapping ต่อคนที่ดูถูก"
+    },
+    "emotion": {
+      "score": 8.0,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ธีมครอบครัว + เด็กน้อยน่ารักมักให้ emotional warmth สูง คนไทยชอบธีมนี้"
+    },
+    "cliffhanger": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] คาดว่ามี cliffhanger ระดับปานกลาง เน้นอบอุ่นใจมากกว่าตึงเครียด"
+    },
+    "originality": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] เด็กน้อย + 玄学 + ครอบครัวขยะ = คอมโบที่ยังไม่ค่อยมีในตลาดไทย แต่ธีมลูกน้อยน่ารักมีพอสมควรแล้ว"
+    }
+  },
+  "translation_notes": {
+    "difficulty_breakdown": "ยาก 6/10: คำศัพท์ 玄学 (โหราศาสตร์จีน, ฮวงจุ้ย, ดูดวง) ต้องแปลให้เข้าใจ",
+    "cultural_notes": "玄学 = metaphysics/Chinese mysticism อาจต้องมีคำอธิบายสำหรับผู้อ่านไทย"
+  },
+  "editor_recommendations": [
+    "ธีมเด็กน้อยน่ารัก + พลังลึกลับ = ตลาดไทยชอบ โดยเฉพาะกลุ่มผู้อ่านสายครอบครัวอบอุ่น",
+    "ครอบครัว 7 คนไร้ฝีมือ = setup ที่ face-slapping ได้เรื่อยๆ",
+    "QQ 8.0 = คะแนนกลางๆ ดีแต่ไม่โดดเด่นพิเศษ"
+  ]
+}
