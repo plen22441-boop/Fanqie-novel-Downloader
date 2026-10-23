@@ -23,12 +23,12 @@
     "ruleToc": {
       "chapterList": ".chapter a,.clist a,.chapter-list a,.mulu a,#list a",
       "chapterName": "text",
-      "chapterUrl": "href",
+      "chapterUrl": "href@js:result+',{\"webView\":true}'",
       "webJs": "document.documentElement.outerHTML"
     },
     "ruleContent": {
-      "content": "id.chaptercontent@html||id.content@html||id.nr1@html||id.booktxt@html||id.htmlContent@html||class.page-content@html||class.read-content@html||class.content@html||class.txt@html||tag.article@html",
-      "replaceRegex": "(?s)请记住本书首发域名.*|ixdzs[^\\s]*|本章未完.*",
+      "content": "class.page-content@html||tag.article@html||id.page@html||class.read-content@html||id.content@html||class.content@html",
+      "replaceRegex": "(?s)请记住本书首发域名.*|ixdzs[^\\s]*",
       "webJs": "document.documentElement.outerHTML"
     }
   }
