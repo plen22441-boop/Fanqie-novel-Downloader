@@ -1,0 +1,84 @@
+{
+  "title": "我家杂货铺成精了",
+  "title_th": "ร้านของชำบ้านฉันมีวิญญาณ",
+  "author": "ไม่ทราบ",
+  "source": "raw_zh",
+  "platform_target": "mynovel",
+  "source_stats": {
+    "fanqie_score": 0.0,
+    "qq_readers": "3726",
+    "qq_score": 7.8,
+    "chapters_total_cn": 700,
+    "status": "ไม่ทราบ",
+    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Era/Fantasy + Sentient Shop + Family Warmth"
+  },
+  "genres": [
+    "historical",
+    "fantasy",
+    "romance",
+    "drama",
+    "comedy"
+  ],
+  "tropes": [
+    "found_family",
+    "face_slapping",
+    "op_mc"
+  ],
+  "chapters_total": 700,
+  "chapters_read": 30,
+  "chapters_sampled": [],
+  "free_chapters": 30,
+  "translation_quality": 7,
+  "translation_difficulty": 6,
+  "scores": {
+    "hook": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ร้านของชำกลายเป็นวิญญาณ concept แปลกใหม่ดึงดูด แต่ยังไม่ชัดว่า hook แรกแข็งแค่ไหน QQ 7.8 บ่งชี้ว่าดีแต่ไม่ระเบิด"
+    },
+    "prose": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] คาดว่ามาตรฐานเฉลี่ยของนิยาย era+fantasy ทั่วไป"
+    },
+    "pacing": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] 700 บทยาว แต่มี fantasy elements ช่วยรักษา pace ได้"
+    },
+    "characters": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ร้านมีวิญญาณน่าจะเป็นตัวละครเสริมที่น่าสนใจ"
+    },
+    "romance": {
+      "score": 7.0,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] romance น่าจะเป็น subplot รอง ไม่ใช่จุดหลัก"
+    },
+    "world": {
+      "score": 8.0,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] การผสม era + fantasy sentient shop สร้าง world ที่เป็นเอกลักษณ์"
+    },
+    "plot": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] concept ร้านมีวิญญาณน่าจะมี plot หลายชั้น แต่ยังไม่ทราบรายละเอียด"
+    },
+    "emotion": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] found_family + comedy น่าจะให้ warmth สูง"
+    },
+    "cliffhanger": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] fantasy elements ช่วยสร้าง cliffhanger ได้ดี"
+    },
+    "originality": {
+      "score": 7.5,
+      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ร้านของชำมีวิญญาณในยุค era ไม่เคยเห็นในตลาดไทย แปลกใหม่"
+    }
+  },
+  "translation_notes": {
+    "difficulty_breakdown": "ยาก 6/10: คำศัพท์ spirit/supernatural จีน + era vocab",
+    "cultural_notes": "ร้านของชำยุคเก่า วิถีชีวิตชาวบ้านจีน"
+  },
+  "editor_recommendations": [
+    "Concept ร้านมีวิญญาณ = novelty สูงสำหรับตลาดไทย",
+    "QQ 7.8 = ดีแต่ไม่โดดเด่น อาจมี niche audience",
+    "700 บทยาวมาก ต้องดู pacing จริงก่อนตัดสินใจแปล"
+  ]
+}
