@@ -27,8 +27,9 @@
       "webJs": "document.documentElement.outerHTML"
     },
     "ruleContent": {
-      "content": "article.page-content@html||#page@html||.read-content@html||.content@html",
-      "replaceRegex": "(?s)请记住本书首发域名.*|ixdzs[^\\s]*|本章未完.*"
+      "content": "id.chaptercontent@html||id.content@html||id.nr1@html||id.booktxt@html||id.htmlContent@html||class.page-content@html||class.read-content@html||class.content@html||class.txt@html||tag.article@html",
+      "replaceRegex": "(?s)请记住本书首发域名.*|ixdzs[^\\s]*|本章未完.*",
+      "webJs": "document.documentElement.outerHTML"
     }
   }
 ]

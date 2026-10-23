@@ -27,9 +27,10 @@
       "nextTocUrl": "text.下一页@href||text.下页@href"
     },
     "ruleContent": {
-      "content": "#chaptercontent@html||#content@html||.content@html",
+      "content": "id.chaptercontent@html||id.content@html||id.nr1@html||id.booktxt@html||id.htmlContent@html||class.page-content@html||class.read-content@html||class.content@html||class.txt@html||tag.article@html",
       "nextContentUrl": "text.下一页@href||text.下一頁@href||text.下页@href",
-      "replaceRegex": "(?s)请记住本书首发域名.*|请选择错误类型.*|(第\\d+/\\d+页)|更新太慢|缺少章节|章节内容错误|验证码："
+      "replaceRegex": "(?s)请记住本书首发域名.*|请选择错误类型.*|(第\\d+/\\d+页)|更新太慢|缺少章节|章节内容错误|验证码：",
+      "webJs": "document.documentElement.outerHTML"
     }
   }
 ]
