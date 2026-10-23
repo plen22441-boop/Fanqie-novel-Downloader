@@ -1,0 +1,34 @@
+[
+  {
+    "bookSourceUrl": "https://ixdzs.tw",
+    "bookSourceName": "爱读天下(ixdzs.tw)",
+    "bookSourceType": 0,
+    "enabled": true,
+    "enabledExplore": false,
+    "header": "{\"User-Agent\":\"Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36\",\"Referer\":\"https://ixdzs.tw/\"}",
+    "searchUrl": "https://ixdzs.tw/bsearch?q={{key}}",
+    "ruleSearch": {
+      "bookList": "li.burl,.book-item,.s-bookitem,.l-item",
+      "name": "h3@text||a@title||.book-name@text",
+      "author": ".author@text||.bauthor@text",
+      "bookUrl": "a@href",
+      "coverUrl": "img@src"
+    },
+    "ruleBookInfo": {
+      "name": "h1@text||.book-name@text",
+      "author": ".author@text||a[href*='author']@text",
+      "coverUrl": ".cover img@src||img@src",
+      "intro": ".intro@text||.desc@text"
+    },
+    "ruleToc": {
+      "chapterList": ".chapter a,.clist a,.chapter-list a,.mulu a,#list a",
+      "chapterName": "text",
+      "chapterUrl": "href",
+      "webJs": "document.documentElement.outerHTML"
+    },
+    "ruleContent": {
+      "content": "article.page-content@html||#page@html||.read-content@html||.content@html",
+      "replaceRegex": "(?s)请记住本书首发域名.*|ixdzs[^\\s]*|本章未完.*"
+    }
+  }
+]
