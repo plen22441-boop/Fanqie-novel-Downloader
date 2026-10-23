@@ -1,84 +1,74 @@
 {
-  "title": "我家杂货铺成精了",
-  "title_th": "ร้านของชำบ้านฉันมีวิญญาณ",
-  "author": "ไม่ทราบ",
+  "title": "驚！我家雜貨鋪成精了",
+  "title_th": "ตกใจ! ร้านของชำบ้านฉันมีพลัง",
+  "author": "喜樂一夏",
   "source": "raw_zh",
   "platform_target": "mynovel",
   "source_stats": {
-    "fanqie_score": 0.0,
-    "qq_readers": "3726",
     "qq_score": 7.8,
+    "qq_readers": "3726",
     "chapters_total_cn": 700,
     "status": "ไม่ทราบ",
-    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Era/Fantasy + Sentient Shop + Family Warmth"
+    "note": "Phase 2 — อ่านบทที่ 1-6 | Modern + Business System + Magic Products + Tourist Ancient Street"
   },
-  "genres": [
-    "historical",
-    "fantasy",
-    "romance",
-    "drama",
-    "comedy"
-  ],
-  "tropes": [
-    "found_family",
-    "face_slapping",
-    "op_mc"
-  ],
+  "genres": ["modern", "comedy", "drama", "romance"],
+  "tropes": ["op_mc", "found_family", "level_up", "face_slapping"],
   "chapters_total": 700,
   "chapters_read": 30,
-  "chapters_sampled": [],
+  "chapters_sampled": [1, 2, 3, 4, 5, 6],
   "free_chapters": 30,
   "translation_quality": 7,
-  "translation_difficulty": 6,
+  "translation_difficulty": 4,
   "scores": {
     "hook": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ร้านของชำกลายเป็นวิญญาณ concept แปลกใหม่ดึงดูด แต่ยังไม่ชัดว่า hook แรกแข็งแค่ไหน QQ 7.8 บ่งชี้ว่าดีแต่ไม่ระเบิด"
+      "score": 8.0,
+      "evidence": "บท 1: ตัวละครหลัก俞醉ยากจน+ปัญหาครอบครัวรุมเร้า → ระบบมาทันที → เปิดร้านในวันเดียว — เข้าเรื่องเร็วไม่รอช้า. บท 1: ตกใจเช่าร้านเดือนละ 1 แสนในแหล่งท่องเที่ยวชั้นดี — ความตึงเครียด 'จะรอดไหม?' สร้าง hook ได้ดี. บท 2: ลูกค้าคนแรกคิดว่าถูกหลอกขาย = ฮาและ relatable"
     },
     "prose": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] คาดว่ามาตรฐานเฉลี่ยของนิยาย era+fantasy ทั่วไป"
+      "evidence": "สำนวนสมัยใหม่ อ่านลื่น ตลกขำขัน เช่น บท 2 '漂亮小姐姐怎麽傳銷呢？' (สาวสวยทำไมขายตรง?). บทสนทนาระหว่าง FL กับระบบเป็นธรรมชาติ ไม่ทื่อ. ประโยคสั้นกระชับเหมาะกับ light read"
     },
     "pacing": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] 700 บทยาว แต่มี fantasy elements ช่วยรักษา pace ได้"
+      "score": 8.5,
+      "evidence": "บท 1-6 (6 บทแรก): ได้ระบบ → เปิดร้าน → ลูกค้าแรก → ลูกค้าใหญ่ซื้อ 15 ขวด → blogger 80 หมื่น follower มาทดสอบสินค้า → ยอดขายพุ่ง — pace เร็วมาก task-based สร้าง dopamine hit ทุกบท ไม่มีช่วงซบเซา"
     },
     "characters": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ร้านมีวิญญาณน่าจะเป็นตัวละครเสริมที่น่าสนใจ"
+      "evidence": "FL 俞醉 relatable มาก — ยากจน ไม่บ่น ลงมือทำทันที เมื่อมีโอกาส. บท 3: 'ฉันมีหน้าที่พิสูจน์สินค้า' — practical mindset. ลูกค้า 祝雅琴 เป็นตัวละครรองที่สมจริง (แม่ซื้อเยอะเพราะของดีจริง). ยังไม่พบ ML ในบทที่อ่าน"
     },
     "romance": {
-      "score": 7.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] romance น่าจะเป็น subplot รอง ไม่ใช่จุดหลัก"
+      "score": 6.5,
+      "evidence": "ใน 6 บทแรกยังไม่มี ML ปรากฏตัว เรื่องนี้เน้น business growth เป็นหลัก romance น่าจะเป็น subplot ที่ค่อยๆ develop ทีหลัง — คะแนนนี้คาดการณ์จาก genre tag เท่านั้น อาจต่ำกว่าความเป็นจริง"
     },
     "world": {
       "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] การผสม era + fantasy sentient shop สร้าง world ที่เป็นเอกลักษณ์"
+      "evidence": "บท 1-2: 萬寧古街 ถนนหินโบราณ ตึกไม้ งานแกะสลัก = setting ที่มีภาพชัดเจน น่าสนใจ. บท 4: FL อธิบายผลของเครื่องดื่มผ่านลูกค้าที่รู้สึกเอง ไม่ใช่แค่บอก = world-building ที่ show don't tell"
     },
     "plot": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] concept ร้านมีวิญญาณน่าจะมี plot หลายชั้น แต่ยังไม่ทราบรายละเอียด"
+      "score": 8.0,
+      "evidence": "โครงสร้าง task-based ที่ชัดเจน: ขายครบเป้า → ได้ reward → ปลดล็อคสินค้าใหม่. บท 5-6: blogger มาทดสอบสินค้า → free promotion = plot progression สมจริง. เป้าหมาย 'ร้านดังระดับโลก' ชัดเจนและ motivating"
     },
     "emotion": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] found_family + comedy น่าจะให้ warmth สูง"
+      "evidence": "บท 1: แรงจูงใจ FL ชัดเจน — พ่อพิการ แม่ป่วย น้องเรียน = เหตุผลที่ผู้อ่านเชียร์ทันที. บท 3: FL เลิกงานประจำอย่างสะใจ 'ไม่ต้องการงานนี้แล้ว' = cathartic moment. บท 4: ลูกค้าแรกซื้อ 5 ขวด = ความสุขเล็กๆ แต่ warm"
     },
     "cliffhanger": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] fantasy elements ช่วยสร้าง cliffhanger ได้ดี"
+      "evidence": "แต่ละบทจบด้วย task milestone: บท 1 'เปิดร้านได้ใน 1.5 ชั่วโมง', บท 3 'ขายได้ขวดแรก!', บท 5 'blogger 80 หมื่น follower มาแล้ว' = cliffhanger แบบ satisfying ไม่ใช่ tension ลุ้นระทึก เหมาะกับแนว light read"
     },
     "originality": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ร้านของชำมีวิญญาณในยุค era ไม่เคยเห็นในตลาดไทย แปลกใหม่"
+      "score": 8.5,
+      "evidence": "ระบบ + ร้านของชำ + สินค้ามีพลังจริง (止渴消暑, 减肥) ในแหล่งท่องเที่ยวสมัยใหม่ = คอมโบที่ยังไม่เคยเห็นในตลาดไทย. บท 2-4: ลูกค้าเห็นผลจริงแล้ว 'อ๋อ มันมีผลจริงๆ' = payoff เร็วมาก ไม่ต้องรอนาน"
     }
   },
   "translation_notes": {
-    "difficulty_breakdown": "ยาก 6/10: คำศัพท์ spirit/supernatural จีน + era vocab",
-    "cultural_notes": "ร้านของชำยุคเก่า วิถีชีวิตชาวบ้านจีน"
+    "difficulty_breakdown": "ยาก 4/10: สมัยใหม่ ภาษาง่ายมาก system text ตรงไปตรงมา",
+    "cultural_notes": "แหล่งท่องเที่ยวจีน 古街 คล้ายถนนเยาวราช/ไนท์บาซาร์ แปลง่าย. app ชื่อจีน (大衆評/小橙書) ต้องแปลเป็นชื่อไทยหรืออธิบาย"
   },
   "editor_recommendations": [
-    "Concept ร้านมีวิญญาณ = novelty สูงสำหรับตลาดไทย",
-    "QQ 7.8 = ดีแต่ไม่โดดเด่น อาจมี niche audience",
-    "700 บทยาวมาก ต้องดู pacing จริงก่อนตัดสินใจแปล"
+    "แนว 'ขายของมีพลัง' ยังไม่มีในตลาดไทย — novelty สูง โดยเฉพาะคนรัก cozy business novel",
+    "เนื้อหาเบา อ่านสบาย = เหมาะกับผู้อ่านที่เหนื่อยจากนิยายดราม่าหนัก",
+    "700 บทยาวมาก ควรดู pacing บทที่ 100+ ว่าไม่ยืด ก่อนตัดสินใจแปลทั้งเรื่อง",
+    "romance น้อย — target reader คือคนชอบ slice-of-life + business growth มากกว่า romance สาย"
   ]
 }
