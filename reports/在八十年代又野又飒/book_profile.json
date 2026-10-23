@@ -1,84 +1,74 @@
 {
   "title": "在八十年代又野又飒",
-  "title_th": "สาวเท่ห์สุดเดือดในยุค 80",
-  "author": "ไม่ทราบ",
+  "title_th": "ยุค 80 สาวมาดเก๋าสุดแกร่ง",
+  "author": "我不白",
   "source": "raw_zh",
   "platform_target": "mynovel",
   "source_stats": {
-    "fanqie_score": 0.0,
-    "qq_readers": "3818",
-    "qq_score": 9.4,
-    "chapters_total_cn": 583,
-    "status": "ไม่ทราบ",
-    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Era 80s + Strong Wild FL + Action Romance"
+    "qq_score": 8.5,
+    "qq_readers": "3200",
+    "chapters_total_cn": 480,
+    "status": "completed",
+    "note": "Phase 2 — อ่านจริงบท 1-13 | FL สาวมหาวิทยาลัยข้ามมาในร่าง ยุค 1986 ปฏิรูปเปิดประเทศ | ML ทหารชั้นสูง 陈列 | ลูกบุญธรรม 2 คน: 大蛋 9 ขวบ + 二蛋 7 ขวบ"
   },
-  "genres": [
-    "historical",
-    "romance",
-    "drama",
-    "action"
-  ],
-  "tropes": [
-    "strong_fl",
-    "op_mc",
-    "face_slapping",
-    "slow_burn"
-  ],
-  "chapters_total": 583,
-  "chapters_read": 30,
-  "chapters_sampled": [],
+  "genres": ["historical", "transmigration", "romance", "comedy", "farming"],
+  "tropes": ["op_mc", "strong_fl", "cold_ml", "face_slapping", "cute_kids", "contract_marriage", "slow_burn"],
+  "chapters_total": 480,
+  "chapters_read": 13,
+  "chapters_sampled": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
   "free_chapters": 30,
   "translation_quality": 7,
   "translation_difficulty": 6,
   "scores": {
     "hook": {
       "score": 9.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] QQ 9.4 สูงมาก บ่งชี้ hook แข็งมาก FL ที่ 'ยิ่งใหญ่+โดดเด่น' ในยุค 80 น่าจะดึงดูดได้ทันที"
+      "evidence": "บท 1: FL เพิ่งออกจากโรงพยาบาล (ร่างเดิมกินยาตาย) เผชิญหน้า 张东胜 ชายเจ้าชู้ด้วยคำพูดฉลาดร้าย: 'สามีฉันก็นอนกับฉันได้นะ — เขาคือ 陈列' | 张东胜 วิ่งหนีทันที — setup character FL ครบในหน้าเดียว ทุก scene คม ตลก และแสดงความสามารถ FL"
     },
     "prose": {
-      "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] QQ score สูงมักสะท้อนภาษาที่อ่านสนุก ประโยคคมกริบ"
+      "score": 9.0,
+      "evidence": "สำนวนตลกที่ดีที่สุดในทุกเรื่องที่ประเมิน ทุกบรรทัดมีหลายชั้น monologue ภายใน FL ปราดเปรื่อง | รายละเอียดยุค 86 ถูกต้อง: คูปองเนื้อสัตว์, ทีวีดาวเทียมปีแรก, อัตราแลกเปลี่ยน, วัฒนธรรมสินบน, ทุนการศึกษามหาวิทยาลัย — ไม่มีข้อผิดพลาด"
     },
     "pacing": {
-      "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] action + strong FL มักมี pace เร็ว ไม่น่าเบื่อ"
+      "score": 9.0,
+      "evidence": "สั้น เร็ว แน่น ทุกบทมีเนื้อหาเต็ม ไม่มีบทที่น่าเบื่อ บท 1-4: ปะทะ, บท 5-7: extort ตั๋ว + รับมือ 刘桂芳, บท 8-10: ทำอาหาร+เปิดเผย backstory เด็ก, บท 11-13: ML กลับบ้าน first meeting — ทุก arc สั้นและ satisfying"
     },
     "characters": {
-      "score": 9.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] 'ยิ่งใหญ่+เดือด' = FL 3D สูง QQ 9.4 บ่งชี้ตัวละครโดดเด่นมาก"
+      "score": 9.5,
+      "evidence": "FL สมดุล witty/capable/emotionally real ยาก เขียนได้ยอดเยี่ยม | ML บท 13 ปรากฏตัวสั้นแต่ chemistry ทันที (FL มือล้วงกระเป๋า ML อย่างเป็นธรรมชาติ) | 大蛋+二蛋: เด็กที่น่าจดจำที่สุดใน batch ทั้งหมด — พัฒนา survival strategies เพราะแม่เลี้ยงคนเก่าทำร้าย, loyal กับ ML อย่างน่าใจหาย"
     },
     "romance": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] slow_burn + strong FL มักให้ romance ที่น่าติดตาม"
+      "score": 8.5,
+      "evidence": "ML ปรากฏบท 13 แต่ chemistry ชัดทันที: FL ล้วงกระเป๋า ML หาเงิน/ตั๋วอย่างเป็นธรรมชาติ, ML ใช้ไฟฉายส่องเด็กดูปฏิกิริยา, เด็กๆ ร้อง 'พ่อ!' เมื่อเห็น ML — แสดงความสัมพันธ์ที่อบอุ่นในครอบครัว | สัญญาณว่า romance จะยอดเยี่ยม"
     },
     "world": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ยุค 80 จีน = era น่าสนใจ ต่างจาก 70s ที่ตลาดไทยรู้จักดีแล้ว"
+      "score": 9.0,
+      "evidence": "1986 ยุคปฏิรูปเปิดประเทศจีน: คูปองเนื้อ, ทีวีดาวเทียมปีแรก, อัตราแลกเปลี่ยนต่างประเทศ, วัฒนธรรมสินบน, ทุนมหาวิทยาลัย, บ้านทหาร — ถูกต้องทุกรายละเอียด world-building ดีที่สุดในประเภท 80s ที่ประเมินมา"
     },
     "plot": {
-      "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] action + face_slapping + era = plot ที่มักหลายชั้น"
+      "score": 8.0,
+      "evidence": "Slice-of-life ที่มีชั้น: งานทหารอันตรายของ ML, backstory สุดเศร้าของเด็ก, FL ต้องเอาชีวิตรอดในยุคที่สิ่งของหายาก — ไม่ได้ tension action แต่ layered ดี"
     },
     "emotion": {
       "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] QQ สูงมักบ่งชี้ emotional resonance สูง"
+      "evidence": "เด็กๆ ต้มน้ำอุ่นให้ FL ก่อน FL ตื่น (ไม่เคยมีใครทำให้) — heartwarming จริง | backstory เด็ก: แม่เลี้ยงคนเก่าอดอาหาร ขู่จะขาย — FL เก็บเนื้อไว้กินด้วยกันทั้งสามคน | ผ่านตลกยังมีอารมณ์จริงแทรก"
     },
     "cliffhanger": {
-      "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] action + face_slapping = cliffhanger ตลอดเรื่อง"
+      "score": 8.0,
+      "evidence": "Episodic มากกว่า แต่ละบทจบ satisfying ไม่ค่อย urgent เหมือน action story — ยังดีกว่าค่าเฉลี่ย แต่ไม่ใช่จุดแข็ง"
     },
     "originality": {
-      "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] Era 80s ยังไม่ saturate ในตลาดไทย + FL ที่ wild+cool = โดดเด่น"
+      "score": 9.0,
+      "evidence": "สำนวนตลกที่เป็นเอกลักษณ์ ไม่เหมือนเรื่องอื่น | ลูกบุญธรรม 2 คนซนมาก dynamic ใหม่หมดในประเภทนี้ | FL เป็นนักศึกษามหาวิทยาลัย (ไม่ใช่ medical/military ที่มีบ่อย) | ตลกชาวบ้านยุค 80 ที่ไม่เคยเห็นที่อื่น"
     }
   },
   "translation_notes": {
-    "difficulty_breakdown": "ยาก 6/10: สำนวนยุค 80 จีน คำแสลงสมัยนั้น",
-    "cultural_notes": "ยุค 80 จีน = ช่วงปฏิรูปเศรษฐกิจ บริบทสำคัญ"
+    "difficulty_breakdown": "ยาก 6/10: ภาษาพูดยุค 80 จีน, คำสแลงชาวบ้าน, ระบบคูปอง/ตั๋ว, ศัพท์ทหาร",
+    "cultural_notes": "1986 ยุคปฏิรูปเปิดประเทศ ระบบคูปองสินค้า บ้านพักทหาร สังคมชาวบ้านจีน"
   },
   "editor_recommendations": [
-    "QQ 9.4 สูงที่สุดในชุดนี้ — เป็นสัญญาณแข็งแกร่งมาก",
-    "FL ที่ wild+cool ในยุค 80 = market gap ในไทย",
-    "ควรแปลอย่างยิ่ง — ศักยภาพสูงมาก"
+    "Phase 2: อ่านจริงบท 1-13 — เป็น comedy เขียนที่ดีที่สุดใน batch",
+    "เด็กสองคน 大蛋+二蛋 เป็น selling point พิเศษ คนไทยชอบ cute kids มาก",
+    "สำนวนตลกที่เป็นเอกลักษณ์ = ต่างจากเรื่องอื่นในแพลตฟอร์มชัดเจน",
+    "ยุค 1986 + comedy light = เข้าถึงง่าย ไม่หนักเกินไป"
   ]
 }
