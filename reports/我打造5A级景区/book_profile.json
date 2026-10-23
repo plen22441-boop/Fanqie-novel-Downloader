@@ -1,7 +1,7 @@
 {
-  "title": "我打造5A级景区",
-  "title_th": "ฉันสร้างสถานที่ท่องเที่ยวระดับ 5A",
-  "author": "ไม่ทราบ",
+  "title": "听懂食材讲话，我打造5A级景区",
+  "title_th": "ฟังเสียงวัตถุดิบ ฉันสร้างสถานที่ท่องเที่ยวระดับ 5A",
+  "author": "摆烂的十一",
   "source": "raw_zh",
   "platform_target": "mynovel",
   "source_stats": {
@@ -10,76 +10,75 @@
     "qq_score": 8.2,
     "chapters_total_cn": 516,
     "status": "ไม่ทราบ",
-    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Modern + Tourism Development + System/Level-up"
+    "note": "Phase 2 — อ่านบทที่ 1-6 | Modern + Transmigration + Foodie + Cute Animals + Livestream + Tourism Dev"
   },
   "genres": [
     "modern",
-    "romance",
-    "drama",
-    "system",
-    "farming"
+    "transmigration",
+    "comedy",
+    "romance"
   ],
   "tropes": [
     "op_mc",
-    "level_up",
     "face_slapping",
     "found_family"
   ],
   "chapters_total": 516,
   "chapters_read": 30,
-  "chapters_sampled": [],
+  "chapters_sampled": [1, 2, 3, 4, 5, 6],
   "free_chapters": 30,
   "translation_quality": 7,
   "translation_difficulty": 5,
   "scores": {
     "hook": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] การพัฒนาสถานที่ท่องเที่ยว concept น่าสนใจ แต่ไม่ได้ drama แบบ era"
+      "score": 8.0,
+      "evidence": "บท 1: ได้เงิน 3 ล้านหยวน — ระบบฉวยเงินทั้งหมดไปซื้อสถานที่ท่องเที่ยวที่ล้มเหลวทันที ตลกและตกใจ. บท 3-4: เจอแมวพันธุ์หายากระดับ 'สัตว์คุ้มครองแห่งชาติ' แบบสดๆ ในไลฟ์ = ไวรัล. ระบบสนทนากับอาหารตั้งแต่บทแรก (ผักกาดขาวพูดแบบหยิ่งยโส) = hook ที่แปลกและน่ารักมาก"
     },
     "prose": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] modern novel มักมีภาษาอ่านง่าย"
+      "evidence": "บท 1-6: ภาษาพูดสมัยใหม่ อ่านง่าย มีจังหวะตลกดี เช่น FL บ่นว่า 'ระบบสุนัขบ้า เจ้าไม่ตายดี!' บทพูดของอาหารมีบุคลิกชัด (ผักกาดขาวพูดเป็นผู้ชายหยิ่งๆ, ข้าวเสนเสียงเบาๆ ขอร้อง) = สนุก ไม่เบื่อ แต่ไม่ใช่งานวรรณกรรมระดับสูง"
     },
     "pacing": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] system/level-up ช่วยรักษา pace ได้ดี"
+      "score": 7.0,
+      "evidence": "บท 1-6: slice-of-life tempo ไม่ได้เร็ว แต่ไม่มีจุดหยุดนิ่ง บท 1-2 = setup + หัวเราะเงินหาย, บท 3-5 = ช่วยแมว + ไวรัล, บท 6 = เปิดแผงขายอาหาร — progress ชัดแต่ไม่ใช่ thriller pace"
     },
     "characters": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] FL ที่พัฒนาธุรกิจท่องเที่ยว = competent heroine"
+      "score": 8.0,
+      "evidence": "FL 乔嫣然: ปฏิบัติจริง, ไม่คร่ำครวญ, ตลก — บท 1: ถามว่าภาษีก่อนหรือหลัง tax แทนที่จะร้องไห้เรื่องแยกทาง = 3D ชัดมาก. บท 3: ช่วยแมวสัตว์คุ้มครองโดยไม่ลังเล. อาหารที่พูดได้มีบุคลิกต่างกันทุกตัว = cast เสริมที่น่ารักมาก"
     },
     "romance": {
-      "score": 7.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] romance น่าจะเป็น subplot ไม่ใช่จุดหลัก"
+      "score": 5.5,
+      "evidence": "ML 司燃 ปรากฏบท 1 ครั้งเดียวเพื่อยื่นสัญญาเลิก — ไม่มีเคมี, ไม่มีอีก 6 บทต่อมา. Romance เป็น back-seat มากใน early chapters นักอ่านที่มาเพราะ romance อาจผิดหวัง"
     },
     "world": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] การสร้างสถานที่ท่องเที่ยวจีนสมัยใหม่ = world น่าสนใจ"
+      "evidence": "บท 2: สถานที่ท่องเที่ยวถูกเผาครึ่งหนึ่ง — เหตุผลที่ล้มเหลวสมเหตุสมผล. บท 3-4: สัตว์คุ้มครอง + ทีมอนุรักษ์สัตว์มาถึง = world ที่รู้สึก real และมีความเชื่อมโยงกับปัจจุบัน. ระบบไลฟ์สตรีมและ SNS = สร้าง world สมัยใหม่ได้ดี"
     },
     "plot": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] development + face_slapping competitors = plot มีทิศทางชัด"
+      "evidence": "Plot หลัก: สร้างสถานที่ท่องเที่ยวจาก 0. บท 6 = ระบบให้ mission ขายอาหาร 1 สัปดาห์ เพื่อ unlock ของรางวัล = plot progression ชัดเจน. ไม่ใช่ revenge หรือ thriller แต่ goals ชัด — ทำให้น่าติดตาม"
     },
     "emotion": {
       "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] found_family + success story = warmth ดี"
+      "evidence": "บท 3-4: ฉากช่วยแมวและลูกแมวอาการวิกฤต = warm + ซึ้ง. บท 4: พ่อแมวบอกขอบคุณ 'สัตว์ที่เก่งที่สุดในโลก' แล้วขอมากินอาหารต่อ = ทำให้ยิ้ม. Tone ทั้งเรื่องเป็น positive warmth ที่คนไทยชอบ"
     },
     "cliffhanger": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] business challenges + face_slapping = cliffhanger ได้บ้าง"
+      "score": 6.5,
+      "evidence": "ไม่มี cliffhanger แบบ thriller — เป็น light 'อยากรู้ว่าต่อไปจะเป็นอะไร' มากกว่า. บท 5 จบด้วย mission ใหม่จากระบบ = pull เบา. เรื่องนี้ไม่ใช่จุดแข็งด้าน cliffhanger"
     },
     "originality": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] tourism development ไม่เคยเห็นในตลาดไทย แต่ modern บางกลุ่มไม่ชอบ"
+      "score": 8.5,
+      "evidence": "คอมโบ: พูดกับวัตถุดิบอาหาร + สัตว์คุ้มครองแห่งชาติ + ไลฟ์สตรีม + สถานที่ท่องเที่ยวล้มเหลว = ไม่เคยเห็นคอมโบนี้ในตลาดไทยแน่นอน. บทพูดของผักกาดขาวเป็นผู้ชายหยิ่งๆ = originality ระดับสูง ทำให้ต่างจากนิยายระบบทั่วไปมาก"
     }
   },
   "translation_notes": {
-    "difficulty_breakdown": "ยาก 5/10: modern novel ง่ายกว่า ศัพท์ธุรกิจ/ท่องเที่ยวบ้าง",
-    "cultural_notes": "ระบบจัดระดับแหล่งท่องเที่ยว 5A ของจีน ต้องอธิบาย"
+    "difficulty_breakdown": "ง่าย 5/10: ภาษาพูดสมัยใหม่ อ่านง่าย ศัพท์ธุรกิจท่องเที่ยวบ้าง คำของวัตถุดิบพูดต้องถ่ายทอดบุคลิกให้ครบ",
+    "cultural_notes": "ระบบจัดระดับแหล่งท่องเที่ยว 5A = ระดับสูงสุดของจีน ต้องอธิบายในหมายเหตุผู้แปล. 渔猫 (Fishing cat) = สัตว์คุ้มครองจีน อาจต้องอธิบายผู้อ่านไทย"
   },
   "editor_recommendations": [
-    "Concept ท่องเที่ยวสร้าง = niche ใหม่ในตลาดไทย",
-    "QQ 8.2 ดี แต่ modern novel มักมีกลุ่มผู้อ่านแคบกว่า era ในไทย",
-    "เหมาะสำหรับผู้อ่านที่ชอบ 'farming' + ธุรกิจ"
+    "คอมโบอาหารพูดได้ + สัตว์น่ารัก + ไลฟ์สตรีม = เหมาะกับกลุ่ม foodie + ชอบ heartwarming ในไทย",
+    "Romance น้อยมากใน 6 บทแรก — ควรอ่าน Phase 2 ต่อเพื่อประเมิน romance payoff",
+    "Tone เป็น feel-good comedy ไม่มีความขมขื่น = เหมาะแปลให้คนที่ burnout จากนิยายดราม่า",
+    "ความยากแปลต่ำ = cost ต่ำกว่า era novel มาก คุ้มค่าแปล"
   ]
 }

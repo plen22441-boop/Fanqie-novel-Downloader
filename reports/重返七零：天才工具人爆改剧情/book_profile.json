@@ -1,7 +1,7 @@
 {
   "title": "重返七零：天才工具人爆改剧情",
-  "title_th": "ย้อนยุค 70: อัจฉริยะเปลี่ยนโชคชะตา",
-  "author": "ไม่ทราบ",
+  "title_th": "ย้อนยุค 70: อัจฉริยะแห่งหมู่บ้านพลิกโชคชะตา",
+  "author": "雪凤凰",
   "source": "raw_zh",
   "platform_target": "mynovel",
   "source_stats": {
@@ -9,77 +9,79 @@
     "qq_readers": "11000",
     "chapters_total_cn": 833,
     "status": "ไม่ทราบ",
-    "note": "Phase 1 — จากข้อมูล metadata เท่านั้น | Era 70s + genius tool person rewriting plot + system elements"
+    "note": "Phase 2 — อ่านบทที่ 1-9 | Era 70s + Rebirth (original soul fights back transmigrator) + TCM + Cute Daughter + Literary Prose"
   },
   "genres": [
     "historical",
-    "transmigration",
+    "rebirth",
     "romance",
-    "drama",
-    "system"
+    "drama"
   ],
   "tropes": [
     "op_mc",
     "strong_fl",
+    "cute_kids",
     "face_slapping",
-    "level_up",
-    "misunderstanding"
+    "misunderstanding",
+    "found_family"
   ],
   "chapters_total": 833,
   "chapters_read": 30,
-  "chapters_sampled": [],
+  "chapters_sampled": [1, 2, 3, 4, 5, 6, 7, 8, 9],
   "free_chapters": 30,
   "translation_quality": 7,
-  "translation_difficulty": 6,
+  "translation_difficulty": 8,
   "scores": {
     "hook": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ย้อนยุค 70 + อัจฉริยะที่สามารถแก้ไขพล็อตได้ = hook น่าสนใจ แตกต่างจาก era ทั่วไป"
+      "score": 9.0,
+      "evidence": "บท 1: นางเอก 顾拙 ต่อสู้กับวิญญาณผู้บุกรุก แล้วกระโดดลงแม่น้ำช่วยลูกสาวที่จมน้ำทั้งที่กำลังไข้สูง = gripping opening ระดับสูง. บท 2: กู้ชีพลูกสาวด้วยการผายปอด (ปี 70 คนในหมู่บ้านไม่รู้จักวิธีนี้) = ฉากฮีโร่ที่ทรงพลัง. บท 5: นับขาไก่ย้อนหลัง 3 ปีได้แม่นยำหน้าคนทั้งบ้าน = face-slapping แบบเงียบๆ แต่คม ผู้อ่านจะตะโกน"
     },
     "prose": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ประมาณจาก QQ 8.4 — น่าจะเขียนได้ดีกว่าค่าเฉลี่ย"
+      "score": 9.0,
+      "evidence": "บท 1: 'ค่ำฟ้าสลัว ลมยามเย็นไหลผ่านช่องเขา' — บรรยากาศนำเรื่องระดับวรรณกรรม. บท 6: 'ใต้ใบหน้าที่สงบนิ่งของเธอ ซ่อนน้ำมันเดือดที่ถึงจุดเดือดแล้วแต่ยังไม่ล้นออกมา' — ร้อยเรียงอารมณ์ได้ลึก. บทพรรณนาหมู่บ้านและ daily life ยุค 70 ละเอียด สมจริง แตกต่างจาก web novel ทั่วไปอย่างชัดเจน"
     },
     "pacing": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] system + plot-changing = pace น่าจะเร็ว มีเป้าหมายชัด"
+      "score": 8.5,
+      "evidence": "บท 1-9 ครอบคลุม: ต่อสู้วิญญาณ → ช่วยลูกสาวจากจมน้ำ → เผชิญหน้าน้องชายสามี → ช่วยคลอดฉุกเฉิน (ทารกสะโพกมาก่อน) → ฝังเข็มควบคุมการคลอด = pace ดีมาก ทุกบทมีเป้าหมาย ไม่มีจุดหยุดนิ่ง แม้จะเป็น literary pace ไม่ใช่ thriller"
     },
     "characters": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] นางเอกอัจฉริยะ tool person = character ที่แตกต่าง น่าจะ 3D"
+      "score": 9.5,
+      "evidence": "นางเอก 顾拙: จำทุกอย่างได้แม่นยำ (บท 5: จำปริมาณขาไก่ที่ทุกคนกินตลอด 3 ปี), เชี่ยวชาญการแพทย์แผนจีน, ทำหวีไม้ด้วยมือเอง, ถักผมลูกได้สวยงาม = 多才多艺 ที่ไม่รู้สึก exaggerated เพราะ detail support ทุกอย่าง. ลูก 茵茵: ตื่นมาหลังจมน้ำยังจำว่าจะแบ่งลูกอมให้คุณยายข้างบ้าน = น่ารักและมีน้ำใจแบบ organic. 谢凝 (น้องสาวสามี): character สนับสนุนที่แข็งแกร่งและมีมิติ"
     },
     "romance": {
-      "score": 7.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] era romance + misunderstanding trope = romance ปกติ"
+      "score": 8.0,
+      "evidence": "สามี 谢凛 'ตาย' ก่อนเรื่องเริ่ม แต่ presence ของเขาอยู่ในทุกหน้า — ผ้าห่มที่ส่งมา, กระป๋องลูกท้อ, ลูกสาวที่หน้าตาเหมือนพ่อ. บท 6: ตอนที่ 顾拙 รู้ว่าสามีไม่ตายจริงแต่อยู่ในโคม่า = emotional payoff ที่ผู้อ่านรอมาทั้งเรื่อง romance ที่ build ผ่านความคิดถึงและความโกรธแทน conventional sweet moments = ลึกกว่าปกติมาก"
     },
     "world": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ยุค 70 จีน + system mechanics = world building ดีกว่าค่าเฉลี่ย"
+      "score": 9.0,
+      "evidence": "บท 6: อธิบาย culture การแปรงฟันยุค 70 ที่คนหมู่บ้านยังไม่ทำ นางเอกทำหวีเองเพราะซื้อไม่ได้. บท 8: ระบบ 赤脚医生 (หมอเท้าเปล่า) และ conflict กับ traditional medicine. บท 3: ระบบสำรับอาหารและ scarcity ยุค 70 — world building ที่แม่นยำและ immersive ระดับสูง"
     },
     "plot": {
       "score": 8.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] plot-changing mechanic = concept น่าสนใจมาก มีทิศทางชัดเจน"
+      "evidence": "Plot หลัก 3 ชั้น: 1) ช่วยสามีจากโคม่า (believed dead), 2) ปกป้องลูกสาว 茵茵 จากภัยต่างๆ, 3) เอาคืน 谢冲 ที่แสร้งทำเป็นดีแต่เกือบทำให้ลูกสาวตาย. พล็อตที่เป็น personal revenge แต่ใส่ warmth และ community ทำให้ไม่หนักเกินไป = balance ดีมาก"
     },
     "emotion": {
-      "score": 7.5,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] ประมาณจาก theme และ QQ score"
+      "score": 9.5,
+      "evidence": "บท 2: 顾拙 ร้องไห้เงียบๆ หลังช่วยลูกสาวได้ = catharsis ที่ทรงพลัง. บท 5: นับขาไก่ย้อนหลัง = ความโกรธสงบที่น่าสะเทือนใจมากกว่าการตะโกน. บท 9: แม่ลูกพูดว่า 'แม่เก่งมาก!' — 'ลูกก็เก่งมาก!' = ฉากเล็กๆ ที่ซึ้งมาก. สมดุล emotion ระหว่างความเจ็บปวด ความโกรธ และ warmth ดีเยี่ยม"
     },
     "cliffhanger": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] system + plot missions = น่าจะมี cliffhanger ดี"
+      "score": 8.5,
+      "evidence": "บท 1 จบ: ช่วยลูกสาวจากแม่น้ำได้ไหม?. บท 7 จบ: รู้ว่าสามีน่าจะยังมีชีวิต = emotional bomb. บท 8 จบ: ทารกที่จะคลอดอยู่ในท่าสะโพกกับสายสะดือพันคอ = life-or-death medical cliffhanger. ทุกบทจบอยากอ่านต่อ"
     },
     "originality": {
-      "score": 8.0,
-      "evidence": "[Phase 1 — จากข้อมูล metadata เท่านั้น] 'tool person' ที่แก้พล็อตในยุค 70 = คอมโบไม่ค่อยเห็นในตลาดไทย"
+      "score": 9.0,
+      "evidence": "Twist ที่ไม่เคยเห็น: นางเอก = ผู้ถูกบุกรุกวิญญาณที่รอดชีวิตและต่อสู้กลับ ไม่ใช่ผู้บุกรุก. 'เครื่องมือในพล็อต' คือตัวเธอเองตามมุมมองของผู้บุกรุก แต่ความจริงเธอคือคนที่ฉลาดที่สุด. คอมโบ: การแพทย์แผนจีน + หน่วยความจำอัจฉริยะ + era 70s + single mother fight = ไม่ซ้ำกับอะไรในตลาดไทย"
     }
   },
   "translation_notes": {
-    "difficulty_breakdown": "ปานกลาง 6/10: คำศัพท์ยุค 70 + system terminology ต้องแปลให้เข้าใจ",
-    "cultural_notes": "ระบบ system ในยุค era อาจต้องอธิบายบริบทเพิ่มเติม"
+    "difficulty_breakdown": "ยาก 8/10: ภาษาวรรณกรรมสูงกว่า web novel ทั่วไป, ศัพท์การแพทย์แผนจีน (针灸 穴位 催产药 臀位), คำศัพท์ยุค 70 (布票 工分 赤脚医生), สำนวนอารมณ์ลึกที่ต้องแปลให้รักษา nuance ไว้",
+    "cultural_notes": "赤脚医生 = หมอเท้าเปล่า ระบบสาธารณสุขยุคเหมาต้องอธิบาย. เหตุการณ์ยุค 70 จีน (文化大革命 aftermath). 工分 ระบบแรงงาน. ชื่อจุดฝังเข็มต้องมีหมายเหตุผู้แปล"
   },
   "editor_recommendations": [
-    "คอมโบ era 70 + system plot-changing = จุดขายชัด แตกต่างในตลาด",
-    "833 บท = ยาวมาก ควรประเมิน pace ตอนกลาง-ท้ายก่อนตัดสินใจ",
-    "QQ 8.4 + 1.1หมื่นคนอ่าน = ฐานแฟนดีพอสมควร"
+    "คุณภาพงานเขียนสูงผิดปกติจาก web novel — ใกล้เคียงนิยายพิมพ์มากกว่า online novel",
+    "Twist ที่ไม่มีในตลาดไทย: นางเอกคือ original soul ที่ต่อสู้กลับ ไม่ใช่ transmigrator",
+    "Emotion ระดับ 9.5 — ผู้อ่านที่ชอบ cry+cheer จะชอบมาก",
+    "ต้องหาผู้แปลที่เข้าใจ TCM และยุค 70 จีน — quality of translation จะกำหนด success มาก",
+    "833 บท ยาวมาก ควรประเมิน pace ตอนกลางก่อนลงทุนแปล"
   ]
 }
