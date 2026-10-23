@@ -1,0 +1,35 @@
+[
+  {
+    "bookSourceUrl": "https://m.biquge365.net",
+    "bookSourceName": "笔趣阁365(m.biquge365.net)",
+    "bookSourceType": 0,
+    "enabled": true,
+    "enabledExplore": false,
+    "header": "{\"User-Agent\":\"Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36\",\"Referer\":\"https://m.biquge365.net/\"}",
+    "searchUrl": "https://m.biquge365.net/s.php,{\"method\":\"POST\",\"body\":\"keyword={{key}}\"}",
+    "ruleSearch": {
+      "bookList": ".bookbox,.book-item,li",
+      "name": "h4@text||a@text",
+      "author": ".author@text||p@text",
+      "bookUrl": "a@href",
+      "coverUrl": "img@src"
+    },
+    "ruleBookInfo": {
+      "name": "h1@text||.title@text",
+      "author": ".author@text||p:nth-child(1)@text",
+      "coverUrl": "img@src",
+      "intro": ".intro@text||.desc@text"
+    },
+    "ruleToc": {
+      "chapterList": ".chapter-list a,#chapterlist a,.listmain a,.mulu a,ul.chapter a",
+      "chapterName": "text",
+      "chapterUrl": "href",
+      "nextTocUrl": "text.下一页@href||text.下页@href"
+    },
+    "ruleContent": {
+      "content": "#chaptercontent@html||#content@html||.content@html",
+      "nextContentUrl": "text.下一页@href||text.下一頁@href||text.下页@href",
+      "replaceRegex": "(?s)请记住本书首发域名.*|请选择错误类型.*|(第\\d+/\\d+页)|更新太慢|缺少章节|章节内容错误|验证码："
+    }
+  }
+]
