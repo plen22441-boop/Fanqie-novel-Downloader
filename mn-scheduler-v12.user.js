@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         MyNovel Auto Scheduler Helper v12.1.0
+// @name         MyNovel Auto Scheduler Helper v12.2.0
 // @namespace    https://mynovel.co/
-// @version      12.1.0
+// @version      12.2.0
 // @description  ตั้งเวลา MyNovel — โหมดปุ๊บปุ๊บ, ปรับความเร็วอัตโนมัติ, ตรวจหาเวลาต่อ, Wake Lock, เสียงแจ้งเตือน, หลายเรื่องพร้อมกัน
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
@@ -10,7 +10,7 @@
 // ==/UserScript==
 (() => {
   'use strict';
-  const VERSION = '12.1.0';
+  const VERSION = '12.2.0';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
   const STORE_KEY = 'mn-auto-helper-settings';
@@ -70,7 +70,31 @@
     const profile = SPEED_PROFILES[name];
     if (profile) Object.assign(SPEED, profile);
   }
-  const sleep = ms => (ms > 0 ? new Promise(resolve => setTimeout(resolve, ms)) : Promise.resolve());
+  // Web Worker-based sleep: not throttled in background tabs on mobile Firefox
+  const _workerBlob = new Blob([`
+    self.onmessage = function(e) {
+      var id = e.data.id, ms = e.data.ms;
+      setTimeout(function(){ self.postMessage(id); }, ms);
+    };
+  `], { type: 'application/javascript' });
+  const _timerWorker = (() => {
+    try { return new Worker(URL.createObjectURL(_workerBlob)); } catch(_) { return null; }
+  })();
+  const _timerCbs = new Map();
+  if (_timerWorker) {
+    let _tid = 0;
+    _timerWorker.onmessage = e => { const cb = _timerCbs.get(e.data); _timerCbs.delete(e.data); if (cb) cb(); };
+    window._mnWorkerSleep = (ms) => new Promise(resolve => {
+      const id = ++_tid;
+      _timerCbs.set(id, resolve);
+      _timerWorker.postMessage({ id, ms });
+    });
+  }
+  const sleep = ms => {
+    if (ms <= 0) return Promise.resolve();
+    if (window._mnWorkerSleep) return window._mnWorkerSleep(ms);
+    return new Promise(resolve => setTimeout(resolve, ms));
+  };
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const txt = el => (el?.innerText || el?.textContent || '').replace(/\s+/g, ' ').trim();
   const clean = value => String(value || '').replace(/\s+/g, '');
@@ -1110,6 +1134,7 @@
       document.removeEventListener('visibilitychange', onVisibility);
       fab.remove();
       host.remove();
+      if (_timerWorker) { try { _timerWorker.terminate(); } catch(_){} }
     };
     const dateInput = host.querySelector('#mn-date');
     const timeInput = host.querySelector('#mn-time');
