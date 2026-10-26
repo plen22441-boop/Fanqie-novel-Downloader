@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         MyNovel Auto Scheduler Helper v12.0.0
+// @name         MyNovel Auto Scheduler Helper v12.1.0
 // @namespace    https://mynovel.co/
-// @version      12.0.0
+// @version      12.1.0
 // @description  ตั้งเวลา MyNovel — โหมดปุ๊บปุ๊บ, ปรับความเร็วอัตโนมัติ, ตรวจหาเวลาต่อ, Wake Lock, เสียงแจ้งเตือน, หลายเรื่องพร้อมกัน
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
@@ -10,7 +10,7 @@
 // ==/UserScript==
 (() => {
   'use strict';
-  const VERSION = '12.0.0';
+  const VERSION = '12.1.0';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
   const STORE_KEY = 'mn-auto-helper-settings';
@@ -1090,9 +1090,10 @@
           <input type="checkbox" id="mn-auto-run" checked>
           <span>เริ่มตั้งเวลาอัตโนมัติทันที</span>
         </label>
-        <button class="action launch" id="mn-launch-all">🚀 เปิดทุกเรื่องพร้อมกัน</button>
+        <button class="action launch" id="mn-launch-all">🚀 เตรียมลิงก์ทุกเรื่อง</button>
         <button class="action stop" id="mn-clear-jobs" style="margin-top:4px">🗑 ล้างรายการ</button>
-        <div class="note">แต่ละเรื่องเปิดในแท็บใหม่ ใช้การตั้งค่าวันเวลาและห่างกันจากด้านบน<br>⚠️ เบราว์เซอร์อาจบล็อก popup — อนุญาต mynovel.co ก่อนใช้ฟีเจอร์นี้</div>
+        <div id="mn-link-box" style="display:none;margin-top:8px;padding:6px;background:#f0f7ff;border:1px solid #90caf9;border-radius:9px"></div>
+        <div class="note">กด "เตรียมลิงก์" แล้วแตะแต่ละลิงก์เพื่อเปิดแท็บใหม่ — แต่ละแท็บเริ่มอัตโนมัติ</div>
       </div>
     </details>
   </div>
@@ -1466,17 +1467,16 @@
       };
       const updated = jobs.map(j => ({ ...j, ...config, autoStart: true, status: 'pending' }));
       saveMultiJobs(updated);
-      let opened = 0;
-      for (const job of updated) {
-        const w = window.open(job.url, '_blank');
-        if (w) opened++;
-      }
       renderMultiList();
-      if (opened === 0) {
-        reset('⚠️ เบราว์เซอร์บล็อก popup — ไปที่การตั้งค่าเบราว์เซอร์ → อนุญาต popup จาก mynovel.co แล้วกดอีกครั้ง');
-      } else {
-        reset(`เปิด ${opened}/${updated.length} แท็บแล้ว — แต่ละแท็บจะเริ่มอัตโนมัติ`);
-      }
+      // แสดงลิงก์ให้กดเปิดทีละแท็บ (รองรับ Firefox มือถือที่บล็อก popup)
+      const linkBox = host.querySelector('#mn-link-box');
+      linkBox.innerHTML = '<div style="font-size:11px;font-weight:800;color:#1c5f96;margin-bottom:4px">กดแต่ละลิงก์เพื่อเปิดแท็บใหม่:</div>' +
+        updated.map((j, i) => {
+          const short = j.url.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*$/, '');
+          return `<a href="${j.url}" target="_blank" style="display:block;padding:7px 8px;margin:3px 0;background:#edf8ff;border:1px solid #90caf9;border-radius:7px;color:#0d47a1;font-size:11px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i+1}. ${short}</a>`;
+        }).join('');
+      linkBox.style.display = 'block';
+      reset(`บันทึกการตั้งค่าแล้ว — กดลิงก์ด้านล่างเพื่อเปิดแต่ละเรื่อง`);
     };
 
     renderMultiList();
