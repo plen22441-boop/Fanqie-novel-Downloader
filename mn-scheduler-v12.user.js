@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         MyNovel Auto Scheduler Helper v12.3.0
+// @name         MyNovel Auto Scheduler Helper v12.4.0
 // @namespace    https://mynovel.co/
-// @version      12.3.0
+// @version      12.4.0
 // @description  ตั้งเวลา MyNovel — โหมดปุ๊บปุ๊บ, ปรับความเร็วอัตโนมัติ, ตรวจหาเวลาต่อ, Wake Lock, เสียงแจ้งเตือน, หลายเรื่องพร้อมกัน
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
@@ -10,7 +10,7 @@
 // ==/UserScript==
 (() => {
   'use strict';
-  const VERSION = '12.3.0';
+  const VERSION = '12.4.0';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
   const STORE_KEY = 'mn-auto-helper-settings';
@@ -122,25 +122,24 @@
       let finished = false;
       let scheduled = false;
       let pollTimer = null;
-      let deadline = null;
+      let deadlineTimer = null;
       let observer = null;
-      const finish = (ok, value) => {
+      // finish is a plain function (not const) so visibilitychange handler can call it after cleanup
+      function finish(ok, value) {
         if (finished) return;
         finished = true;
         clearTimeout(pollTimer);
-        clearTimeout(deadline);
-        if (observer) observer.disconnect();
+        clearTimeout(deadlineTimer);
+        if (observer) { observer.disconnect(); observer = null; }
+        document.removeEventListener('visibilitychange', onVis);
         if (ok) resolve(value);
         else reject(new Error(error));
-      };
-      const check = () => {
+      }
+      function check() {
         if (finished) return true;
-        try {
-          const value = fn();
-          if (value) { finish(true, value); return true; }
-        } catch (_) {}
+        try { const value = fn(); if (value) { finish(true, value); return true; } } catch (_) {}
         return false;
-      };
+      }
       if (check()) return;
       observer = new MutationObserver(() => {
         if (scheduled || finished) return;
@@ -150,24 +149,19 @@
       observer.observe(document.documentElement, {
         subtree: true, childList: true, attributes: true, characterData: true
       });
-      const loop = () => {
+      function loop() {
         if (finished) return;
         if (!check()) pollTimer = setTimeout(loop, SPEED.pollMs);
-      };
-      // resume immediately when tab becomes foreground (Firefox mobile throttles background timers)
-      const onVisWait = () => {
+      }
+      // resume poll immediately when tab comes to foreground (Firefox mobile throttles bg timers)
+      function onVis() {
         if (finished || document.visibilityState !== 'visible') return;
         clearTimeout(pollTimer);
         loop();
-      };
-      document.addEventListener('visibilitychange', onVisWait);
-      const _origFinish = finish;
-      finish = (ok, value) => {
-        document.removeEventListener('visibilitychange', onVisWait);
-        _origFinish(ok, value);
-      };
+      }
+      document.addEventListener('visibilitychange', onVis);
       pollTimer = setTimeout(loop, SPEED.pollMs);
-      deadline = setTimeout(() => { if (!check()) finish(false); }, timeout);
+      deadlineTimer = setTimeout(() => { if (!check()) finish(false); }, timeout);
     });
   }
   const settle = (fn, timeout = 1500) => waitFor(fn, timeout).catch(() => null);
@@ -327,10 +321,22 @@
     _wakeWanted = false;
     if (_wakeLock) { try { await _wakeLock.release(); } catch (_) {} _wakeLock = null; }
   }
+  // Banner แจ้งสถานะ background/foreground
+  const _bgBanner = (() => {
+    const el = document.createElement('div');
+    el.id = 'mn-bg-banner';
+    el.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;z-index:2147483647;' +
+      'background:#f59e0b;color:#000;font-size:14px;font-weight:bold;text-align:center;' +
+      'padding:6px;font-family:sans-serif;';
+    el.textContent = '⏸ สคริปต์หยุดชั่วคราว — กลับมาที่แท็บนี้เพื่อทำงานต่อ';
+    document.documentElement.appendChild(el);
+    return el;
+  })();
+  let _isRunning = false; // set true while scheduling loop is active
   const onVisibility = async () => {
-    if (_wakeWanted && document.visibilityState === 'visible' && _wakeLock === null) {
-      await acquireWakeLock();
-    }
+    const vis = document.visibilityState === 'visible';
+    if (_isRunning) _bgBanner.style.display = vis ? 'none' : 'block';
+    if (vis && _wakeWanted && _wakeLock === null) await acquireWakeLock();
   };
   document.addEventListener('visibilitychange', onVisibility);
   function playDoneSound() {
@@ -1140,6 +1146,7 @@
       document.removeEventListener('visibilitychange', onVisibility);
       fab.remove();
       host.remove();
+      _bgBanner.remove();
     };
     const dateInput = host.querySelector('#mn-date');
     const timeInput = host.querySelector('#mn-time');
@@ -1313,6 +1320,8 @@
         `ดำเนินการต่อหรือไม่?`
       )) return;
       stopRequested = false;
+      _isRunning = true;
+      _bgBanner.style.display = 'none';
       startButton.disabled = true;
       scanButton.disabled = true;
       detectButton.disabled = true;
@@ -1423,6 +1432,8 @@
         log(`หยุดที่ ${done}/${queue.length} ตอน${skipNote}\n${error.message || error}`);
         playDoneSound();
       } finally {
+        _isRunning = false;
+        _bgBanner.style.display = 'none';
         await releaseWakeLock();
         setSpeedProfile(speedSelect.value);
         startButton.disabled = false;
