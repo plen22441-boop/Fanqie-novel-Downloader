@@ -95,7 +95,7 @@
   }
 
   function safeInterval(v, rank) {
-    if (!v) return '?';
+    if (!v || v <= 0) return '?';
     return Math.min(Math.max(1, Math.round(rank / v)), 15);
   }
 
@@ -132,7 +132,7 @@
     const t5  = safeInterval(v, 5);
     const t10 = safeInterval(v, 10);
     const count = data ? data.times.length : 0;
-    const timeStr = ts ? ts.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const timeStr = ts ? `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}` : '—';
 
     // header row
     let html = `
