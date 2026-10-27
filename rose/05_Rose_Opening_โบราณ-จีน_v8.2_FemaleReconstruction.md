@@ -18,6 +18,7 @@ rose era-style lock hard
 rose diction period-consistent hard
 rose gender identity consistency hard
 rose pronoun kinship title consistency hard
+rose native-construction hard
 rose entity gender pronoun ledger required
 rose continuity on
 rose project lock on
