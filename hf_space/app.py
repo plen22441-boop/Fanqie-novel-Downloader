@@ -6,10 +6,86 @@ import aiohttp
 import re
 import json
 import io
+import os
 import zipfile
+import textwrap
 from urllib.parse import urljoin, urlparse
 import trafilatura
 import streamlit as st
+
+
+# ── QC helpers (inline, no extra file dependency) ─────────────────────────────
+
+_QC_SYSTEM = """คุณคือทีม QC นิยายของสำนักพิมพ์ไทยที่เชี่ยวชาญตลาดนิยายออนไลน์ไทย
+คุณประเมินนิยายจีนแปลสำหรับแพลตฟอร์ม MyNovel และเว็บนิยายไทยชั้นนำ
+
+**ฐานนักอ่านที่คุณจำลอง:**
+- นักอ่านหญิงไทย อายุ 18–35 ปี ที่ชอบนิยายจีนแปล
+- อ่านบน MyNovel, นิยาย24h, Readawrite, Fictionlog
+- ชอบแนวหลัก: โรแมนซ์ CEO/จอมมาร, ย้อนยุคจีน, แฟนตาซีรัก, เจ้าพ่อ×เจ้าสาว, BL
+- ต้องการ: ปมดึงดูดภายใน 3 บทแรก, พระเอก/นางเอกน่าติดตาม, tension สม่ำเสมอ
+- ไม่ชอบ: บทนำยาวเกินไป, ตัวละครแบน, โครงเรื่องซ้ำโดยไม่มีจุดขายใหม่
+
+**เกณฑ์ประเมินตลาด:**
+- ความเร็วพล็อต (บท 1 ต้องมี hook ดึงดูด)
+- ความเป็น "จอมมาร/เจ้าพ่อ/เย็นชา" ของพระเอก (ขายได้บนตลาดไทย)
+- ความน่าเอาใจช่วยของนางเอก (ไม่ passive เกิน)
+- ศักยภาพ fanbase / clip รีวิว / word of mouth
+- ความเหมาะสมเนื้อหากับวัฒนธรรมไทย
+- ความยาวเหมาะแก่การแปลและเผยแพร่ระยะยาว
+
+ตอบเป็นภาษาไทย ในรูปแบบ JSON ที่กำหนดเท่านั้น"""
+
+def _qc_user_prompt(title, synopsis, sample):
+    return f"""## นิยายที่ส่ง QC
+
+**ชื่อเรื่อง:** {title}
+
+**คำโปรย/synopsis:**
+{synopsis or "(ไม่มีคำโปรย — ให้ประเมินจากเนื้อหาตัวอย่างอย่างเดียว)"}
+
+**ตัวอย่างเนื้อหา (บทแรก ๆ):**
+```
+{sample}
+```
+
+กรุณาประเมินและตอบกลับใน JSON format นี้เท่านั้น (ไม่มีข้อความอื่น):
+
+{{
+  "title_th": "ชื่อที่แนะนำสำหรับตลาดไทย",
+  "overall_status": "ผ่านการคัดเลือก | ผ่านแบบมีเงื่อนไข | ไม่ผ่าน",
+  "female_reader_score": <0.0–10.0>,
+  "thai_market_score": <0.0–10.0>,
+  "female_reader_analysis": "วิเคราะห์จากมุมนักอ่านหญิง 2–4 ประโยค",
+  "market_editorial_analysis": "วิเคราะห์ตลาดและบรรณาธิการ 2–4 ประโยค",
+  "risk_factors": ["จุดเสี่ยง 1", "จุดเสี่ยง 2", "จุดเสี่ยง 3"],
+  "strengths": ["จุดแข็ง 1", "จุดแข็ง 2"],
+  "genre_tags": ["แท็กแนว 1", "แท็กแนว 2"],
+  "translation_priority": "สูง | กลาง | ต่ำ",
+  "editor_notes": "หมายเหตุเพิ่มเติมสำหรับทีมแปล"
+}}"""
+
+def _extract_sample(text, max_chars=12000):
+    for pattern in [r"(?m)^第[一二三四五六七八九十百千\d]+章", r"(?m)^Chapter\s+\d+",
+                    r"(?m)^ตอนที่\s+\d+", r"(?m)^\d+\."]:
+        splits = re.split(pattern, text)
+        if len(splits) >= 4:
+            sample = "\n\n".join(splits[:4])
+            return sample[:max_chars].strip()
+    return text[:max_chars].strip()
+
+def _call_qc_api(title, synopsis, sample, api_key, model="claude-opus-4-5"):
+    import anthropic
+    client = anthropic.Anthropic(api_key=api_key)
+    msg = client.messages.create(
+        model=model,
+        max_tokens=2048,
+        system=_QC_SYSTEM,
+        messages=[{"role": "user", "content": _qc_user_prompt(title, synopsis, sample)}],
+    )
+    raw = msg.content[0].text.strip()
+    m = re.search(r"\{[\s\S]+\}", raw)
+    return json.loads(m.group() if m else raw)
 
 
 HEADERS = {
@@ -310,60 +386,189 @@ async def run_download(url, novel_name_input, workers, delay, min_chars, log_fn,
 
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 
-st.set_page_config(page_title='Novel Downloader', page_icon='📚', layout='centered')
+st.set_page_config(page_title='Novel Downloader & QC', page_icon='📚', layout='centered')
+st.title('📚 Novel Downloader & QC')
 
-st.title('📚 Novel Downloader')
-st.markdown('วางลิงก์หน้าสารบัญนิยาย แล้วกด **Download** — รองรับทุกเว็บอัตโนมัติ')
+tab_dl, tab_qc = st.tabs(['⬇️ Download นิยาย', '🔍 QC จำลองนักอ่าน MyNovel'])
 
-with st.form('dl_form'):
-    url = st.text_input('🔗 ลิงก์สารบัญนิยาย', placeholder='https://www.example.com/book/12345/')
-    novel_name = st.text_input('ชื่อไฟล์ (ไม่ใส่ก็ได้)', placeholder='เว้นว่างให้ระบบตั้งชื่อให้')
+# ── Tab 1: Download ────────────────────────────────────────────────────────────
+with tab_dl:
+    st.markdown('วางลิงก์หน้าสารบัญนิยาย แล้วกด **Download** — รองรับทุกเว็บอัตโนมัติ')
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        workers = st.slider('Workers', 1, 8, 3)
-    with c2:
-        delay = st.slider('Delay (วิ)', 0.5, 5.0, 2.0, step=0.5)
-    with c3:
-        min_chars = st.number_input('QC ขั้นต่ำตัวอักษร', min_value=50, max_value=2000, value=300, step=50)
+    with st.form('dl_form'):
+        url = st.text_input('🔗 ลิงก์สารบัญนิยาย', placeholder='https://www.example.com/book/12345/')
+        novel_name = st.text_input('ชื่อไฟล์ (ไม่ใส่ก็ได้)', placeholder='เว้นว่างให้ระบบตั้งชื่อให้')
 
-    submitted = st.form_submit_button('⬇️ Download', type='primary', use_container_width=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            workers = st.slider('Workers', 1, 8, 3)
+        with c2:
+            delay = st.slider('Delay (วิ)', 0.5, 5.0, 2.0, step=0.5)
+        with c3:
+            min_chars = st.number_input('QC ขั้นต่ำตัวอักษร', min_value=50, max_value=2000, value=300, step=50)
 
-if submitted and url.strip():
-    log_area = st.empty()
-    progress_bar = st.progress(0.0, text='กำลังโหลด...')
-    logs = []
+        submitted = st.form_submit_button('⬇️ Download', type='primary', use_container_width=True)
 
-    def log(msg):
-        logs.append(msg)
-        log_area.text_area('Log', value='\n'.join(logs), height=220, label_visibility='collapsed')
+    if submitted and url.strip():
+        log_area = st.empty()
+        progress_bar = st.progress(0.0, text='กำลังโหลด...')
+        logs = []
 
-    def set_progress(val):
-        progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val*100:.0f}%')
+        def log(msg):
+            logs.append(msg)
+            log_area.text_area('Log', value='\n'.join(logs), height=220, label_visibility='collapsed')
 
-    try:
-        zip_bytes, zip_name, summary = asyncio.run(
-            run_download(url, novel_name, workers, float(delay), int(min_chars), log, set_progress)
-        )
-        progress_bar.progress(1.0, text='เสร็จแล้ว!')
-        if zip_bytes:
-            st.success(summary)
-            st.download_button(
-                label='📥 โหลดไฟล์ (.zip มี TXT + QC JSON)',
-                data=zip_bytes,
-                file_name=zip_name,
-                mime='application/zip',
-                use_container_width=True,
+        def set_progress(val):
+            progress_bar.progress(min(val, 1.0), text=f'โหลดแล้ว {val*100:.0f}%')
+
+        try:
+            zip_bytes, zip_name, summary = asyncio.run(
+                run_download(url, novel_name, workers, float(delay), int(min_chars), log, set_progress)
             )
+            progress_bar.progress(1.0, text='เสร็จแล้ว!')
+            if zip_bytes:
+                st.success(summary)
+                st.download_button(
+                    label='📥 โหลดไฟล์ (.zip มี TXT + QC JSON)',
+                    data=zip_bytes,
+                    file_name=zip_name,
+                    mime='application/zip',
+                    use_container_width=True,
+                )
+            else:
+                st.error(summary)
+        except Exception as e:
+            st.error(f'เกิดข้อผิดพลาด: {e}')
+
+    elif submitted:
+        st.warning('กรุณาใส่ URL ก่อนค่ะ')
+
+    st.markdown('---\n💡 **วิธีใช้:** วาง URL หน้าสารบัญของนิยาย แล้วกด Download')
+
+
+# ── Tab 2: QC จำลองนักอ่าน ────────────────────────────────────────────────────
+with tab_qc:
+    st.markdown(
+        '**จำลองการ QC จากมุมมองนักอ่านหญิงไทย** บน MyNovel  \n'
+        'อัปโหลดไฟล์นิยาย (.txt หรือ .epub) เพื่อรับคะแนนและวิเคราะห์ตลาด'
+    )
+
+    with st.form('qc_form'):
+        uploaded = st.file_uploader('📂 อัปโหลดไฟล์นิยาย', type=['txt', 'epub'])
+        synopsis_input = st.text_area(
+            '📝 คำโปรย / Synopsis (ไม่บังคับ)',
+            placeholder='ใส่คำโปรยหรือเนื้อเรื่องย่อ เพื่อให้การวิเคราะห์แม่นยำขึ้น...',
+            height=100,
+        )
+        api_key_input = st.text_input(
+            '🔑 Anthropic API Key',
+            type='password',
+            placeholder='sk-ant-... (หรือตั้ง env ANTHROPIC_API_KEY)',
+            value=os.environ.get('ANTHROPIC_API_KEY', ''),
+        )
+        qc_model = st.selectbox(
+            'Claude Model',
+            ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5'],
+            index=0,
+        )
+        max_chars = st.slider('ตัวอักษรตัวอย่างที่ส่ง AI (มากขึ้น = แม่นขึ้น แต่ช้ากว่า)', 4000, 20000, 12000, step=2000)
+        qc_submitted = st.form_submit_button('🔍 วิเคราะห์', type='primary', use_container_width=True)
+
+    if qc_submitted:
+        if not uploaded:
+            st.warning('กรุณาอัปโหลดไฟล์นิยายก่อนค่ะ')
+        elif not api_key_input.strip():
+            st.warning('กรุณาใส่ Anthropic API Key')
         else:
-            st.error(summary)
-    except Exception as e:
-        st.error(f'เกิดข้อผิดพลาด: {e}')
+            with st.spinner('กำลังอ่านไฟล์และวิเคราะห์...'):
+                try:
+                    raw_bytes = uploaded.read()
+                    fname = uploaded.name
+                    title_guess = re.sub(r'\.(txt|epub)$', '', fname, flags=re.I)
 
-elif submitted:
-    st.warning('กรุณาใส่ URL ก่อนค่ะ')
+                    if fname.lower().endswith('.epub'):
+                        import ebooklib
+                        from ebooklib import epub as eblib_epub
+                        from bs4 import BeautifulSoup
+                        import tempfile, pathlib
+                        with tempfile.NamedTemporaryFile(suffix='.epub', delete=False) as tf:
+                            tf.write(raw_bytes)
+                            tf_path = tf.name
+                        book = eblib_epub.read_epub(tf_path)
+                        title_guess = book.title or title_guess
+                        parts = []
+                        for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
+                            soup = BeautifulSoup(item.get_content(), 'html.parser')
+                            t = soup.get_text('\n')
+                            if len(t.strip()) > 100:
+                                parts.append(t.strip())
+                        full_text = '\n\n'.join(parts)
+                        os.unlink(tf_path)
+                    else:
+                        full_text = raw_bytes.decode('utf-8', errors='replace')
 
-st.markdown("""
----
-💡 **วิธีใช้:** วาง URL หน้าสารบัญของนิยาย (หน้าที่มีรายชื่อตอนทั้งหมด) แล้วกด Download
-""")
+                    sample = _extract_sample(full_text, max_chars)
+                    result = _call_qc_api(title_guess, synopsis_input, sample, api_key_input.strip(), qc_model)
+
+                    # ── แสดงผลรายงาน ─────────────────────────────────────────
+                    status = result.get('overall_status', '—')
+                    status_color = {'ผ่านการคัดเลือก': 'green', 'ผ่านแบบมีเงื่อนไข': 'orange', 'ไม่ผ่าน': 'red'}.get(status, 'gray')
+                    status_icon = {'ผ่านการคัดเลือก': '✅', 'ผ่านแบบมีเงื่อนไข': '⚠️', 'ไม่ผ่าน': '❌'}.get(status, '❓')
+
+                    st.markdown(f'## {result.get("title_th", title_guess)}')
+                    st.markdown(f'**สถานะ:** :{status_color}[{status_icon} {status}]')
+
+                    tags = result.get('genre_tags', [])
+                    if tags:
+                        st.markdown(' '.join(f'`{t}`' for t in tags))
+
+                    st.markdown(f'**ลำดับความสำคัญการแปล:** {result.get("translation_priority", "—")}')
+                    st.markdown('---')
+
+                    col1, col2 = st.columns(2)
+                    fr = float(result.get('female_reader_score', 0))
+                    tm = float(result.get('thai_market_score', 0))
+                    with col1:
+                        st.metric('ศักยภาพนักอ่านหญิง', f'{fr:.1f} / 10')
+                        st.progress(fr / 10)
+                    with col2:
+                        st.metric('ศักยภาพตลาดไทย', f'{tm:.1f} / 10')
+                        st.progress(tm / 10)
+
+                    st.markdown('---')
+
+                    strengths = result.get('strengths', [])
+                    if strengths:
+                        st.markdown('### ✨ จุดแข็ง')
+                        for s in strengths:
+                            st.markdown(f'- {s}')
+
+                    st.markdown('### 👩 มุมนักอ่านหญิง')
+                    st.markdown(result.get('female_reader_analysis', ''))
+
+                    st.markdown('### 📊 มุมตลาดและบรรณาธิการ')
+                    st.markdown(result.get('market_editorial_analysis', ''))
+
+                    risks = result.get('risk_factors', [])
+                    if risks:
+                        st.markdown('### ⚠️ จุดเสี่ยง')
+                        for r in risks:
+                            st.markdown(f'- {r}')
+
+                    notes = result.get('editor_notes', '')
+                    if notes:
+                        st.markdown('### 📝 หมายเหตุทีมแปล')
+                        st.markdown(notes)
+
+                    st.markdown('---')
+                    st.download_button(
+                        '💾 โหลดผล QC (JSON)',
+                        data=json.dumps(result, ensure_ascii=False, indent=2).encode('utf-8'),
+                        file_name=f'{title_guess}_QC_simulation.json',
+                        mime='application/json',
+                    )
+
+                except ImportError as e:
+                    st.error(f'ขาด dependency: {e}  \nรัน: pip install anthropic ebooklib bs4')
+                except Exception as e:
+                    st.error(f'เกิดข้อผิดพลาด: {e}')
