@@ -26,15 +26,19 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept-Language": "th-TH,th;q=0.9,en;q=0.8",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Referer": "https://mynovel.co/",
 }
 
-# URL ที่คาดว่าเป็น feed (จะทดสอบทีละอัน)
+# URL ที่คาดว่าเป็น feed — อิงจากโครงสร้างที่พบจาก search
+# mynovel.co มี section: นิยายอัปเดตล่าสุด, daily top sellers, newly opened
 FEED_URL_CANDIDATES = [
-    "/latest",
+    "/",                    # หน้าหลัก (มี feed อัปเดตล่าสุด)
+    "/latest",              # อาจเป็น page แยก
     "/update",
-    "/recent",
-    "/new",
-    "/",
+    "/novel/update",
+    "/novel/latest",
+    "/home",
+    "/announcements",       # ยืนยันแล้วว่ามีจริง
 ]
 
 
@@ -157,11 +161,52 @@ def probe_feed_urls(session: requests.Session):
         time.sleep(0.5)
 
 
+def measure_feed_velocity(session: requests.Session, feed_url: str, wait_minutes: int = 5):
+    """
+    วัด "ความเร็ว" ของ feed จริง:
+    ดึงรายชื่อนิยายครั้งที่ 1 → รอ → ดึงอีกครั้ง → นับว่ามีกี่เรื่องใหม่ขึ้น
+    ใช้หาว่าต้องโพสต์ถี่แค่ไหนจึงอยู่บนหน้าแรก
+    """
+    print(f"\n[*] วัดความเร็ว feed ({wait_minutes} นาที)")
+    soup1 = fetch(feed_url, session)
+    if not soup1:
+        return
+
+    novels1 = {n["title"] for n in extract_novel_cards(soup1)}
+    print(f"  รอบที่ 1: พบ {len(novels1)} รายการ")
+    print(f"  รอ {wait_minutes} นาที...")
+    time.sleep(wait_minutes * 60)
+
+    soup2 = fetch(feed_url, session)
+    if not soup2:
+        return
+    novels2 = {n["title"] for n in extract_novel_cards(soup2)}
+    new_entries = novels2 - novels1
+
+    print(f"  รอบที่ 2: พบ {len(novels2)} รายการ")
+    print(f"  เรื่องใหม่ที่ขึ้นมาใน {wait_minutes} นาที: {len(new_entries)} เรื่อง")
+    if new_entries:
+        print("  รายชื่อ:")
+        for t in list(new_entries)[:10]:
+            print(f"    • {t[:50]}")
+
+    if len(new_entries) > 0:
+        push_off_rate = len(new_entries) / wait_minutes
+        safe_interval = 1 / push_off_rate if push_off_rate > 0 else 999
+        print(f"\n  📊 Feed velocity: ~{push_off_rate:.1f} เรื่อง/นาที")
+        print(f"  ➡️  ต้องโพสต์ทุก ≤ {safe_interval:.1f} นาที จึงอยู่บนหน้าแรก")
+        print(f"  (ช่วงนี้ของวัน — ช่วง peak อาจเร็วกว่านี้ 3-5x)")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="ดึง feed จาก mynovel.co")
+    parser = argparse.ArgumentParser(description="ดึงและวิเคราะห์ feed จาก mynovel.co")
     parser.add_argument("--url", default=BASE_URL)
     parser.add_argument("--pages", type=int, default=1)
     parser.add_argument("--save", action="store_true", help="บันทึกผลเป็น JSON")
+    parser.add_argument("--velocity", action="store_true",
+                        help="วัดความเร็ว feed จริง (รอ 5 นาทีระหว่างดึง)")
+    parser.add_argument("--wait", type=int, default=5,
+                        help="จำนวนนาทีรอระหว่างการวัด velocity (default: 5)")
     args = parser.parse_args()
 
     session = requests.Session()
@@ -175,13 +220,20 @@ def main():
     # probe URL candidates
     probe_feed_urls(session)
 
+    # วัด velocity ถ้าขอ
+    if args.velocity and result and result.get("feed_links"):
+        best_feed = result["feed_links"][0]["href"] if result["feed_links"] else BASE_URL
+        measure_feed_velocity(session, best_feed, args.wait)
+
     if args.save and result:
         out = f"mynovel_feed_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
         with open(out, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"\n[*] บันทึกแล้ว: {out}")
 
-    print("\n[*] เสร็จสิ้น — ถ้า selector ไม่ตรง แจ้งชื่อ class/id จาก DevTools ได้เลยค่ะ")
+    print("\n[*] เสร็จสิ้น")
+    print("     หากต้องการวัดความเร็ว feed จริง:")
+    print("     python mynovel_feed_inspector.py --velocity --wait 5")
 
 
 if __name__ == "__main__":
