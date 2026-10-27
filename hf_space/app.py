@@ -389,7 +389,7 @@ async def run_download(url, novel_name_input, workers, delay, min_chars, log_fn,
 st.set_page_config(page_title='Novel Downloader & QC', page_icon='📚', layout='centered')
 st.title('📚 Novel Downloader & QC')
 
-tab_dl, tab_qc = st.tabs(['⬇️ Download นิยาย', '🔍 QC จำลองนักอ่าน MyNovel'])
+tab_dl, tab_qc, tab_feed = st.tabs(['⬇️ Download นิยาย', '🔍 QC จำลองนักอ่าน MyNovel', '📡 เช็ค Feed MyNovel'])
 
 # ── Tab 1: Download ────────────────────────────────────────────────────────────
 with tab_dl:
@@ -572,3 +572,205 @@ with tab_qc:
                     st.error(f'ขาด dependency: {e}  \nรัน: pip install anthropic ebooklib bs4')
                 except Exception as e:
                     st.error(f'เกิดข้อผิดพลาด: {e}')
+
+
+# ── Tab 3: Feed Velocity Checker ──────────────────────────────────────────────
+with tab_feed:
+    st.markdown(
+        '**เช็คความเร็ว Feed MyNovel ตอนนี้** — ดึงข้อมูลจาก mynovel.co แบบ real-time  \n'
+        'แนะนำว่าควรโพสต์ทุกกี่นาทีเพื่อติด feed อยู่ตลอด'
+    )
+
+    import requests
+    from bs4 import BeautifulSoup as _BS
+    import time as _time
+    from datetime import datetime as _dt
+
+    _MYNOVEL_HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "th-TH,th;q=0.9,en;q=0.8",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Referer": "https://mynovel.co/",
+    }
+
+    def _fetch_feed_entries(url="https://mynovel.co/explore?tab=books"):
+        """ดึง feed entries จาก mynovel.co และแยก timestamp"""
+        try:
+            r = requests.get(url, headers=_MYNOVEL_HEADERS, timeout=15)
+            r.raise_for_status()
+            r.encoding = r.apparent_encoding or "utf-8"
+        except Exception as e:
+            return None, str(e)
+
+        soup = _BS(r.text, "html.parser")
+
+        # patterns สำหรับ timestamp ภาษาไทย
+        time_re = re.compile(
+            r"(\d+)\s*(วินาที|นาที|ชั่วโมง|วัน|สัปดาห์|เดือน)\s*ที่แล้ว"
+            r"|น้อยกว่า\s*1\s*นาที"
+            r"|(\d{1,2})\s*:\s*(\d{2})"
+        )
+
+        entries = []
+        seen_titles = set()
+
+        for elem in soup.find_all(["article", "div", "li", "a"]):
+            text = elem.get_text(" ", strip=True)
+            m = time_re.search(text)
+            if not m:
+                continue
+
+            title_elem = elem.find(["h1", "h2", "h3", "h4", "span", "p"])
+            title = title_elem.get_text(strip=True)[:60] if title_elem else ""
+            if not title or len(title) < 3 or title in seen_titles:
+                continue
+            seen_titles.add(title)
+
+            time_str = m.group()
+            # แปลงเป็นจำนวนนาที
+            if "น้อยกว่า" in time_str:
+                minutes = 0.5
+            elif "วินาที" in time_str:
+                minutes = int(m.group(1)) / 60
+            elif "นาที" in time_str:
+                minutes = int(m.group(1))
+            elif "ชั่วโมง" in time_str:
+                minutes = int(m.group(1)) * 60
+            elif "วัน" in time_str:
+                minutes = int(m.group(1)) * 1440
+            else:
+                minutes = 9999
+
+            entries.append({"title": title, "time_str": time_str, "minutes_ago": minutes})
+
+        entries.sort(key=lambda x: x["minutes_ago"])
+        return entries[:30], None
+
+    def _calc_velocity(entries):
+        """คำนวณ velocity จาก distribution ของ entries"""
+        if not entries:
+            return None
+
+        # นับ entries ใน 10 นาทีแรก
+        within_10 = [e for e in entries if e["minutes_ago"] <= 10]
+        if len(within_10) < 2:
+            return None
+
+        # velocity = จำนวน entries / ช่วงเวลา
+        max_min = max(e["minutes_ago"] for e in within_10)
+        if max_min <= 0:
+            max_min = 1
+        velocity = len(within_10) / max_min
+        return velocity
+
+    def _recommend_interval(velocity, target_rank=5):
+        """แนะนำ interval จาก velocity"""
+        if not velocity or velocity <= 0:
+            return 9, "ไม่มีข้อมูล"
+        safe = target_rank / velocity
+        if safe <= 1:
+            return 1, "🔥 ช่วง peak มาก — ทุก 1 นาที"
+        elif safe <= 3:
+            return int(safe), "⚡ ช่วงคนเยอะ"
+        elif safe <= 6:
+            return int(safe), "✅ ช่วงปกติ"
+        else:
+            return min(int(safe), 9), "😴 ช่วงเงียบ — ทุก 7-9 นาทีก็พอ"
+
+    col_btn, col_rank = st.columns([2, 1])
+    with col_btn:
+        check_btn = st.button('🔄 เช็ค Feed ตอนนี้', type='primary', use_container_width=True)
+    with col_rank:
+        target_rank = st.selectbox('เป้าหมาย', ['Top 3', 'Top 5', 'Top 10'], index=1)
+
+    rank_num = int(target_rank.split()[1])
+
+    if check_btn:
+        with st.spinner('กำลังดึงข้อมูล feed จาก mynovel.co...'):
+            entries, err = _fetch_feed_entries()
+
+        if err:
+            st.error(f'เข้า mynovel.co ไม่ได้: {err}')
+            st.info('💡 ถ้าเปิดจากมือถือ/บ้าน ลองเปิดเว็บ mynovel.co แล้วจดเวลาของแต่ละเรื่องมากรอกข้างล่างแทนค่ะ')
+        elif not entries:
+            st.warning('ดึงข้อมูลได้แต่ parse timestamp ไม่เจอ — mynovel.co อาจเปลี่ยน layout')
+        else:
+            velocity = _calc_velocity(entries)
+            interval, label = _recommend_interval(velocity, rank_num)
+
+            now_str = _dt.now().strftime("%H:%M")
+            st.success(f'✅ ดึงข้อมูลสำเร็จ เวลา {now_str} น.')
+
+            st.markdown('### 📊 สรุปผล')
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric('พบใน feed', f'{len(entries)} เรื่อง')
+            with c2:
+                vel_str = f'{velocity:.1f}/นาที' if velocity else 'N/A'
+                st.metric('Velocity ตอนนี้', vel_str)
+            with c3:
+                st.metric(f'โพสต์ทุก ({target_rank})', f'{interval} นาที', label)
+
+            st.markdown('---')
+            st.markdown('### 🕐 เรื่องล่าสุดใน Feed')
+            rows = []
+            for i, e in enumerate(entries[:15], 1):
+                rows.append(f'| {i} | {e["title"][:40]} | {e["time_str"]} |')
+
+            st.markdown('| # | ชื่อเรื่อง | อัปเดต |')
+            st.markdown('|---|-----------|--------|')
+            for row in rows:
+                st.markdown(row)
+
+            st.markdown('---')
+            st.markdown(f'### 💡 คำแนะนำ')
+            if velocity and velocity > 2:
+                st.warning(f'⚡ **ช่วง peak** — feed วิ่งเร็วมาก {velocity:.1f} เรื่อง/นาที  \n'
+                           f'ถ้าอยาก {target_rank}: โพสต์ทุก **{interval} นาที**')
+            elif velocity and velocity > 0.5:
+                st.info(f'✅ **ช่วงปกติ** — feed วิ่ง {velocity:.1f} เรื่อง/นาที  \n'
+                        f'ถ้าอยาก {target_rank}: โพสต์ทุก **{interval} นาที**')
+            else:
+                st.info(f'😴 **ช่วงเงียบ** — feed ช้า  \n'
+                        f'โพสต์ทุก **{interval} นาที** ก็อยู่ {target_rank} ได้สบายๆ')
+
+    st.markdown('---')
+    st.markdown('### ✍️ คำนวณจากข้อมูลที่จดเอง')
+    st.caption('ถ้าเข้า mynovel.co จาก app นี้ไม่ได้ — เปิดมือถือแล้วจดเวลาของ 5 เรื่องแรกมากรอกแทนได้ค่ะ')
+
+    with st.form('manual_feed'):
+        st.markdown('กรอกเวลาของ 5–10 เรื่องแรกใน feed (หน่วย: นาทีที่แล้ว)')
+        manual_times = st.text_input(
+            'เวลาแต่ละเรื่อง คั่นด้วยจุลภาค',
+            placeholder='เช่น: 0.5, 1, 1, 1, 2, 2, 3, 3, 4, 5',
+            help='0.5 = น้อยกว่า 1 นาที, 1 = 1 นาที, ฯลฯ'
+        )
+        manual_rank = st.selectbox('เป้าหมายอยู่อันดับ', ['Top 3', 'Top 5', 'Top 10'], index=1, key='manual_rank')
+        manual_btn = st.form_submit_button('คำนวณ', use_container_width=True)
+
+    if manual_btn and manual_times.strip():
+        try:
+            times = [float(t.strip()) for t in manual_times.split(',') if t.strip()]
+            if len(times) < 2:
+                st.warning('ใส่อย่างน้อย 2 ค่าค่ะ')
+            else:
+                entries_manual = [{'minutes_ago': t} for t in sorted(times)]
+                within_10 = [e for e in entries_manual if e['minutes_ago'] <= 10]
+                max_t = max(e['minutes_ago'] for e in within_10) or 1
+                vel = len(within_10) / max_t
+                rank_n = int(manual_rank.split()[1])
+                safe = rank_n / vel if vel > 0 else 9
+                safe = min(max(1, int(round(safe))), 9)
+
+                st.success(f'**Velocity:** {vel:.1f} เรื่อง/นาที')
+                st.metric(f'โพสต์ทุย ({manual_rank})', f'{safe} นาที')
+
+                if vel > 2:
+                    st.warning(f'🔥 ช่วง peak — ต้องถี่มาก ทุก {safe} นาที')
+                elif vel > 0.5:
+                    st.info(f'✅ ช่วงปกติ — ทุก {safe} นาทีพอค่ะ')
+                else:
+                    st.info(f'😴 ช่วงเงียบ — ทุก {safe} นาทีก็ top ได้สบายๆ')
+        except ValueError:
+            st.error('กรอกตัวเลขคั่นด้วยจุลภาคเท่านั้นค่ะ เช่น 0.5, 1, 1, 2')
