@@ -19,6 +19,8 @@ rose diction current hard
 rose gender identity consistency hard
 rose pronoun kinship title consistency hard
 rose native-construction hard
+rose engagement-lock hard
+rose source-power preserve
 rose entity gender pronoun ledger required
 rose continuity on
 rose project lock on
