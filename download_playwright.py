@@ -1,6 +1,8 @@
 """
 Playwright-based novel downloader — works on ANY Chinese novel site including JS-heavy ones.
-Usage: python download_playwright.py <url> [--workers 5] [--output dir]
+Usage: python download_playwright.py <url> [--workers 5] [--output dir] [--translate th]
+
+Recommended for qdmm.com (起点女生网) and other JS-heavy or font-obfuscated sites.
 """
 
 import sys
@@ -14,6 +16,46 @@ from playwright.sync_api import sync_playwright, TimeoutError as PwTimeout
 import trafilatura
 
 SEPARATOR = "─" * 40
+
+
+def translate_text(text, target_lang="th", chunk_size=4800):
+    """Translate text using Google Translate (free, no API key needed)."""
+    try:
+        from deep_translator import GoogleTranslator
+    except ImportError:
+        print("[WARN] ไม่พบ deep_translator — ติดตั้งด้วย: pip install deep_translator")
+        return text
+
+    if not text or not text.strip():
+        return text
+
+    translator = GoogleTranslator(source="auto", target=target_lang)
+    lines = text.split("\n")
+    translated_parts = []
+    buffer = []
+    buf_len = 0
+
+    for line in lines:
+        line_len = len(line) + 1
+        if buf_len + line_len > chunk_size and buffer:
+            chunk = "\n".join(buffer)
+            try:
+                translated_parts.append(translator.translate(chunk) or chunk)
+            except Exception:
+                translated_parts.append(chunk)
+            buffer = []
+            buf_len = 0
+        buffer.append(line)
+        buf_len += line_len
+
+    if buffer:
+        chunk = "\n".join(buffer)
+        try:
+            translated_parts.append(translator.translate(chunk) or chunk)
+        except Exception:
+            translated_parts.append(chunk)
+
+    return "\n".join(translated_parts)
 
 
 def clean_text(t):
@@ -188,6 +230,10 @@ def main():
     parser.add_argument("url", help="URL นิยาย")
     parser.add_argument("--workers", type=int, default=5)
     parser.add_argument("--output", default="downloads")
+    parser.add_argument(
+        "--translate", metavar="LANG", default=None,
+        help="แปลเนื้อหาเป็นภาษาที่กำหนด เช่น 'th' (ไทย), 'en' (อังกฤษ)"
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
@@ -325,10 +371,27 @@ def main():
                 pass
         browser.close()
 
+    # Translate (optional)
+    if args.translate:
+        print(f"\n[แปล] กำลังแปลเป็น '{args.translate}' ({len([r for r in results if r])} ตอน)...")
+        translated_results = []
+        for i, item in enumerate(results):
+            if item is None:
+                translated_results.append(None)
+                continue
+            title, content = item
+            print(f"\r      แปลตอน {i+1}/{len(results)}...", end="", flush=True)
+            translated_title = translate_text(title, args.translate) if title else title
+            translated_content = translate_text(content, args.translate) if content else content
+            translated_results.append((translated_title, translated_content))
+        results = translated_results
+        print()
+
     # Save
     safe_name = re.sub(r'[\\/:*?"<>|]', "_", name)
     url_slug = re.sub(r"[^\w]", "_", urlparse(args.url).path.strip("/"))[-40:]
-    out_path = os.path.join(args.output, f"{safe_name}_{url_slug}.txt")
+    lang_suffix = f"_{args.translate}" if args.translate else ""
+    out_path = os.path.join(args.output, f"{safe_name}_{url_slug}{lang_suffix}.txt")
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(f"{name}\n作者：{author}\n\n")

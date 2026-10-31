@@ -8,3 +8,4 @@ tqdm>=4.62.0
 pyinstaller>=5.0.0
 customtkinter>=5.0.0
 Pillow>=9.0.0
+deep_translator>=1.9.0

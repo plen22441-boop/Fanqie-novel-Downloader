@@ -1,7 +1,9 @@
 """
 Universal novel downloader with parallel chapter fetching.
 Supports fanqienovel.com (via API) and other Chinese novel sites (via scraping).
-Usage: python download_novel.py <url_or_book_id> [--workers 20] [--output dir]
+Usage: python download_novel.py <url_or_book_id> [--workers 20] [--output dir] [--translate th]
+
+Note: qdmm.com uses font obfuscation — use download_playwright.py for that site.
 """
 
 import sys
@@ -17,6 +19,48 @@ from urllib.parse import urljoin, urlparse
 
 
 SEPARATOR = "─" * 40
+
+
+def translate_text(text, target_lang="th", chunk_size=4800):
+    """Translate text using Google Translate (free, no API key needed).
+    Splits into chunks to respect the 5000-char limit per request.
+    """
+    try:
+        from deep_translator import GoogleTranslator
+    except ImportError:
+        print("[WARN] ไม่พบ deep_translator — ติดตั้งด้วย: pip install deep_translator")
+        return text
+
+    if not text or not text.strip():
+        return text
+
+    translator = GoogleTranslator(source="auto", target=target_lang)
+    lines = text.split("\n")
+    translated_parts = []
+    buffer = []
+    buf_len = 0
+
+    for line in lines:
+        line_len = len(line) + 1
+        if buf_len + line_len > chunk_size and buffer:
+            chunk = "\n".join(buffer)
+            try:
+                translated_parts.append(translator.translate(chunk) or chunk)
+            except Exception:
+                translated_parts.append(chunk)
+            buffer = []
+            buf_len = 0
+        buffer.append(line)
+        buf_len += line_len
+
+    if buffer:
+        chunk = "\n".join(buffer)
+        try:
+            translated_parts.append(translator.translate(chunk) or chunk)
+        except Exception:
+            translated_parts.append(chunk)
+
+    return "\n".join(translated_parts)
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
@@ -277,6 +321,10 @@ def main():
     parser.add_argument("--workers", type=int, default=20)
     parser.add_argument("--output", default="downloads")
     parser.add_argument("--retries", type=int, default=5)
+    parser.add_argument(
+        "--translate", metavar="LANG", default=None,
+        help="แปลเนื้อหาเป็นภาษาที่กำหนด เช่น 'th' (ไทย), 'en' (อังกฤษ)"
+    )
     args = parser.parse_args()
 
     target = args.target.strip()
@@ -351,10 +399,27 @@ def main():
                     failed.append(title)
         print()
 
+    # ─ Translate (optional)
+    if args.translate:
+        print(f"\n[แปล] กำลังแปลเป็น '{args.translate}' ({len([r for r in results if r])} ตอน)...")
+        translated_results = []
+        for i, item in enumerate(results):
+            if item is None:
+                translated_results.append(None)
+                continue
+            title, content = item
+            print(f"\r      แปลตอน {i+1}/{len(results)}...", end="", flush=True)
+            translated_title = translate_text(title, args.translate) if title else title
+            translated_content = translate_text(content, args.translate) if content else content
+            translated_results.append((translated_title, translated_content))
+        results = translated_results
+        print()
+
     # ─ Save
     safe_name = re.sub(r'[\\/:*?"<>|]', "_", name)
     book_id_safe = re.sub(r"[^\w]", "_", extract_book_id(target))
-    out_path = os.path.join(args.output, f"{safe_name}_{book_id_safe}.txt")
+    lang_suffix = f"_{args.translate}" if args.translate else ""
+    out_path = os.path.join(args.output, f"{safe_name}_{book_id_safe}{lang_suffix}.txt")
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(f"{name}\n作者：{author}\n\n")
