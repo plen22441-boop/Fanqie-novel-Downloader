@@ -23,6 +23,8 @@ rose pronoun kinship title consistency hard
 rose native-construction hard
 rose engagement-lock hard
 rose source-power preserve
+rose friendship-only hard
+rose no-attraction lock
 rose entity gender pronoun ledger required
 rose power-system ledger required
 rose continuity on
