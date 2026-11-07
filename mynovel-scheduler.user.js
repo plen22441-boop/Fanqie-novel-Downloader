@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         MyNovel Auto Scheduler Helper v11.1.0
+// @name         MyNovel Auto Scheduler Helper v11.2.0
 // @namespace    https://mynovel.co/
-// @version      11.1.0
+// @version      11.2.0
 // @description  ตั้งเวลา MyNovel ทีละตอนจากล่างขึ้นบน — โหมดปุ๊บปุ๊บ (event-driven), ปรับความเร็วอัตโนมัติ, ตรวจหาเวลาต่อจากตอนที่ตั้งไว้, Wake Lock, เสียงแจ้งเตือน
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
@@ -12,7 +12,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '11.1.0';
+  const VERSION = '11.2.0';
   const ID = 'mn-auto-helper-panel';
   const FAB_ID = 'mn-auto-helper-fab';
   const STORE_KEY = 'mn-auto-helper-settings';
@@ -1186,14 +1186,13 @@
     const host = document.createElement('div');
     host.id = ID;
 
-    host.innerHTML = `
-<style>
-#${ID}{position:fixed!important;right:12px!important;bottom:14px!important;z-index:2147483647!important;width:min(360px,calc(100vw - 24px))!important;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif!important;display:none!important}
+    const panelCss = `
+#${ID}{position:fixed!important;right:12px!important;bottom:14px!important;z-index:2147483647!important;width:min(360px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important;font-size:14px!important;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif!important;display:none!important}
 #${ID}[data-open="1"]{display:block!important}
 #${ID} .box{background:#fff!important;border:2px solid #1596f5!important;border-radius:14px!important;box-shadow:0 16px 48px rgba(0,0,0,.36)!important;overflow:hidden!important}
 #${ID} .head{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:10px 12px!important;background:#edf8ff!important;color:#12365a!important;font-size:14px!important;font-weight:900!important}
 #${ID} .close{width:36px!important;height:36px!important;border:0!important;border-radius:9px!important;background:#fff!important;color:#1c5f96!important;font-size:20px!important;font-weight:900!important}
-#${ID} .body{padding:12px!important;max-height:calc(100vh - 90px)!important;overflow-y:auto!important}
+#${ID} .body{padding:12px!important;max-height:calc(100vh - 90px)!important;max-height:calc(100dvh - 90px)!important;overflow-y:auto!important}
 #${ID} .row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
 #${ID} label{display:block!important;margin:7px 0 4px!important;color:#40536a!important;font-size:12px!important;font-weight:800!important}
 #${ID} input,#${ID} select{box-sizing:border-box!important;width:100%!important;padding:9px!important;border:1px solid #cfdae7!important;border-radius:9px!important;background:#fbfdff!important;color:#142033!important;font:inherit!important}
@@ -1212,7 +1211,13 @@
 #${ID} .check{display:flex!important;align-items:center!important;gap:6px!important;margin-top:6px!important;cursor:pointer!important}
 #${ID} .check input{width:auto!important;margin:0!important}
 #${ID} .check span{font-size:12px!important;font-weight:700!important;color:#40536a!important}
-</style>
+`.replace(
+      /(\d+(?:\.\d+)?)px/g,
+      (m, n) => (n === '1' || n === '2' ? m : `calc(${n}px*var(--mn-s,1))`)
+    );
+
+    host.innerHTML = `
+<style>${panelCss}</style>
 <div class="box">
   <div class="head">
     <span>MyNovel ตั้งเวลาอัตโนมัติ v${VERSION}</span>
@@ -1223,6 +1228,14 @@
       <div><label>วันเริ่ม</label><input id="mn-date" type="date"></div>
       <div><label>เวลาเริ่ม</label><input id="mn-time" type="time" value="17:00"></div>
     </div>
+    <label>ขนาดแผง</label>
+    <select id="mn-size">
+      <option value="auto" selected>อัตโนมัติ (ตามขนาดจอ)</option>
+      <option value="1">เล็ก (มือถือ)</option>
+      <option value="1.35">กลาง (แท็บเล็ต 12.1 นิ้ว)</option>
+      <option value="1.6">ใหญ่</option>
+      <option value="1.9">ใหญ่มาก</option>
+    </select>
     <div class="speed-row">
       <div>
         <label>ห่างกัน (นาที)</label>
@@ -1273,6 +1286,7 @@
     window.__MN_SCHEDULER_CLEANUP__ = () => {
       tabKeeper.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('resize', applyScale);
       fab.remove();
       host.remove();
     };
@@ -1281,6 +1295,7 @@
     const timeInput = host.querySelector('#mn-time');
     const gapInput = host.querySelector('#mn-gap');
     const speedSelect = host.querySelector('#mn-speed');
+    const sizeSelect = host.querySelector('#mn-size');
     const adaptiveCheck = host.querySelector('#mn-adaptive');
     const skipErrorCheck = host.querySelector('#mn-skip-error');
     const wakeLockCheck = host.querySelector('#mn-wakelock');
@@ -1294,10 +1309,30 @@
     const statusBox = host.querySelector('#mn-status');
 
     // คืนค่าที่เคยตั้งไว้
+    // ปรับขนาดแผง/ปุ่มลอยตามจอ: แท็บเล็ต 12.1 นิ้วใช้ 1.35 เท่า, มือถือใช้ 1 เท่า
+    const computeScale = () => {
+      if (sizeSelect.value !== 'auto') return Number(sizeSelect.value) || 1;
+      return Math.min(window.innerWidth, window.innerHeight) >= 600 ? 1.35 : 1;
+    };
+    const applyScale = () => {
+      const k = computeScale();
+      host.style.setProperty('--mn-s', String(k));
+      Object.assign(fab.style, {
+        minWidth: `${Math.round(108 * k)}px`,
+        minHeight: `${Math.round(48 * k)}px`,
+        padding: `${Math.round(10 * k)}px ${Math.round(12 * k)}px`,
+        fontSize: `${Math.round(14 * k)}px`,
+        borderRadius: `${Math.round(12 * k)}px 0 0 ${Math.round(12 * k)}px`
+      });
+    };
+    sizeSelect.addEventListener('change', () => { applyScale(); persist(); });
+    window.addEventListener('resize', applyScale);
+
     const saved = loadSettings();
     if (saved.time) timeInput.value = saved.time;
     if (saved.gap) gapInput.value = saved.gap;
     if (saved.speed && SPEED_PROFILES[saved.speed]) speedSelect.value = saved.speed;
+    if (saved.size && [...sizeSelect.options].some(o => o.value === saved.size)) sizeSelect.value = saved.size;
     if (typeof saved.adaptive === 'boolean') adaptiveCheck.checked = saved.adaptive;
     if (typeof saved.skip === 'boolean') skipErrorCheck.checked = saved.skip;
     if (typeof saved.wake === 'boolean') wakeLockCheck.checked = saved.wake;
@@ -1306,6 +1341,7 @@
       time: timeInput.value,
       gap: Number(gapInput.value) || 15,
       speed: speedSelect.value,
+      size: sizeSelect.value,
       adaptive: adaptiveCheck.checked,
       skip: skipErrorCheck.checked,
       wake: wakeLockCheck.checked
@@ -1315,6 +1351,7 @@
 
     speedSelect.addEventListener('change', () => setSpeedProfile(speedSelect.value));
     setSpeedProfile(speedSelect.value);
+    applyScale();
 
     const lines = [];
     const log = (line, replaceLast = false) => {
