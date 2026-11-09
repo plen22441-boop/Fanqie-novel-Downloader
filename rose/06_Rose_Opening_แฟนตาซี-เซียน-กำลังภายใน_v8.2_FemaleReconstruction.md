@@ -32,6 +32,9 @@ rose zero-romantic-tension hard
 rose inner-voice female-coded hard
 rose sisterhood-dynamic lock hard
 rose cross-gender-banter audit hard
+rose female-cool recalibrate hard
+rose antagonist-dynamic lock hard
+rose female-cast elevation hard
 rose entity gender pronoun ledger required
 rose power-system ledger required
 rose continuity on
