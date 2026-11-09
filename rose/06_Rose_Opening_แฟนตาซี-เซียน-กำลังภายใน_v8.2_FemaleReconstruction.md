@@ -27,6 +27,11 @@ rose friendship-only hard
 rose no-attraction lock
 rose female-author-mindset on
 rose anti-flatness lock hard
+rose female-gaze lock hard
+rose zero-romantic-tension hard
+rose inner-voice female-coded hard
+rose sisterhood-dynamic lock hard
+rose cross-gender-banter audit hard
 rose entity gender pronoun ledger required
 rose power-system ledger required
 rose continuity on
