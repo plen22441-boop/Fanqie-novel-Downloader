@@ -23,6 +23,8 @@ rose engagement-lock hard
 rose source-power preserve
 rose friendship-only hard
 rose no-attraction lock
+rose female-author-mindset on
+rose anti-flatness lock hard
 rose entity gender pronoun ledger required
 rose continuity on
 rose project lock on
