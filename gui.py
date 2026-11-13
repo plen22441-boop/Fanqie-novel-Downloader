@@ -14,6 +14,7 @@ import sys
 from config import CONFIG, save_user_config
 from request_handler import RequestHandler
 from library import LibraryWindow, add_to_library
+from comment_cleaner import clean_chapter_content, clean_file
 
 # 设置 CustomTkinter 外观
 ctk.set_appearance_mode("dark")  # 默认使用暗色主题
@@ -169,6 +170,15 @@ class NovelDownloaderGUI(ctk.CTk):
             compound="left" if "settings" in self.icons else "none"
         )
         settings_button.pack(side="left", padx=5)
+
+        # 清理段评按钮：选择已下载的 TXT，删除读者段评和作者杂谈
+        clean_button = ctk.CTkButton(
+            bottom_frame,
+            text="清理段评",
+            command=self.clean_comment_files,
+            width=100
+        )
+        clean_button.pack(side="left", padx=5)
         
         # 清空日志按钮
         clear_log_button = ctk.CTkButton(
@@ -319,6 +329,7 @@ class NovelDownloaderGUI(ctk.CTk):
                         continue
                     
                     processed_contents.add(content_hash)
+                    content = clean_chapter_content(content)
                     f.write(f"\n{chapter['title']}\n\n")
                     f.write(content + "\n\n")
             
@@ -347,6 +358,33 @@ class NovelDownloaderGUI(ctk.CTk):
             self.download_button.configure(state="normal")
             self.is_downloading = False
     
+    def clean_comment_files(self):
+        """选择 TXT 文件，删除段评后另存为“章节数_原名.txt”（不覆盖原文件）"""
+        paths = filedialog.askopenfilenames(
+            title="选择要清理段评的小说 TXT",
+            filetypes=[("文本文件", "*.txt"), ("所有文件", "*.*")]
+        )
+        if not paths:
+            return
+
+        def worker():
+            done = []
+            for path in paths:
+                try:
+                    out_path, st = clean_file(path)
+                    done.append(out_path)
+                    self.after(0, self.log,
+                               f"已清理：{os.path.basename(path)} → {os.path.basename(out_path)}"
+                               f"（章节 {st['chapters']}，删除段评行 {st['comment_lines']}，"
+                               f"段评标记 {st['inline_marks']}，作者杂谈 {st['author_notes']}）")
+                except Exception as e:
+                    self.after(0, self.log, f"清理失败：{os.path.basename(path)} - {e}")
+            self.after(0, lambda: messagebox.showinfo(
+                "完成", f"已清理 {len(done)}/{len(paths)} 个文件\n保存在原文件所在文件夹"))
+
+        self.log(f"\n开始清理段评，共 {len(paths)} 个文件...")
+        threading.Thread(target=worker, daemon=True).start()
+
     def open_library(self):
         """打开书库窗口"""
         try:

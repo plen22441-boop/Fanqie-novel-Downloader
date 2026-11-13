@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
 from playwright.sync_api import sync_playwright, TimeoutError as PwTimeout
 import trafilatura
+from comment_cleaner import clean_chapter_content
 
 SEPARATOR = "─" * 40
 
@@ -336,6 +337,7 @@ def main():
             if item is None:
                 continue
             title, content = item
+            content = clean_chapter_content(content)
             f.write(f"{title}\n\n{content}\n\n{SEPARATOR}\n\n")
 
     total_chars = sum(len(c) for _, c in results if c and _ is not None)

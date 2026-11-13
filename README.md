@@ -98,6 +98,21 @@ python gui.py
 - **GUI应用**：下载的文件保存在您指定的保存路径中
 - **在线下载**：文件将作为GitHub Artifacts提供下载，保存期限为7天
 
+### 🧹 清理段评（读者评论）
+
+有些导出的 TXT 在每段末尾带有 `〔段评12〕` 标记，章末还附有大量读者评论，可占文件的 70% 以上。
+
+- **下载时自动清理**：GUI、`download_novel.py`、`download_playwright.py` 写入章节前会自动删除段评。
+- **清理已有文件（GUI）**：点击底部「清理段评」按钮，可一次选择多个 TXT。
+- **清理已有文件（命令行）**：
+
+```bash
+python comment_cleaner.py 小说1.txt 小说2.txt -o cleaned
+```
+
+输出文件名为 `章节数_原名.txt`（例如 `504_假千金手撕剧本，沙雕摆烂躺麻了.txt`），原文件不会被覆盖。
+默认同时删除作者杂谈（如“（……宝子们稍等！）”）和图片占位；加 `--keep-author-notes` 只删段评，加 `--no-rename` 保留原文件名并加 `_clean` 后缀。
+
 ## 🛠️ 技术架构
 
 本项目主要使用 Python 和 `customtkinter` 构建。核心模块交互如下：
