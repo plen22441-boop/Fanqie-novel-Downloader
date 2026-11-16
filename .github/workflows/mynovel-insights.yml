@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "17 * * * *" # ทุกชั่วโมง นาทีที่ 17 (GitHub อาจเลื่อน/ข้ามบางรอบ ระบบรองรับแล้ว)
   workflow_dispatch:
+    inputs:
+      debug:
+        description: "โหมดตรวจสอบ: พิมพ์โครงสร้างข้อมูลของเว็บลง log (ใช้ตอนปรับตัวเก็บข้อมูล)"
+        type: boolean
+        default: false
 
 concurrency:
   group: mynovel-insights
@@ -61,6 +66,8 @@ jobs:
 
       - name: Collect
         id: collect
+        env:
+          MNI_DEBUG: ${{ inputs.debug || 'false' }}
         run: |
           set +e
           DATA_DIR=_data node mynovel_insights/ci/collect.js

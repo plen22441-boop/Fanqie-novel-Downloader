@@ -29,6 +29,29 @@ const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(D
 const writeJSON = (f, v) => fs.writeFileSync(path.join(DATA, f), JSON.stringify(v));
 // ไม่เก็บ user id จริงของคนคอมเมนต์ลง repo สาธารณะ — ใช้แค่ hash ไว้ตัดรายการซ้ำ
 const hashUser = u => (u == null ? undefined : crypto.createHash('sha256').update('mni:' + u).digest('hex').slice(0, 12));
+// ── โหมดตรวจสอบ (MNI_DEBUG=true): พิมพ์โครงสร้าง JSON + ลิงก์ในหน้า ลง log เพื่อปรับตัวเก็บข้อมูลให้ตรงเว็บจริง
+// ซ่อนค่าที่อาจระบุตัวคน (ชื่อผู้ใช้/อีเมล/รูปโปรไฟล์) และตัดข้อความยาว
+const DEBUG = /^(1|true)$/i.test(process.env.MNI_DEBUG || '');
+const PII = /user|member|author|display|email|avatar|profile|phone|nick|owner|writer|pen_?name/i;
+const KEEP = /title|name|tag|categor|genre|slug|url|href|path|type|status|kind|rank|view|count|date|time|_at|at$|id$/i;
+function skeleton(v, key, depth) {
+  if (depth > 7) return '…';
+  if (Array.isArray(v)) return v.length ? [`<array len=${v.length}>`].concat(v.slice(0, 2).map(x => skeleton(x, key, depth + 1))) : [];
+  if (v && typeof v === 'object') {
+    const o = {};
+    for (const k of Object.keys(v).slice(0, 60)) o[k] = PII.test(k) && typeof v[k] !== 'object' ? '<hidden>' : skeleton(v[k], k, depth + 1);
+    return o;
+  }
+  if (typeof v === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}/.test(v) || /^\d+([.,]\d+)?[kKmM]?$/.test(v)) return v;
+    if (PII.test(key || '')) return '<hidden>';
+    if (KEEP.test(key || '')) return v.length > 50 ? v.slice(0, 50) + '…' : v;
+    return `<str ${v.length}>`;
+  }
+  return v;
+}
+const dbg = (tag, obj) => console.log(`MNI_DEBUG ${tag} ` + JSON.stringify(obj).slice(0, 6000));
+
 const exactViews = v => (typeof v === 'number' ? v : (/^\s*\d[\d,]*\s*$/.test(String(v ?? '')) ? +String(v).replace(/[,\s]/g, '') : undefined));
 
 async function visit(browser, page) {
@@ -39,6 +62,13 @@ async function visit(browser, page) {
     await ctx.addInitScript(`window.__MNI_FORCE_RANK = ${page.rank === true};`);
     await ctx.addInitScript(US);
     const p = await ctx.newPage();
+    if (DEBUG) p.on('response', async r => {
+      try {
+        const ct = r.headers()['content-type'] || '';
+        if (!/json/.test(ct)) return;
+        dbg('JSON', { url: r.url().split('?')[0].slice(0, 160), status: r.status(), body: skeleton(await r.json(), '', 0) });
+      } catch (e) { /* ignore */ }
+    });
     const res = await p.goto(page.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     st.http = res ? res.status() : null;
     await p.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -48,6 +78,27 @@ async function visit(browser, page) {
     }
     await p.waitForTimeout(2500); // ให้ userscript สแกน DOM + บันทึก (debounce)
     st.title = (await p.title()).slice(0, 80);
+    if (DEBUG) {
+      const info = await p.evaluate(() => {
+        const nd = document.getElementById('__NEXT_DATA__');
+        const links = {};
+        for (const a of document.querySelectorAll('a[href]')) {
+          const h = a.getAttribute('href');
+          if (!h || h.startsWith('#') || h.startsWith('javascript')) continue;
+          const path = h.replace(/^https?:\/\/[^/]+/, '');
+          const key = path.replace(/\/[A-Za-z0-9_-]{12,}/g, '/:id');
+          if (!links[key]) links[key] = { n: 0, ex: path.slice(0, 100), text: (a.textContent || '').trim().slice(0, 30) };
+          links[key].n++;
+        }
+        const times = [...document.querySelectorAll('time, [datetime]')].slice(0, 5).map(t => t.outerHTML.slice(0, 160));
+        const cls = {};
+        for (const el of document.querySelectorAll('[class]')) for (const c of String(el.className).split(/\s+/)) if (/rank|top|comment|chapter|episode|view|tag|genre|categor/i.test(c)) cls[c] = (cls[c] || 0) + 1;
+        return { nextData: nd ? nd.textContent : null, links, times, cls };
+      });
+      dbg('LINKS', info.links);
+      dbg('DOM', { times: info.times, classes: info.cls });
+      if (info.nextData) { try { dbg('NEXT_DATA', skeleton(JSON.parse(info.nextData), '', 0)); } catch (e) {} }
+    }
     const raw = await p.evaluate(() => localStorage.getItem('mni_data_v1'));
     const store = raw ? JSON.parse(raw) : { events: {}, books: {} };
     st.events = Object.keys(store.events).length;
