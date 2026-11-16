@@ -188,6 +188,8 @@
         tags: [...new Set(splitTags(b.tags ?? b.hashtags ?? b.tag ?? []).concat(splitTags(b.genre ?? [])))],
         category: b.category != null ? String(b.category) : undefined,
         views: toNum(b.views ?? b.view ?? b.reads),
+        growth: b.growth != null ? toNum(b.growth) : undefined,      // วิวที่เพิ่มในช่วงล่าสุด
+        growthHours: b.growthHours != null ? toNum(b.growthHours) : undefined,
         rank: toNum(b.rank),
         list: b.list || b.source || undefined,
       };
@@ -296,6 +298,34 @@
    * - ข้ามช่วงที่ห่างเกิน maxGapHours และส่วนต่างติดลบ (ยอดรีเซ็ต)
    * คืน events แบบรวมทุกเรื่องต่อชั่วโมง (bookId '*') + สถิติไว้ตรวจว่ายอดวิวอัปเดตเรียลไทม์จริงไหม
    */
+  /**
+   * ยอดวิวที่เพิ่มของแต่ละเรื่องในช่วงล่าสุด (ค่าเริ่มต้น 24 ชม.) จาก snapshot รายชั่วโมง
+   * rows: [{ ts, id, views }] -> Map(id -> { gain, hours })
+   * ถ้ามีข้อมูลไม่ถึง 24 ชม. ใช้เท่าที่มี (ต้องห่างกันอย่างน้อย minHours)
+   */
+  function viewGrowth(rows, opts) {
+    opts = opts || {};
+    const win = (opts.windowHours || 24) * 3.6e6, minSpan = (opts.minHours || 1) * 3.6e6;
+    const byId = new Map();
+    for (const r of rows) {
+      const p = parseTime(r.ts), v = toNum(r.views);
+      if (!p || v == null || r.id == null) continue;
+      if (!byId.has(r.id)) byId.set(r.id, []);
+      byId.get(r.id).push({ t: p.date.getTime(), v });
+    }
+    const out = new Map();
+    for (const [id, list] of byId) {
+      list.sort((a, b) => a.t - b.t);
+      const last = list[list.length - 1];
+      const first = list.find(x => x.t >= last.t - win);
+      if (!first || last.t - first.t < minSpan) continue;
+      const gain = last.v - first.v;
+      if (gain < 0) continue;
+      out.set(id, { gain, hours: Math.round((last.t - first.t) / 3.6e6 * 10) / 10 });
+    }
+    return out;
+  }
+
   function viewDeltas(rows, opts) {
     opts = opts || {};
     const maxGap = (opts.maxGapHours || 6) * 3.6e6;
@@ -418,13 +448,14 @@
     const N = ranked.reduce((a, b) => Math.max(a, b.rank), 0) || 1;
     const map = new Map();
     const get = t => {
-      if (!map.has(t)) map.set(t, { tag: t, count: 0, rankedCount: 0, score: 0, views: [], bestRank: Infinity });
+      if (!map.has(t)) map.set(t, { tag: t, count: 0, rankedCount: 0, score: 0, views: [], bestRank: Infinity, totalViews: 0, growth: 0, growthBooks: 0 });
       return map.get(t);
     };
     for (const b of books) for (const t of b.tags) {
       const s = get(t);
       s.count++;
-      if (b.views != null) s.views.push(b.views);
+      if (b.views != null) { s.views.push(b.views); s.totalViews += b.views; }
+      if (b.growth != null) { s.growth += b.growth; s.growthBooks++; }
       if (b.rank > 0) {
         s.rankedCount++;
         s.score += (N - b.rank + 1) / N;
@@ -444,7 +475,10 @@
         tag: s.tag, count: s.count, rankedCount: s.rankedCount,
         score: s.score, rankShare, supplyShare,
         opportunity: supplyShare ? rankShare / supplyShare : 0,
-        medianViews: median, bestRank: isFinite(s.bestRank) ? s.bestRank : null,
+        medianViews: median, totalViews: s.totalViews,
+        growth: s.growthBooks ? s.growth : null,                       // วิวเพิ่มรวม (ช่วงล่าสุด) ของทุกเรื่องในแท็ก
+        growthPerBook: s.growthBooks ? s.growth / s.growthBooks : null, // เฉลี่ยต่อเรื่อง = แท็กนี้ดึงคนอ่านได้แค่ไหน
+        bestRank: isFinite(s.bestRank) ? s.bestRank : null,
         lowSample: s.count < minBooks,
       };
     });
@@ -516,7 +550,8 @@
     for (let i = 1; i <= 160; i++) {
       const tags = [...new Set([pick(tagPool), pick(tagPool), pick(tagPool)].slice(0, 2 + Math.floor(rnd() * 2)))];
       const boost = tags.reduce((a, t) => a * (pop[t] || 1), 1);
-      books.push({ id: 'b' + i, title: 'เรื่องตัวอย่าง ' + i, tags, views: Math.round(boost * (2000 + rnd() * 60000)) });
+      const views = Math.round(boost * (2000 + rnd() * 60000));
+      books.push({ id: 'b' + i, title: 'เรื่องตัวอย่าง ' + i, tags, views, growth: Math.round(views * boost * (0.002 + rnd() * 0.01)), growthHours: 24 });
     }
     books.slice().sort((a, b) => b.views * (0.6 + rnd()) - a.views * (0.6 + rnd()))
       .slice(0, 50).forEach((b, i) => { b.rank = i + 1; b.list = 'ranking'; });
@@ -538,6 +573,6 @@
   }
 
   return { parseTime, normTag, splitTags, toNum, normalize, parseCSV, importText,
-    timeMatrix, viewDeltas, bestWindow, expectationReport, supplyGap, tagStats, tagPairs, quality,
+    timeMatrix, viewDeltas, viewGrowth, bestWindow, expectationReport, supplyGap, tagStats, tagPairs, quality,
     demoData, bkkParts, hoursInRange, DAYS_TH };
 });

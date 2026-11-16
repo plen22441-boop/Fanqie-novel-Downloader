@@ -246,3 +246,25 @@ test('quality.level: 2–3 วัน + คอมเมนต์ ≥ 100 = พอ
   assert.equal(mk(7, 60), 'ดี');
   assert.equal(mk(1, 200), 'ต่ำ');
 });
+
+test('viewGrowth: วิวเพิ่มของแต่ละเรื่องใน 24 ชม.ล่าสุด (ข้ามข้อมูลเก่ากว่า)', () => {
+  const g = C.viewGrowth([
+    { ts: '2026-11-14T00:00:00Z', id: 'a', views: 10 },   // เก่ากว่า 24 ชม. -> ไม่ใช้เป็นจุดเริ่ม
+    { ts: '2026-11-15T02:00:00Z', id: 'a', views: 100 },
+    { ts: '2026-11-16T01:00:00Z', id: 'a', views: 400 },
+    { ts: '2026-11-16T01:00:00Z', id: 'b', views: 50 },   // จุดเดียว -> คำนวณไม่ได้
+  ]);
+  assert.deepEqual(g.get('a'), { gain: 300, hours: 23 });
+  assert.equal(g.has('b'), false);
+});
+
+test('tagStats: รวมยอดวิวและวิวเพิ่มต่อแท็ก', () => {
+  const books = C.normalize({ books: [
+    { id: 1, tags: '#x', views: 100, growth: 30 }, { id: 2, tags: '#x', views: 50, growth: 10 }, { id: 3, tags: '#y', views: 999 },
+  ] }).books;
+  const s = Object.fromEntries(C.tagStats(books).map(t => [t.tag, t]));
+  assert.equal(s.x.totalViews, 150);
+  assert.equal(s.x.growth, 40);
+  assert.equal(s.x.growthPerBook, 20);
+  assert.equal(s.y.growth, null);
+});

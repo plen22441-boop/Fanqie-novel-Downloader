@@ -160,11 +160,15 @@ function readSnapshots(months) {
 
 function buildLatest(db, runs) {
   const now = Date.now();
-  const vd = C.viewDeltas(readSnapshots(3), { maxGapHours: CONFIG.maxGapHours || 6 });
+  const rows = readSnapshots(3);
+  const vd = C.viewDeltas(rows, { maxGapHours: CONFIG.maxGapHours || 6 });
+  const growth = C.viewGrowth(rows, { windowHours: 24, minHours: 1 });
   const recent = 48 * 3.6e6; // อันดับที่เก่ากว่า 48 ชม. ไม่นับเป็น "อันดับปัจจุบัน"
   const books = Object.values(db.books).map(b => ({
     id: b.id, title: b.title, tags: b.tags, views: b.views, list: b.list, category: b.category,
     rank: b.rankAt && now - Date.parse(b.rankAt) < recent ? b.rank : undefined,
+    growth: growth.has(b.id) ? growth.get(b.id).gain : undefined,
+    growthHours: growth.has(b.id) ? growth.get(b.id).hours : undefined,
   }));
   return {
     generatedAt: new Date().toISOString(),
