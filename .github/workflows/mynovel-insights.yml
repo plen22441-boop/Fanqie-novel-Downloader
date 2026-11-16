@@ -3,6 +3,7 @@ name: MyNovel Insights (เก็บข้อมูลทุกชั่วโ�
 # เปิดหน้า MyNovel ตาม mynovel_insights/config.json ทุกชั่วโมง
 # เก็บผลไว้ใน branch "mynovel-data" (ไม่ทำให้ประวัติ main รก)
 # แล้วเผยแพร่แดชบอร์ดผ่าน GitHub Pages (ต้องเปิด Settings → Pages → Source: GitHub Actions ก่อน)
+# repo นี้บังคับให้ทุก action ระบุเป็น commit SHA เต็ม (ความเห็นท้ายบรรทัดบอกเวอร์ชัน)
 
 on:
   schedule:
@@ -19,7 +20,7 @@ env:
 
 jobs:
   collect:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright ที่ใช้รองรับถึง 24.04
     timeout-minutes: 20
     permissions:
       contents: write
@@ -27,7 +28,7 @@ jobs:
       code: ${{ steps.collect.outputs.code }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Checkout data branch
         env:
@@ -43,12 +44,12 @@ jobs:
             echo "ข้อมูลที่เก็บอัตโนมัติโดย .github/workflows/mynovel-insights.yml" > README.md
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "20"
 
       - name: Cache Playwright browser
-        uses: actions/cache@v4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ env.PLAYWRIGHT_VERSION }}
@@ -88,7 +89,7 @@ jobs:
   pages:
     needs: collect
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright ที่ใช้รองรับถึง 24.04
     # ถ้ายังไม่เปิด GitHub Pages ขั้นนี้จะพัง แต่ไม่ทำให้การเก็บข้อมูลล้มเหลว
     continue-on-error: true
     permissions:
@@ -99,7 +100,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Build site
         env:
@@ -113,9 +114,17 @@ jobs:
           fi
           touch _site/.nojekyll
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      # แทน actions/upload-pages-artifact (ข้างในเรียก upload-artifact@v4 แบบไม่ pin SHA ซึ่งโดนบล็อก)
+      - name: Archive site
+        run: tar --dereference --hard-dereference --directory _site -cvf "$RUNNER_TEMP/artifact.tar" --exclude=.git --exclude=.github .
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          path: _site
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
+
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
