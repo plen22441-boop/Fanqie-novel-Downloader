@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MyNovel Reading Insights</title>
+<style>
+:root{
+  --surface-0:#f4f3f0;--surface-1:#fcfcfb;--border:#e2e1dc;
+  --text-primary:#0b0b0b;--text-secondary:#52514e;--text-muted:#7a7974;
+  --seq-0:#eef3fa;--seq-1:#cde2fb;--seq-2:#9ec5f4;--seq-3:#6da7ec;--seq-4:#3987e5;--seq-5:#256abf;--seq-6:#184f95;--seq-7:#0d366b;
+  --pos:#2a78d6;--neg:#e34948;--accent:#2a78d6;--band:rgba(235,104,52,.12);--band-line:#eb6834;
+  --warn-bg:#fff6e0;--warn-ink:#6b4a00;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface-0:#111110;--surface-1:#1a1a19;--border:#33332f;
+  --text-primary:#f0efec;--text-secondary:#c3c2b7;--text-muted:#8f8e86;
+  --seq-0:#22252b;--seq-1:#104281;--seq-2:#184f95;--seq-3:#1c5cab;--seq-4:#256abf;--seq-5:#3987e5;--seq-6:#6da7ec;--seq-7:#9ec5f4;
+  --pos:#3987e5;--neg:#e66767;--accent:#3987e5;--band:rgba(217,89,38,.18);--band-line:#d95926;
+  --warn-bg:#2e2610;--warn-ink:#f2d58a;
+}}
+:root[data-theme="dark"]{
+  --surface-0:#111110;--surface-1:#1a1a19;--border:#33332f;
+  --text-primary:#f0efec;--text-secondary:#c3c2b7;--text-muted:#8f8e86;
+  --seq-0:#22252b;--seq-1:#104281;--seq-2:#184f95;--seq-3:#1c5cab;--seq-4:#256abf;--seq-5:#3987e5;--seq-6:#6da7ec;--seq-7:#9ec5f4;
+  --pos:#3987e5;--neg:#e66767;--accent:#3987e5;--band:rgba(217,89,38,.18);--band-line:#d95926;
+  --warn-bg:#2e2610;--warn-ink:#f2d58a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary);font:15px/1.55 system-ui,-apple-system,"Noto Sans Thai","Sarabun",sans-serif}
+main{max-width:1080px;margin:0 auto;padding:16px 16px calc(32px + env(safe-area-inset-bottom))}
+h1{font-size:1.45rem;margin:.2em 0}
+h2{font-size:1.1rem;margin:0 0 .4em}
+p{margin:.4em 0}
+.sub{color:var(--text-secondary)}
+.muted{color:var(--text-muted);font-size:.88rem}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px;margin:14px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button,select,.filebtn{font:inherit;min-height:44px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface-0);color:var(--text-primary);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.filebtn input{display:none}
+textarea{width:100%;min-height:90px;font:13px/1.4 ui-monospace,monospace;border-radius:8px;border:1px solid var(--border);background:var(--surface-0);color:var(--text-primary);padding:8px}
+label.chk{display:inline-flex;gap:6px;align-items:center;min-height:44px}
+label.chk input{width:20px;height:20px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:14px}
+.tile .k{color:var(--text-secondary);font-size:.85rem}
+.tile .v{font-size:1.6rem;font-weight:650;margin:.1em 0}
+.tile .d{color:var(--text-muted);font-size:.85rem}
+.warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 14px;margin:8px 0}
+.warn ul{margin:.3em 0;padding-left:1.2em}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* heatmap */
+.hm{display:grid;grid-template-columns:34px repeat(24,minmax(22px,1fr));gap:2px;min-width:640px}
+.hm .c{aspect-ratio:1/1;border-radius:3px;background:var(--seq-0)}
+.hm .lab{font-size:.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center}
+.legend{display:flex;gap:4px;align-items:center;font-size:.8rem;color:var(--text-muted);margin-top:8px;flex-wrap:wrap}
+.legend i{width:20px;height:12px;border-radius:2px;display:inline-block}
+/* bars */
+.bars{position:relative;display:grid;grid-template-columns:repeat(24,1fr);gap:2px;align-items:end;height:180px;min-width:560px;border-bottom:1px solid var(--border)}
+.bars .b{position:relative;height:100%;display:flex;align-items:flex-end}
+.bars .b span{display:block;width:100%;background:var(--pos);border-radius:4px 4px 0 0;min-height:1px}
+.bars .b.band{background:var(--band);box-shadow:inset 0 3px 0 var(--band-line)}
+.ref{position:absolute;left:0;right:0;border-top:1px dashed var(--text-muted);pointer-events:none}
+.ref em{position:absolute;left:0;top:-.75em;font-size:.72rem;line-height:1.4;color:var(--text-secondary);font-style:normal;background:var(--surface-1);padding:0 4px;border-radius:4px}
+.xax{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;min-width:560px;font-size:.72rem;color:var(--text-muted);text-align:center}
+.div{position:relative;display:grid;grid-template-columns:repeat(24,1fr);gap:2px;height:180px;min-width:560px}
+.div .b{position:relative;height:100%}
+.div .b span{position:absolute;left:0;right:0}
+.div .mid{position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--text-muted)}
+/* table */
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--text-secondary);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface-1)}
+th[aria-sort]::after{content:" ↓"}
+.sb{display:inline-block;height:8px;border-radius:0 4px 4px 0;background:var(--pos);vertical-align:middle;margin-right:6px}
+.tag-chip{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid var(--border);margin:3px;font-size:.9rem}
+.flag{font-size:.75rem;color:var(--text-muted)}
+#tip{position:fixed;pointer-events:none;background:var(--text-primary);color:var(--surface-1);padding:6px 9px;border-radius:6px;font-size:.82rem;z-index:10;display:none;max-width:260px}
+.reco li{margin:.35em 0}
+details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--text-secondary)}
+.hidden{display:none}
+code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>📊 MyNovel Reading Insights</h1>
+    <p class="sub">คนอ่านช่วงไหน · ช่วงไหนเกินคาด/ต่ำกว่าคาด · แท็กไหนติดอันดับ · ควรลงตอนกี่โมง</p>
+  </header>
+
+  <section class="card hidden" id="autoCard">
+    <h2>🤖 เก็บข้อมูลอัตโนมัติ (GitHub Actions)</h2>
+    <div id="autoInfo"></div>
+    <details><summary>สถานะแต่ละหน้าในรอบล่าสุด</summary><div class="scroll" id="autoPages"></div></details>
+  </section>
+
+  <section class="card" id="importCard">
+    <h2>1) ใส่ข้อมูล</h2>
+    <p class="muted">ไฟล์ JSON จากสคริปต์ <code>mynovel-collector.user.js</code> หรือ CSV ที่มีคอลัมน์ <code>ts,kind,bookId</code> (เวลา) และ/หรือ <code>title,tags,views,rank</code> (หนังสือ) — ประมวลผลในเครื่องคุณทั้งหมด ไม่ส่งข้อมูลไปไหน</p>
+    <div class="row">
+      <label class="filebtn">📂 เลือกไฟล์ (หลายไฟล์ได้)<input type="file" id="file" accept=".json,.csv,.txt" multiple></label>
+      <button id="demo">ลองด้วยข้อมูลตัวอย่าง (สมมติ)</button>
+      <button id="clear">ล้าง</button>
+    </div>
+    <details><summary>หรือวางข้อความ JSON / CSV</summary>
+      <textarea id="paste" placeholder="ts,kind,bookId&#10;2026-11-16 21:30,comment,abc&#10;16 พ.ย. 2569 20:15,chapter,abc"></textarea>
+      <div class="row"><button class="primary" id="usePaste">วิเคราะห์ข้อความนี้</button></div>
+    </details>
+    <p id="status" class="muted"></p>
+  </section>
+
+  <div id="out" class="hidden">
+    <section class="card">
+      <h2>2) ตั้งค่าการวิเคราะห์</h2>
+      <div class="row">
+        <span>ช่วงที่ "คาดว่า" คนอ่านเยอะ:</span>
+        <select id="expS" aria-label="เริ่ม"></select><span>ถึง</span><select id="expE" aria-label="สิ้นสุด"></select>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="kComment" checked>คอมเมนต์</label>
+        <label class="chk"><input type="checkbox" id="kLike" checked>ไลก์/โหวต</label>
+        <label class="chk"><input type="checkbox" id="kView" checked>วิวที่เพิ่มต่อชั่วโมง (ถ้ามี — แม่นสุด)</label>
+        <label class="chk"><input type="checkbox" id="kOther">อื่น ๆ (เดาประเภทไม่ได้)</label>
+        <label class="chk"><input type="checkbox" id="eq">ถ่วงน้ำหนักให้แต่ละเรื่องเท่ากัน</label>
+      </div>
+      <p class="muted">"ถ่วงน้ำหนัก" = กันไม่ให้เรื่องดังเรื่องเดียวที่คอมเมนต์ถล่มมาบิดภาพรวมของทั้งเว็บ (แนะนำให้เปิดเมื่อมีคำเตือน)</p>
+    </section>
+
+    <div id="warns"></div>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="card">
+      <h2>3) แผนที่ความร้อน: วัน × ชั่วโมง (เวลาไทย)</h2>
+      <p class="muted">สีเข้ม = กิจกรรมผู้อ่านมาก (นับจากเวลาคอมเมนต์/ไลก์ ซึ่งเป็น <b>ตัวแทน</b> ของการอ่าน ไม่ใช่ยอดอ่านจริง)</p>
+      <div class="scroll"><div class="hm" id="hm"></div></div>
+      <div class="legend" id="hmLegend"></div>
+      <details><summary>ดูเป็นตาราง</summary><div class="scroll" id="hmTable"></div></details>
+    </section>
+
+    <section class="card">
+      <h2>4) คาดไว้ vs เกิดจริง — รายชั่วโมง</h2>
+      <p class="muted">ความสูง = เท่าของค่าเฉลี่ย (1.0× = ชั่วโมงธรรมดา) · เส้น/แถบส้มด้านบน = ช่วงที่คุณคาดไว้</p>
+      <div class="scroll"><div style="min-width:560px"><div class="bars" id="bars"></div><div class="xax" id="xax1"></div></div></div>
+      <div id="expText" style="margin-top:10px"></div>
+    </section>
+
+    <section class="card" id="gapCard">
+      <h2>5) ช่องว่าง: คนอ่าน vs คนลงตอน</h2>
+      <p class="muted">ฟ้า (ขึ้น) = สัดส่วนผู้อ่านมากกว่าสัดส่วนตอนที่ลง → แข่งน้อย น่าลงตอน · แดง (ลง) = ตอนใหม่แย่งกันเยอะเกินผู้อ่าน</p>
+      <div class="scroll"><div style="min-width:560px"><div class="div" id="gap"></div><div class="xax" id="xax2"></div></div></div>
+      <p id="gapText"></p>
+    </section>
+
+    <section class="card">
+      <h2>6) แท็ก / แนวที่ติดอันดับ</h2>
+      <p class="muted"><b>คะแนนอันดับ</b> = รวมน้ำหนักตามตำแหน่ง (อันดับ 1 ได้มากสุด) · <b>โอกาส</b> = ส่วนแบ่งในอันดับ ÷ ส่วนแบ่งในจำนวนเรื่องทั้งหมด (&gt;1× = ติดอันดับเกินจำนวนคู่แข่ง) · คลิกหัวตารางเพื่อเรียง</p>
+      <div class="scroll" style="max-height:520px"><table id="tags"></table></div>
+      <h2 style="margin-top:16px">แท็กที่มักมาคู่กัน</h2>
+      <div id="pairs"></div>
+    </section>
+
+    <section class="card">
+      <h2>7) ข้อเสนอแนะจากข้อมูลชุดนี้</h2>
+      <ul class="reco" id="reco"></ul>
+      <p class="muted">ข้อเสนอแนะสร้างอัตโนมัติจากตัวเลขด้านบน ควรทดลองจริง (เช่น ลงตอนสลับ 2 ช่วงเวลา 2–4 สัปดาห์ แล้วเทียบยอดอ่าน 24 ชม.แรกในหลังบ้านนักเขียน) ก่อนเชื่อเต็มที่</p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>วิธีใช้ & ข้อจำกัด (อ่านก่อนตีความ)</h2>
+    <ol>
+      <li>ติดตั้ง Tampermonkey/Violentmonkey แล้วเพิ่มสคริปต์ <code>mynovel-collector.user.js</code></li>
+      <li>เปิด MyNovel ตามปกติ: หน้าอันดับ (ทุกหมวด), หน้าเรื่อง, หน้าตอนที่มีคอมเมนต์ — เลื่อนลงให้คอมเมนต์โหลด แผงมุมขวาล่างจะนับให้</li>
+      <li>เก็บ 2–3 วันก็พอดูแนวโน้มได้ (ยิ่งนานยิ่งแม่น) แล้วกด <b>Export JSON</b> → เปิดไฟล์นี้ แล้วเลือกไฟล์</li>
+    </ol>
+    <ul class="muted">
+      <li><b>คอมเมนต์ ≠ การอ่าน</b>: คนเงียบอ่านไม่คอมเมนต์ และคนคอมเมนต์มักเป็นแฟนเหนียวแน่น รูปแบบเวลาจึงเป็น "ตัวแทน" ที่อาจเอียง</li>
+      <li>ข้อมูลยอดอ่านรายชั่วโมงจริงมีแค่ในหลังบ้านนักเขียน/แพลตฟอร์ม ถ้าคุณมีสถิติหลังบ้าน ให้ใส่ CSV <code>ts,kind=view</code> จะแม่นกว่ามาก</li>
+      <li>หน้าอันดับเป็นภาพ ณ เวลาที่เปิดดู — ควรเก็บหลายวันเพื่อเลี่ยงอันดับชั่วคราว</li>
+      <li>เวลาทั้งหมดแสดงเป็นเวลาไทย (UTC+7) · เวลาที่รู้แค่วัน ("3 วันที่แล้ว") ไม่ถูกใช้ในกราฟรายชั่วโมง</li>
+      <li>ใช้ข้อมูลเพื่อวิเคราะห์ส่วนตัว และเคารพข้อกำหนดการใช้งานของเว็บไซต์</li>
+    </ul>
+  </section>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script src="insights-core.js"></script>
+<script>
+(function(){
+'use strict';
+const C = window.InsightsCore;
+const $ = id => document.getElementById(id);
+const pct = x => (x*100).toFixed(x < .1 ? 1 : 0) + '%';
+const hh = h => String(h).padStart(2,'0') + ':00';
+const range = (s,e) => `${hh(s)}–${hh(e)}`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(Math.round(n));
+const DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'];
+
+let raw = { events: [], books: [] }, data = null, isDemo = false, meta = null;
+let tagSort = { key: 'score', dir: -1 };
+
+// ── settings (remembered per viewer; safe if storage blocked) ──
+const LS = 'mni_dash_settings';
+function loadSettings(){ try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch(e){ return {}; } }
+function saveSettings(){ try { localStorage.setItem(LS, JSON.stringify(getOpts())); } catch(e){} }
+for (const id of ['expS','expE']) for (let h=0; h<24; h++) $(id).add(new Option(hh(h), h));
+const st = loadSettings();
+$('expS').value = st.expS ?? 20; $('expE').value = st.expE ?? 0;
+for (const k of ['kComment','kLike','kView','kOther','eq']) if (st[k] !== undefined) $(k).checked = st[k];
+
+function getOpts(){
+  return { expS: +$('expS').value, expE: +$('expE').value,
+    kComment: $('kComment').checked, kLike: $('kLike').checked, kView: $('kView').checked, kOther: $('kOther').checked, eq: $('eq').checked };
+}
+
+// ── import ──
+function addRaw(r){ raw.events = raw.events.concat(r.events || []); raw.books = raw.books.concat(r.books || []); }
+function run(){
+  data = C.normalize(raw);
+  const n = data.events.length + data.books.length;
+  $('status').textContent = n ? `${isDemo ? '⚠️ กำลังแสดงข้อมูลสมมติ (ไม่ใช่ข้อมูลจริงจาก MyNovel) · ' : ''}รายการเวลา ${data.events.length.toLocaleString()} · หนังสือ ${data.books.length.toLocaleString()}` : 'ยังไม่มีข้อมูลที่อ่านได้';
+  $('out').classList.toggle('hidden', !n);
+  if (n) render();
+}
+$('file').addEventListener('change', async e => {
+  isDemo = false; meta = null; raw = { events: [], books: [] };
+  const errs = [];
+  for (const f of e.target.files) {
+    try { addRaw(C.importText(await f.text())); } catch(err) { errs.push(`${f.name}: ${err.message}`); }
+  }
+  run();
+  if (errs.length) $('status').textContent += ' · อ่านไม่ได้: ' + errs.join('; ');
+});
+$('usePaste').onclick = () => {
+  isDemo = false; meta = null; raw = { events: [], books: [] };
+  try { addRaw(C.importText($('paste').value)); run(); } catch(err) { $('status').textContent = 'รูปแบบข้อมูลผิด: ' + err.message; }
+};
+$('demo').onclick = () => { isDemo = true; meta = null; raw = C.demoData(7); run(); renderAuto(); };
+$('clear').onclick = () => { raw = { events: [], books: [] }; isDemo = false; $('file').value=''; run(); };
+for (const id of ['expS','expE','kComment','kLike','kView','kOther','eq']) $(id).addEventListener('change', () => { saveSettings(); if (data) render(); });
+
+// ── tooltip ──
+const tip = $('tip');
+document.addEventListener('pointerover', e => {
+  const t = e.target.closest('[data-tip]');
+  if (!t) { tip.style.display = 'none'; return; }
+  tip.innerHTML = t.dataset.tip; tip.style.display = 'block';
+});
+document.addEventListener('pointermove', e => {
+  if (tip.style.display !== 'block') return;
+  const x = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8);
+  const y = e.clientY - tip.offsetHeight - 12;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = (y < 8 ? e.clientY + 16 : y) + 'px';
+});
+document.addEventListener('scroll', () => tip.style.display = 'none', true);
+
+// ── render ──
+function render(){
+  const o = getOpts();
+  const kinds = [o.kComment&&'comment', o.kLike&&'like', o.kView&&'view', o.kOther&&'other'].filter(Boolean);
+  const tm = C.timeMatrix(data.events, { kinds, equalizeBooks: o.eq });
+  const q = C.quality(data);
+  const exp = C.expectationReport(tm.byHour, o.expS, o.expE);
+  const gap = C.supplyGap(data.events);
+  const tags = C.tagStats(data.books);
+  renderWarnings(q, tm);
+  renderTiles(tm, exp, gap, tags);
+  renderHeatmap(tm);
+  renderBars(exp, o);
+  renderGap(gap);
+  renderTags(tags);
+  renderPairs(C.tagPairs(data.books));
+  renderReco(tm, exp, gap, tags, q);
+}
+
+function renderWarnings(q, tm){
+  const w = q.warnings.slice();
+  if (meta) {
+    const age = (Date.now() - Date.parse(meta.generatedAt)) / 3.6e6;
+    if (age > 3) w.unshift(`ข้อมูลอัตโนมัติอัปเดตล่าสุด ${Math.round(age)} ชม. ที่แล้ว — workflow อาจหยุดทำงาน (ดูแท็บ Actions ใน GitHub)`);
+    for (const x of meta.warnings || []) w.push(x);
+  }
+  if (isDemo) w.unshift('นี่คือข้อมูลสมมติที่สร้างขึ้นเพื่อทดลองหน้าจอ — ตัวเลขทั้งหมดไม่ได้มาจาก MyNovel');
+  const badge = `<p><b>ความน่าเชื่อถือของผล: ${q.level}</b> <span class="muted">(${q.level === 'ต่ำ' ? 'ยังเป็นแค่สมมติฐาน เก็บต่ออีกหน่อย' : q.level === 'พอใช้' ? 'พอดูแนวโน้มได้ ใช้ตัดสินใจเบื้องต้นได้' : 'ข้อมูลครบสัปดาห์ เทียบวันธรรมดา/วันหยุดได้'})</span></p>`;
+  $('warns').innerHTML = badge + (w.length ? `<div class="warn"><b>ตรวจคุณภาพข้อมูล</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '');
+}
+
+function tile(k, v, d){ return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`; }
+function renderTiles(tm, exp, gap, tags){
+  if (!tm.total) { $('tiles').innerHTML = tile('กิจกรรมผู้อ่าน', '0', 'ยังไม่มีเวลาที่ระบุชั่วโมงได้'); return; }
+  const w3 = C.bestWindow(tm.byHour, 3);
+  const sur = exp.surprises[0];
+  const g = gap ? gap.slice().sort((a,b)=>b.gap-a.gap)[0] : null;
+  const topTag = tags.find(t => !t.lowSample && t.rankedCount);
+  $('tiles').innerHTML =
+    tile('ช่วง 3 ชม. ที่คนอ่านมากสุด', range(w3.start, w3.end), `${pct(w3.share)} ของกิจกรรม (ค่าปกติ 12.5%)`) +
+    tile('ช่วงที่คุณคาด จับได้', pct(exp.capture), `เทียบกับช่วงที่ดีที่สุดที่ยาว ${exp.expected.width} ชม. เท่ากัน`) +
+    tile('ชั่วโมงที่ไม่คาดถึง', sur ? hh(sur.hour) : '—', sur ? `${sur.lift.toFixed(1)}× ของชั่วโมงเฉลี่ย` : 'ไม่มีชั่วโมงนอกช่วงที่คาดที่โดดเด่น') +
+    tile('ชั่วโมงน่าลงตอน (แข่งน้อย)', g && g.gap > 0 ? hh(g.hour) : '—', g ? `ผู้อ่าน ${pct(g.demand)} vs ตอนใหม่ ${pct(g.supply)}` : 'ต้องมีเวลาลงตอนด้วย') +
+    tile('แท็กติดอันดับนำ', topTag ? '#' + esc(topTag.tag) : '—', topTag ? `${topTag.rankedCount} เรื่องในอันดับ · ดีสุด #${topTag.bestRank}` : 'ต้องมีข้อมูลหน้าอันดับ');
+}
+
+const seqVars = ['--seq-1','--seq-2','--seq-3','--seq-4','--seq-5','--seq-6','--seq-7'];
+function renderHeatmap(tm){
+  const max = Math.max(...tm.matrix.flat(), 0);
+  const order = [1,2,3,4,5,6,0]; // จันทร์ก่อน
+  let h = '<div></div>';
+  for (let x=0;x<24;x++) h += `<div class="lab">${x%3===0?x:''}</div>`;
+  for (const d of order) {
+    h += `<div class="lab">${C.DAYS_TH[d]}</div>`;
+    for (let x=0;x<24;x++) {
+      const v = tm.matrix[d][x];
+      const lvl = max ? Math.min(6, Math.floor((v/max)*7 - 1e-9)) : -1;
+      const bg = v > 0 && lvl >= 0 ? `background:var(${seqVars[lvl]})` : '';
+      const share = tm.total ? v/tm.total : 0;
+      h += `<div class="c" style="${bg}" data-tip="${DAYS[d]} ${range(x,(x+1)%24)}<br>${v.toFixed(v%1?1:0)} รายการ · ${pct(share)}"></div>`;
+    }
+  }
+  $('hm').innerHTML = h;
+  $('hmLegend').innerHTML = 'น้อย ' + ['--seq-0'].concat(seqVars).map(v=>`<i style="background:var(${v})"></i>`).join('') + ' มาก' + (tm.n ? ` · n = ${tm.n.toLocaleString()} รายการ · ${tm.distinctDays} วัน · ${tm.books} เรื่อง` : '');
+  let t = '<table><tr><th>วัน</th>' + Array.from({length:24},(_,x)=>`<th>${x}</th>`).join('') + '<th>รวม</th></tr>';
+  for (const d of order) t += `<tr><td>${DAYS[d]}</td>${tm.matrix[d].map(v=>`<td>${Math.round(v)}</td>`).join('')}<td>${Math.round(tm.byDow[d])}</td></tr>`;
+  $('hmTable').innerHTML = t + '</table>';
+}
+
+function xaxis(id){ $(id).innerHTML = Array.from({length:24},(_,h)=>`<div>${h%3===0?h:''}</div>`).join(''); }
+function renderBars(exp, o){
+  const max = Math.max(2, ...exp.lift);
+  const inExp = new Set(C.hoursInRange(o.expS, o.expE));
+  $('bars').innerHTML = exp.lift.map((l,h)=>`<div class="b${inExp.has(h)?' band':''}" data-tip="${range(h,(h+1)%24)}<br>${l.toFixed(2)}× ของชั่วโมงเฉลี่ย${inExp.has(h)?'<br>(อยู่ในช่วงที่คาด)':''}"><span style="height:${(l/max*100).toFixed(1)}%"></span></div>`).join('')
+    + `<div class="ref" style="bottom:${(1/max*100).toFixed(1)}%"><em>1.0×</em></div>`;
+  xaxis('xax1');
+  const e = exp.expected, a = exp.actual;
+  const lines = [];
+  lines.push(`ช่วงที่คุณคาด <b>${range(e.start,e.end)}</b> (${e.width} ชม.) มีกิจกรรม <b>${pct(e.share)}</b> — ถ้ากระจายเท่ากันทั้งวันจะได้ ${pct(e.baseline)}`);
+  lines.push(`ช่วงที่ยาวเท่ากันแต่มีกิจกรรมมากที่สุดจริงคือ <b>${range(a.start,a.end)}</b> (${pct(a.share)})${a.start===e.start?' — ตรงกับที่คาด ✅':''}`);
+  if (exp.surprises.length) lines.push(`🔺 <b>ไม่คาดถึง:</b> ${exp.surprises.slice(0,4).map(s=>`${hh(s.hour)} (${s.lift.toFixed(1)}×)`).join(', ')} — นอกช่วงที่คาดแต่คนอ่านสูงกว่าค่าเฉลี่ย ≥30%`);
+  if (exp.letdowns.length) lines.push(`🔻 <b>คาดไว้แต่เงียบ:</b> ${exp.letdowns.slice(0,4).map(s=>`${hh(s.hour)} (${s.lift.toFixed(1)}×)`).join(', ')}`);
+  $('expText').innerHTML = lines.map(x=>`<p>${x}</p>`).join('');
+}
+
+function renderGap(gap){
+  $('gapCard').classList.toggle('hidden', !gap);
+  if (!gap) return;
+  const m = Math.max(...gap.map(g=>Math.abs(g.gap)), 1e-9);
+  $('gap').innerHTML = '<div class="mid"></div>' + gap.map(g=>{
+    const hpct = Math.abs(g.gap)/m*50;
+    const style = g.gap >= 0 ? `bottom:50%;height:${hpct}%;background:var(--pos);border-radius:4px 4px 0 0` : `top:50%;height:${hpct}%;background:var(--neg);border-radius:0 0 4px 4px`;
+    return `<div class="b" data-tip="${range(g.hour,(g.hour+1)%24)}<br>ผู้อ่าน ${pct(g.demand)} · ตอนใหม่ ${pct(g.supply)}<br>${g.gap>=0?'แข่งน้อย ▲':'แข่งเยอะ ▼'} ${(g.gap*100).toFixed(1)} จุด"><span style="${style}"></span></div>`;
+  }).join('');
+  xaxis('xax2');
+  const best = gap.slice().sort((a,b)=>b.gap-a.gap).slice(0,3).filter(g=>g.gap>0);
+  const worst = gap.slice().sort((a,b)=>a.gap-b.gap).slice(0,3).filter(g=>g.gap<0);
+  $('gapText').innerHTML = (best.length?`น่าลงตอน: <b>${best.map(g=>hh(g.hour)).join(', ')}</b>. `:'') + (worst.length?`ตอนใหม่แย่งกันมาก: ${worst.map(g=>hh(g.hour)).join(', ')} (ตอนของคุณอาจจมเร็ว)`:'');
+}
+
+function renderTags(tags){
+  if (!tags.length) { $('tags').innerHTML = '<tr><td class="muted">ยังไม่มีข้อมูลแท็ก — เปิดหน้าอันดับ/หน้าเรื่องตอนเก็บข้อมูล</td></tr>'; return; }
+  const cols = [
+    ['tag','แท็ก'],['score','คะแนนอันดับ'],['rankedCount','ในอันดับ'],['count','เรื่องทั้งหมด'],['opportunity','โอกาส'],['medianViews','วิวมัธยฐาน'],['bestRank','ดีสุด'],
+  ];
+  const sorted = tags.slice().sort((a,b)=>{
+    const k = tagSort.key, va = a[k] ?? (k==='bestRank'?Infinity:-Infinity), vb = b[k] ?? (k==='bestRank'?Infinity:-Infinity);
+    return (typeof va === 'string' ? va.localeCompare(vb,'th') : va - vb) * tagSort.dir;
+  }).slice(0, 80);
+  const maxS = Math.max(...tags.map(t=>t.score), 1e-9);
+  let h = '<thead><tr>' + cols.map(([k,l])=>`<th data-k="${k}"${tagSort.key===k?' aria-sort="'+(tagSort.dir<0?'descending':'ascending')+'"':''}>${l}</th>`).join('') + '</tr></thead><tbody>';
+  for (const t of sorted) {
+    h += `<tr><td>#${esc(t.tag)}${t.lowSample?' <span class="flag">(ข้อมูลน้อย)</span>':''}</td>`
+      + `<td><span class="sb" style="width:${(t.score/maxS*60).toFixed(0)}px"></span>${t.score.toFixed(1)}</td>`
+      + `<td>${t.rankedCount}</td><td>${t.count}</td>`
+      + `<td>${t.rankedCount ? t.opportunity.toFixed(2)+'×' : '—'}</td>`
+      + `<td>${fmt(t.medianViews)}</td><td>${t.bestRank ? '#'+t.bestRank : '—'}</td></tr>`;
+  }
+  $('tags').innerHTML = h + '</tbody>';
+  $('tags').querySelectorAll('th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    tagSort = { key: k, dir: tagSort.key === k ? -tagSort.dir : (k==='tag'||k==='bestRank' ? 1 : -1) };
+    renderTags(tags);
+  });
+}
+
+function renderPairs(pairs){
+  $('pairs').innerHTML = pairs.length ? pairs.map(p=>`<span class="tag-chip" data-tip="น้ำหนัก ${p.weight} (เรื่องในอันดับนับ 2)">${esc(p.pair.split(' + ').map(t=>'#'+t).join(' + '))}</span>`).join('') : '<p class="muted">ยังไม่มีคู่แท็กที่พบซ้ำ</p>';
+}
+
+function renderReco(tm, exp, gap, tags, q){
+  const r = [];
+  const weak = q.level === 'ต่ำ';
+  const hedge = weak ? ' <span class="flag">(ข้อมูลยังน้อย — ถือเป็นสมมติฐาน)</span>' : '';
+  if (tm.total) {
+    const w = C.bestWindow(tm.byHour, 3);
+    r.push(`ผู้อ่าน active ที่สุดช่วง <b>${range(w.start,w.end)}</b> — ถ้าจะลงตอน ให้ลง <b>ก่อนช่วงนี้ 30–60 นาที</b> เพื่อให้ขึ้นหน้า "อัปเดตล่าสุด" ทันตอนคนเข้ามา${hedge}`);
+    if (exp.capture < 0.8) r.push(`ช่วงที่คุณคาด (${range(exp.expected.start, exp.expected.end)}) จับกิจกรรมได้แค่ ${pct(exp.capture)} ของช่วงที่ดีที่สุด — ลองย้ายไปใกล้ <b>${range(exp.actual.start, exp.actual.end)}</b>${hedge}`);
+    if (exp.surprises.length) r.push(`ชั่วโมงที่ไม่คาดถึง ${exp.surprises.slice(0,3).map(s=>hh(s.hour)).join(', ')} — เหมาะกับโพสต์โปรโมต/ทีเซอร์ในโซเชียล หรือทดลองลงตอนพิเศษ${hedge}`);
+    const wk = (tm.byDow[0]+tm.byDow[6])/2, wd = (tm.byDow[1]+tm.byDow[2]+tm.byDow[3]+tm.byDow[4]+tm.byDow[5])/5;
+    if (tm.distinctDays >= 7 && wd && Math.abs(wk/wd-1) > .15) r.push(`วันหยุดมีกิจกรรมต่อวัน${wk>wd?'มากกว่า':'น้อยกว่า'}วันธรรมดา ${Math.round(Math.abs(wk/wd-1)*100)}% — ${wk>wd?'ตอนสำคัญ/ไคลแมกซ์ลงเสาร์-อาทิตย์':'เน้นลงตอนวันธรรมดา'}${hedge}`);
+  }
+  if (gap) {
+    const g = gap.slice().sort((a,b)=>b.gap-a.gap)[0];
+    if (g.gap > 0) r.push(`${hh(g.hour)} คนอ่านเยอะแต่ตอนใหม่น้อย (ผู้อ่าน ${pct(g.demand)} vs ตอนใหม่ ${pct(g.supply)}) — โอกาสโดดเด่นในหน้าอัปเดต${hedge}`);
+  }
+  const good = tags.filter(t => !t.lowSample && t.rankedCount >= 2);
+  const opp = good.filter(t => t.opportunity > 1.2).sort((a,b)=>b.opportunity-a.opportunity).slice(0,4);
+  const crowd = good.filter(t => t.opportunity < 0.8 && t.count >= 5).sort((a,b)=>b.count-a.count).slice(0,3);
+  if (good.length) r.push(`แท็กที่ครองอันดับ: ${good.slice(0,5).map(t=>'#'+esc(t.tag)).join(' ')}`);
+  if (opp.length) r.push(`แท็ก "ติดอันดับเกินจำนวนคู่แข่ง" (โอกาส &gt; 1.2×): ${opp.map(t=>`#${esc(t.tag)} (${t.opportunity.toFixed(1)}×)`).join(', ')} — น่าใส่ถ้าตรงกับเนื้อเรื่องจริง`);
+  if (crowd.length) r.push(`แท็กคนแน่นแต่ติดอันดับน้อยกว่าสัดส่วน: ${crowd.map(t=>'#'+esc(t.tag)).join(', ')} — ถ้าเขียนแนวนี้ต้องมีจุดขายต่าง/ปกและคำโปรยเด่น`);
+  r.push('ใส่แท็กให้ตรงเนื้อหาจริงเสมอ: แท็กหลอกดึงคลิกได้ แต่ทำให้คนเลิกอ่านกลางทางและคอมเมนต์เชิงลบ');
+  $('reco').innerHTML = r.map(x=>`<li>${x}</li>`).join('');
+}
+
+// ── ข้อมูลอัตโนมัติจาก GitHub Actions (มีเมื่อเปิดผ่าน GitHub Pages) ──
+function renderAuto(){
+  $('autoCard').classList.toggle('hidden', !meta);
+  if (!meta) return;
+  const lr = meta.lastRun || {};
+  const t = d => d ? new Date(d).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  const days = meta.firstRunAt ? Math.max(1, Math.round((Date.now() - Date.parse(meta.firstRunAt)) / 8.64e7)) : 0;
+  const vs = meta.viewStats || {};
+  $('autoInfo').innerHTML = `<p>อัปเดตล่าสุด <b>${t(meta.generatedAt)}</b> · เก็บมาแล้ว ${days} วัน · รอบที่ได้ข้อมูล ${meta.okRuns}/${meta.totalRuns}</p>`
+    + `<p class="muted">รอบล่าสุดได้ ${lr.items ?? 0} รายการ · ยอดวิว: ติดตาม ${vs.books || 0} เรื่อง, ${vs.intervals || 0} ช่วงเวลา (มียอดเพิ่ม ${vs.positive || 0})</p>`;
+  const rows = (lr.pages || []).map(p => `<tr><td>${esc(p.label)}</td><td>${p.ok ? '✅' : '❌'} ${p.http ?? ''}</td><td>${p.events}</td><td>${p.books}</td><td style="white-space:normal;text-align:left">${esc(p.error || p.note || '')}</td></tr>`).join('');
+  $('autoPages').innerHTML = `<table><tr><th>หน้า</th><th>สถานะ</th><th>events</th><th>books</th><th>หมายเหตุ</th></tr>${rows}</table>`;
+}
+fetch('data/latest.json', { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : null)
+  .then(j => {
+    if (!j || data && data.events.length && !isDemo) return; // ผู้ใช้โหลดไฟล์เองแล้ว ไม่ทับ
+    meta = Object.assign({ generatedAt: j.generatedAt }, j.meta || {});
+    isDemo = false; raw = { events: j.events || [], books: j.books || [] };
+    run(); renderAuto();
+  })
+  .catch(() => {}); // เปิดจากไฟล์ในเครื่อง / ยังไม่มีข้อมูล -> ใช้งานแบบเลือกไฟล์ตามปกติ
+})();
+</script>
+</body>
+</html>
