@@ -198,6 +198,15 @@ const hh = h => String(h).padStart(2,'0') + ':00';
 const range = (s,e) => `${hh(s)}–${hh(e)}`;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(Math.round(n));
+// แนวเรื่องที่ MyNovel ส่งมาเป็นรหัสภาษาอังกฤษ (bookTypes) -> ชื่อไทย; แท็กอื่นแสดงเป็น #แท็ก
+const TYPE_TH = { fantasy:'แฟนตาซี', romance:'โรแมนติก', drama:'ดราม่า', martial_arts:'กำลังภายใน', historical:'ย้อนยุค/อิงประวัติศาสตร์',
+  system:'ระบบ', regression:'ย้อนเวลา', transmigration:'ทะลุมิติ', reincarnation:'เกิดใหม่', revenge:'แก้แค้น', supernatural:'เหนือธรรมชาติ',
+  adventure:'ผจญภัย', comedy:'ตลก', family:'ครอบครัว', strong_female_lead:'นางเอกเก่ง', strong_male_lead:'พระเอกเก่ง', action:'แอ็กชัน',
+  horror:'สยองขวัญ', mystery:'สืบสวน', thriller:'ระทึกขวัญ', 'sci-fi':'ไซไฟ', scifi:'ไซไฟ', school:'วัยเรียน', slice_of_life:'ชีวิตประจำวัน',
+  yaoi:'วาย', boys_love:'วาย', bl:'วาย', yuri:'ยูริ', girls_love:'ยูริ', harem:'ฮาเร็ม', cultivation:'บำเพ็ญเพียร', isekai:'ต่างโลก',
+  game:'เกม', sports:'กีฬา', military:'การทหาร', urban:'เมือง', modern:'ปัจจุบัน', ancient:'จีนโบราณ', palace:'ชีวิตในวัง', business:'ธุรกิจ',
+  medical:'การแพทย์', apocalypse:'วันสิ้นโลก', zombie:'ซอมบี้', villain:'ตัวร้าย', tragedy:'โศกนาฏกรรม', psychological:'จิตวิทยา', mature:'ผู้ใหญ่' };
+const lab = t => TYPE_TH[t] ? TYPE_TH[t] + ' (แนว)' : (/^[a-z0-9_-]+$/.test(t) ? t.replace(/_/g, ' ') + ' (แนว)' : '#' + t);
 const DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'];
 
 let raw = { events: [], books: [] }, data = null, isDemo = false, meta = null;
@@ -301,7 +310,7 @@ function renderTiles(tm, exp, gap, tags){
     tile('ช่วงที่คุณคาด จับได้', pct(exp.capture), `เทียบกับช่วงที่ดีที่สุดที่ยาว ${exp.expected.width} ชม. เท่ากัน`) +
     tile('ชั่วโมงที่ไม่คาดถึง', sur ? hh(sur.hour) : '—', sur ? `${sur.lift.toFixed(1)}× ของชั่วโมงเฉลี่ย` : 'ไม่มีชั่วโมงนอกช่วงที่คาดที่โดดเด่น') +
     tile('ชั่วโมงน่าลงตอน (แข่งน้อย)', g && g.gap > 0 ? hh(g.hour) : '—', g ? `ผู้อ่าน ${pct(g.demand)} vs ตอนใหม่ ${pct(g.supply)}` : 'ต้องมีเวลาลงตอนด้วย') +
-    tile('แท็กติดอันดับนำ', topTag ? '#' + esc(topTag.tag) : '—', topTag ? `${topTag.rankedCount} เรื่องในอันดับ · ดีสุด #${topTag.bestRank}` : 'ต้องมีข้อมูลหน้าอันดับ');
+    tile('แท็กติดอันดับนำ', topTag ? esc(lab(topTag.tag)) : '—', topTag ? `${topTag.rankedCount} เรื่องในอันดับ · ดีสุด #${topTag.bestRank}` : 'ต้องมีข้อมูลหน้าอันดับ');
 }
 
 const seqVars = ['--seq-1','--seq-2','--seq-3','--seq-4','--seq-5','--seq-6','--seq-7'];
@@ -370,7 +379,7 @@ function renderTags(tags){
   const maxS = Math.max(...tags.map(t=>t.score), 1e-9);
   let h = '<thead><tr>' + cols.map(([k,l])=>`<th data-k="${k}"${tagSort.key===k?' aria-sort="'+(tagSort.dir<0?'descending':'ascending')+'"':''}>${l}</th>`).join('') + '</tr></thead><tbody>';
   for (const t of sorted) {
-    h += `<tr><td>#${esc(t.tag)}${t.lowSample?' <span class="flag">(ข้อมูลน้อย)</span>':''}</td>`
+    h += `<tr><td>${esc(lab(t.tag))}${t.lowSample?' <span class="flag">(ข้อมูลน้อย)</span>':''}</td>`
       + `<td><span class="sb" style="width:${(t.score/maxS*60).toFixed(0)}px"></span>${t.score.toFixed(1)}</td>`
       + `<td>${t.rankedCount}</td><td>${t.count}</td>`
       + `<td>${t.rankedCount ? t.opportunity.toFixed(2)+'×' : '—'}</td>`
@@ -385,7 +394,7 @@ function renderTags(tags){
 }
 
 function renderPairs(pairs){
-  $('pairs').innerHTML = pairs.length ? pairs.map(p=>`<span class="tag-chip" data-tip="น้ำหนัก ${p.weight} (เรื่องในอันดับนับ 2)">${esc(p.pair.split(' + ').map(t=>'#'+t).join(' + '))}</span>`).join('') : '<p class="muted">ยังไม่มีคู่แท็กที่พบซ้ำ</p>';
+  $('pairs').innerHTML = pairs.length ? pairs.map(p=>`<span class="tag-chip" data-tip="น้ำหนัก ${p.weight} (เรื่องในอันดับนับ 2)">${esc(p.pair.split(' + ').map(lab).join(' + '))}</span>`).join('') : '<p class="muted">ยังไม่มีคู่แท็กที่พบซ้ำ</p>';
 }
 
 function renderReco(tm, exp, gap, tags, q){
@@ -407,9 +416,9 @@ function renderReco(tm, exp, gap, tags, q){
   const good = tags.filter(t => !t.lowSample && t.rankedCount >= 2);
   const opp = good.filter(t => t.opportunity > 1.2).sort((a,b)=>b.opportunity-a.opportunity).slice(0,4);
   const crowd = good.filter(t => t.opportunity < 0.8 && t.count >= 5).sort((a,b)=>b.count-a.count).slice(0,3);
-  if (good.length) r.push(`แท็กที่ครองอันดับ: ${good.slice(0,5).map(t=>'#'+esc(t.tag)).join(' ')}`);
-  if (opp.length) r.push(`แท็ก "ติดอันดับเกินจำนวนคู่แข่ง" (โอกาส &gt; 1.2×): ${opp.map(t=>`#${esc(t.tag)} (${t.opportunity.toFixed(1)}×)`).join(', ')} — น่าใส่ถ้าตรงกับเนื้อเรื่องจริง`);
-  if (crowd.length) r.push(`แท็กคนแน่นแต่ติดอันดับน้อยกว่าสัดส่วน: ${crowd.map(t=>'#'+esc(t.tag)).join(', ')} — ถ้าเขียนแนวนี้ต้องมีจุดขายต่าง/ปกและคำโปรยเด่น`);
+  if (good.length) r.push(`แท็กที่ครองอันดับ: ${good.slice(0,5).map(t=>esc(lab(t.tag))).join(', ')}`);
+  if (opp.length) r.push(`แท็ก "ติดอันดับเกินจำนวนคู่แข่ง" (โอกาส &gt; 1.2×): ${opp.map(t=>`${esc(lab(t.tag))} (${t.opportunity.toFixed(1)}×)`).join(', ')} — น่าใส่ถ้าตรงกับเนื้อเรื่องจริง`);
+  if (crowd.length) r.push(`แท็กคนแน่นแต่ติดอันดับน้อยกว่าสัดส่วน: ${crowd.map(t=>esc(lab(t.tag))).join(', ')} — ถ้าเขียนแนวนี้ต้องมีจุดขายต่าง/ปกและคำโปรยเด่น`);
   r.push('ใส่แท็กให้ตรงเนื้อหาจริงเสมอ: แท็กหลอกดึงคลิกได้ แต่ทำให้คนเลิกอ่านกลางทางและคอมเมนต์เชิงลบ');
   $('reco').innerHTML = r.map(x=>`<li>${x}</li>`).join('');
 }

@@ -130,6 +130,7 @@ function merge(db, result, page) {
       views: b.views ?? prev.views,
       rank: b.rank ?? prev.rank, rankAt: b.rank != null ? result.at : prev.rankAt,
       list: b.rank != null ? page.label : prev.list,
+      category: b.category ?? prev.category,
       seenAt: result.at,
     };
     const v = exactViews(b.views);
@@ -162,7 +163,7 @@ function buildLatest(db, runs) {
   const vd = C.viewDeltas(readSnapshots(3), { maxGapHours: CONFIG.maxGapHours || 6 });
   const recent = 48 * 3.6e6; // อันดับที่เก่ากว่า 48 ชม. ไม่นับเป็น "อันดับปัจจุบัน"
   const books = Object.values(db.books).map(b => ({
-    id: b.id, title: b.title, tags: b.tags, views: b.views, list: b.list,
+    id: b.id, title: b.title, tags: b.tags, views: b.views, list: b.list, category: b.category,
     rank: b.rankAt && now - Date.parse(b.rankAt) < recent ? b.rank : undefined,
   }));
   return {
@@ -183,7 +184,9 @@ function buildLatest(db, runs) {
   fs.mkdirSync(DATA, { recursive: true });
   const { chromium } = require('playwright');
   const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
-  const db = readJSON('store.json', { events: {}, books: {} });
+  // v2 = รูปแบบที่ตรงกับ API จริงของ MyNovel; ข้อมูลรุ่นก่อนเก็บผิดช่อง จึงเริ่มใหม่
+  let db = readJSON('store.json', { events: {}, books: {} });
+  if (db.v !== 2) db = { v: 2, events: {}, books: {} };
   const runStart = new Date().toISOString();
   const pages = [];
   let items = 0;
