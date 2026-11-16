@@ -171,6 +171,7 @@
         kind: normKind(e.kind || e.type),
         bookId: e.bookId != null ? String(e.bookId) : undefined,
         user: e.user != null ? String(e.user) : undefined,
+        w: e.w != null ? toNum(e.w) : undefined, // น้ำหนัก (เช่น จำนวนวิวที่เพิ่มในชั่วโมงนั้น)
       };
       const key = e.id != null ? 'id:' + e.id : [ev.ts.getTime(), ev.kind, ev.bookId, ev.user].join('|');
       if (seenE.has(key)) continue;
@@ -260,21 +261,84 @@
     opts = opts || {};
     const kinds = opts.kinds || ['comment', 'like', 'view'];
     const sel = events.filter(e => e.precise && kinds.includes(e.kind));
+    const base = e => (e.w != null && e.w >= 0 ? e.w : 1);
     const perBook = {};
-    if (opts.equalizeBooks) for (const e of sel) { const k = e.bookId || '?'; perBook[k] = (perBook[k] || 0) + 1; }
+    if (opts.equalizeBooks) for (const e of sel) { const k = e.bookId || '?'; perBook[k] = (perBook[k] || 0) + base(e); }
+    const wOf = e => (opts.equalizeBooks ? base(e) / (perBook[e.bookId || '?'] || 1) : base(e));
+    // วิว (มีน้ำหนักเป็นหลักพัน) กับ คอมเมนต์/ไลก์ (นับ 1) อยู่คนละสเกล:
+    // ถ้าเลือกทั้งคู่ ปรับวิวให้ผลรวมเท่ากับฝั่งคอมเมนต์ -> แต่ละฝั่งมีอิทธิพล 50%
+    let viewScale = 1;
+    const vSum = sel.filter(e => e.kind === 'view').reduce((a, e) => a + wOf(e), 0);
+    const oSum = sel.filter(e => e.kind !== 'view').reduce((a, e) => a + wOf(e), 0);
+    if (vSum > 0 && oSum > 0) viewScale = oSum / vSum;
     const m = Array.from({ length: 7 }, () => new Array(24).fill(0));
+    const counts = Array.from({ length: 7 }, () => new Array(24).fill(0));
     const days = new Set();
     for (const e of sel) {
       const { dow, hour } = bkkParts(e.ts);
-      const w = opts.equalizeBooks ? 1 / perBook[e.bookId || '?'] : 1;
-      m[dow][hour] += w;
+      m[dow][hour] += wOf(e) * (e.kind === 'view' ? viewScale : 1);
+      counts[dow][hour]++;
       days.add(Math.floor((e.ts.getTime() + TZ_OFFSET_MIN * 60000) / 8.64e7));
     }
     const total = m.flat().reduce((a, b) => a + b, 0);
     const byHour = new Array(24).fill(0).map((_, h) => m.reduce((a, r) => a + r[h], 0));
     const byDow = m.map(r => r.reduce((a, b) => a + b, 0));
-    return { matrix: m, byHour, byDow, total, n: sel.length, distinctDays: days.size,
-      books: new Set(sel.map(e => e.bookId).filter(Boolean)).size };
+    return { matrix: m, counts, byHour, byDow, total, n: sel.length, distinctDays: days.size,
+      books: new Set(sel.map(e => e.bookId).filter(b => b && b !== '*')).size };
+  }
+
+  /**
+   * ยอดวิวสะสม (snapshot ทุก ~1 ชม.) -> วิวที่เพิ่มขึ้นในแต่ละชั่วโมง
+   * rows: [{ ts, id, views }]  (เฉพาะยอดวิวที่เป็นตัวเลขเต็ม ไม่ใช่ "1.2k")
+   * - แบ่งส่วนต่างตามสัดส่วนเวลาที่คาบเกี่ยวแต่ละชั่วโมง (รอบ cron มาช้า/ข้ามได้)
+   * - ข้ามช่วงที่ห่างเกิน maxGapHours และส่วนต่างติดลบ (ยอดรีเซ็ต)
+   * คืน events แบบรวมทุกเรื่องต่อชั่วโมง (bookId '*') + สถิติไว้ตรวจว่ายอดวิวอัปเดตเรียลไทม์จริงไหม
+   */
+  function viewDeltas(rows, opts) {
+    opts = opts || {};
+    const maxGap = (opts.maxGapHours || 6) * 3.6e6;
+    const byId = new Map();
+    for (const r of rows) {
+      const p = parseTime(r.ts);
+      const v = toNum(r.views);
+      if (!p || v == null || r.id == null) continue;
+      if (!byId.has(r.id)) byId.set(r.id, []);
+      byId.get(r.id).push({ t: p.date.getTime(), v });
+    }
+    const acc = new Map();
+    const stats = { intervals: 0, positive: 0, skippedGap: 0, negative: 0, books: byId.size, posByHour: new Array(24).fill(0) };
+    for (const list of byId.values()) {
+      list.sort((a, b) => a.t - b.t);
+      for (let i = 1; i < list.length; i++) {
+        const a = list[i - 1], b = list[i];
+        const dt = b.t - a.t;
+        if (dt <= 0) continue;
+        if (dt > maxGap) { stats.skippedGap++; continue; }
+        const d = b.v - a.v;
+        if (d < 0) { stats.negative++; continue; }
+        stats.intervals++;
+        if (d === 0) continue;
+        stats.positive++;
+        stats.posByHour[bkkParts(new Date(b.t)).hour]++;
+        let t = a.t;
+        while (t < b.t) {
+          const bucket = Math.floor(t / 3.6e6) * 3.6e6;
+          const end = Math.min(b.t, bucket + 3.6e6);
+          acc.set(bucket, (acc.get(bucket) || 0) + d * (end - t) / dt);
+          t = end;
+        }
+      }
+    }
+    const events = [...acc.entries()].sort((x, y) => x[0] - y[0])
+      .map(([bucket, w]) => ({ ts: new Date(bucket + 1.8e6).toISOString(), kind: 'view', bookId: '*', w: Math.round(w * 100) / 100 }));
+    const warnings = [];
+    if (stats.intervals >= 30 && stats.positive / stats.intervals < 0.25)
+      warnings.push(`ยอดวิวเพิ่มแค่ ${Math.round(stats.positive / stats.intervals * 100)}% ของรอบที่เก็บ — เว็บอาจอัปเดตยอดวิวเป็นรอบ ๆ ไม่ใช่เรียลไทม์ กราฟจากวิวอาจคลาดเคลื่อน`);
+    if (stats.positive >= 30) {
+      const top = Math.max(...stats.posByHour);
+      if (top / stats.positive > 0.4) warnings.push(`ยอดวิวเพิ่มกระจุกที่ ${stats.posByHour.indexOf(top)}:00 (${Math.round(top / stats.positive * 100)}%) — น่าจะเป็นรอบอัปเดตตัวเลขของเว็บ ไม่ใช่ช่วงที่คนอ่านจริง`);
+    }
+    return { events, stats, warnings };
   }
 
   // หาช่วง window ชั่วโมงติดกัน (วนรอบเที่ยงคืนได้) ที่มีสัดส่วนสูงสุด
@@ -406,7 +470,9 @@
   function quality(data) {
     const ev = data.events;
     const precise = ev.filter(e => e.precise);
-    const reader = precise.filter(e => e.kind !== 'chapter');
+    // วิวรายชั่วโมงเป็นยอดรวมทุกเรื่อง (bookId '*') นับแยก ไม่ปนกับคอมเมนต์/ไลก์
+    const reader = precise.filter(e => e.kind !== 'chapter' && e.kind !== 'view');
+    const viewHours = precise.filter(e => e.kind === 'view').length;
     const chapters = precise.filter(e => e.kind === 'chapter');
     const tm = timeMatrix(ev, { kinds: ['comment', 'like', 'view'] });
     const topBookShare = (() => {
@@ -416,14 +482,14 @@
       return reader.length ? max / reader.length : 0;
     })();
     const warnings = [];
-    if (reader.length < 300) warnings.push(`กิจกรรมผู้อ่านมีแค่ ${reader.length} รายการ (ควร ≥ 300 ถึงจะเริ่มเชื่อรูปแบบรายชั่วโมงได้; ≥ 1,000 ถึงจะดูราย วัน×ชั่วโมง)`);
+    if (reader.length < 300 && viewHours < 24 * 14) warnings.push(`กิจกรรมผู้อ่านมีแค่ ${reader.length} รายการ (ควร ≥ 300 ถึงจะเริ่มเชื่อรูปแบบรายชั่วโมงได้; ≥ 1,000 ถึงจะดูราย วัน×ชั่วโมง)`);
     if (tm.distinctDays && tm.distinctDays < 14) warnings.push(`ข้อมูลครอบคลุมแค่ ${tm.distinctDays} วัน — ควรเก็บ ≥ 14 วันให้ครบทุกวันในสัปดาห์อย่างน้อย 2 รอบ`);
     if (topBookShare > 0.3) warnings.push(`${Math.round(topBookShare * 100)}% ของกิจกรรมมาจากเรื่องเดียว — แนะนำเปิด "ถ่วงน้ำหนักให้แต่ละเรื่องเท่ากัน"`);
     if (ev.length - precise.length > 0) warnings.push(`${ev.length - precise.length} รายการรู้แค่วันที่ (เช่น "3 วันที่แล้ว") — ไม่นำมาคิดรายชั่วโมง`);
     if (!chapters.length) warnings.push('ไม่มีเวลาลงตอน (chapter) — วิเคราะห์ "ช่องว่างดีมานด์-ซัพพลาย" ไม่ได้');
     if (data.books.filter(b => b.rank > 0).length < 20) warnings.push('หนังสือที่มีอันดับน้อยกว่า 20 เรื่อง — ผลแท็กยอดนิยมยังไม่น่าเชื่อถือ');
     if (data.dropped) warnings.push(`อ่านเวลาไม่ออก ${data.dropped} รายการ (ถูกข้าม)`);
-    return { totalEvents: ev.length, precise: precise.length, reader: reader.length,
+    return { totalEvents: ev.length, precise: precise.length, reader: reader.length, viewHours,
       chapters: chapters.length, books: data.books.length,
       ranked: data.books.filter(b => b.rank > 0).length,
       distinctDays: tm.distinctDays, topBookShare, warnings };
@@ -466,6 +532,6 @@
   }
 
   return { parseTime, normTag, splitTags, toNum, normalize, parseCSV, importText,
-    timeMatrix, bestWindow, expectationReport, supplyGap, tagStats, tagPairs, quality,
+    timeMatrix, viewDeltas, bestWindow, expectationReport, supplyGap, tagStats, tagPairs, quality,
     demoData, bkkParts, hoursInRange, DAYS_TH };
 });

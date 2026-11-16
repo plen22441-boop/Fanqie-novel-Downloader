@@ -91,6 +91,12 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
     <p class="sub">คนอ่านช่วงไหน · ช่วงไหนเกินคาด/ต่ำกว่าคาด · แท็กไหนติดอันดับ · ควรลงตอนกี่โมง</p>
   </header>
 
+  <section class="card hidden" id="autoCard">
+    <h2>🤖 เก็บข้อมูลอัตโนมัติ (GitHub Actions)</h2>
+    <div id="autoInfo"></div>
+    <details><summary>สถานะแต่ละหน้าในรอบล่าสุด</summary><div class="scroll" id="autoPages"></div></details>
+  </section>
+
   <section class="card" id="importCard">
     <h2>1) ใส่ข้อมูล</h2>
     <p class="muted">ไฟล์ JSON จากสคริปต์ <code>mynovel-collector.user.js</code> หรือ CSV ที่มีคอลัมน์ <code>ts,kind,bookId</code> (เวลา) และ/หรือ <code>title,tags,views,rank</code> (หนังสือ) — ประมวลผลในเครื่องคุณทั้งหมด ไม่ส่งข้อมูลไปไหน</p>
@@ -116,7 +122,7 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
       <div class="row">
         <label class="chk"><input type="checkbox" id="kComment" checked>คอมเมนต์</label>
         <label class="chk"><input type="checkbox" id="kLike" checked>ไลก์/โหวต</label>
-        <label class="chk"><input type="checkbox" id="kView" checked>วิว (ถ้ามี)</label>
+        <label class="chk"><input type="checkbox" id="kView" checked>วิวที่เพิ่มต่อชั่วโมง (ถ้ามี — แม่นสุด)</label>
         <label class="chk"><input type="checkbox" id="kOther">อื่น ๆ (เดาประเภทไม่ได้)</label>
         <label class="chk"><input type="checkbox" id="eq">ถ่วงน้ำหนักให้แต่ละเรื่องเท่ากัน</label>
       </div>
@@ -194,7 +200,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const fmt = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(Math.round(n));
 const DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'];
 
-let raw = { events: [], books: [] }, data = null, isDemo = false;
+let raw = { events: [], books: [] }, data = null, isDemo = false, meta = null;
 let tagSort = { key: 'score', dir: -1 };
 
 // ── settings (remembered per viewer; safe if storage blocked) ──
@@ -221,7 +227,7 @@ function run(){
   if (n) render();
 }
 $('file').addEventListener('change', async e => {
-  isDemo = false; raw = { events: [], books: [] };
+  isDemo = false; meta = null; raw = { events: [], books: [] };
   const errs = [];
   for (const f of e.target.files) {
     try { addRaw(C.importText(await f.text())); } catch(err) { errs.push(`${f.name}: ${err.message}`); }
@@ -230,10 +236,10 @@ $('file').addEventListener('change', async e => {
   if (errs.length) $('status').textContent += ' · อ่านไม่ได้: ' + errs.join('; ');
 });
 $('usePaste').onclick = () => {
-  isDemo = false; raw = { events: [], books: [] };
+  isDemo = false; meta = null; raw = { events: [], books: [] };
   try { addRaw(C.importText($('paste').value)); run(); } catch(err) { $('status').textContent = 'รูปแบบข้อมูลผิด: ' + err.message; }
 };
-$('demo').onclick = () => { isDemo = true; raw = C.demoData(7); run(); };
+$('demo').onclick = () => { isDemo = true; meta = null; raw = C.demoData(7); run(); renderAuto(); };
 $('clear').onclick = () => { raw = { events: [], books: [] }; isDemo = false; $('file').value=''; run(); };
 for (const id of ['expS','expE','kComment','kLike','kView','kOther','eq']) $(id).addEventListener('change', () => { saveSettings(); if (data) render(); });
 
@@ -273,6 +279,11 @@ function render(){
 
 function renderWarnings(q, tm){
   const w = q.warnings.slice();
+  if (meta) {
+    const age = (Date.now() - Date.parse(meta.generatedAt)) / 3.6e6;
+    if (age > 3) w.unshift(`ข้อมูลอัตโนมัติอัปเดตล่าสุด ${Math.round(age)} ชม. ที่แล้ว — workflow อาจหยุดทำงาน (ดูแท็บ Actions ใน GitHub)`);
+    for (const x of meta.warnings || []) w.push(x);
+  }
   if (isDemo) w.unshift('นี่คือข้อมูลสมมติที่สร้างขึ้นเพื่อทดลองหน้าจอ — ตัวเลขทั้งหมดไม่ได้มาจาก MyNovel');
   $('warns').innerHTML = w.length ? `<div class="warn"><b>ตรวจคุณภาพข้อมูล</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
 }
@@ -401,6 +412,29 @@ function renderReco(tm, exp, gap, tags, q){
   r.push('ใส่แท็กให้ตรงเนื้อหาจริงเสมอ: แท็กหลอกดึงคลิกได้ แต่ทำให้คนเลิกอ่านกลางทางและคอมเมนต์เชิงลบ');
   $('reco').innerHTML = r.map(x=>`<li>${x}</li>`).join('');
 }
+
+// ── ข้อมูลอัตโนมัติจาก GitHub Actions (มีเมื่อเปิดผ่าน GitHub Pages) ──
+function renderAuto(){
+  $('autoCard').classList.toggle('hidden', !meta);
+  if (!meta) return;
+  const lr = meta.lastRun || {};
+  const t = d => d ? new Date(d).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  const days = meta.firstRunAt ? Math.max(1, Math.round((Date.now() - Date.parse(meta.firstRunAt)) / 8.64e7)) : 0;
+  const vs = meta.viewStats || {};
+  $('autoInfo').innerHTML = `<p>อัปเดตล่าสุด <b>${t(meta.generatedAt)}</b> · เก็บมาแล้ว ${days} วัน · รอบที่ได้ข้อมูล ${meta.okRuns}/${meta.totalRuns}</p>`
+    + `<p class="muted">รอบล่าสุดได้ ${lr.items ?? 0} รายการ · ยอดวิว: ติดตาม ${vs.books || 0} เรื่อง, ${vs.intervals || 0} ช่วงเวลา (มียอดเพิ่ม ${vs.positive || 0})</p>`;
+  const rows = (lr.pages || []).map(p => `<tr><td>${esc(p.label)}</td><td>${p.ok ? '✅' : '❌'} ${p.http ?? ''}</td><td>${p.events}</td><td>${p.books}</td><td style="white-space:normal;text-align:left">${esc(p.error || p.note || '')}</td></tr>`).join('');
+  $('autoPages').innerHTML = `<table><tr><th>หน้า</th><th>สถานะ</th><th>events</th><th>books</th><th>หมายเหตุ</th></tr>${rows}</table>`;
+}
+fetch('data/latest.json', { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : null)
+  .then(j => {
+    if (!j || data && data.events.length && !isDemo) return; // ผู้ใช้โหลดไฟล์เองแล้ว ไม่ทับ
+    meta = Object.assign({ generatedAt: j.generatedAt }, j.meta || {});
+    isDemo = false; raw = { events: j.events || [], books: j.books || [] };
+    run(); renderAuto();
+  })
+  .catch(() => {}); // เปิดจากไฟล์ในเครื่อง / ยังไม่มีข้อมูล -> ใช้งานแบบเลือกไฟล์ตามปกติ
 })();
 </script>
 </body>

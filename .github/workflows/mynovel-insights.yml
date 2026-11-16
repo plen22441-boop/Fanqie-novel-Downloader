@@ -1,0 +1,121 @@
+name: MyNovel Insights (เก็บข้อมูลทุกชั่วโมง)
+
+# เปิดหน้า MyNovel ตาม mynovel_insights/config.json ทุกชั่วโมง
+# เก็บผลไว้ใน branch "mynovel-data" (ไม่ทำให้ประวัติ main รก)
+# แล้วเผยแพร่แดชบอร์ดผ่าน GitHub Pages (ต้องเปิด Settings → Pages → Source: GitHub Actions ก่อน)
+
+on:
+  schedule:
+    - cron: "17 * * * *" # ทุกชั่วโมง นาทีที่ 17 (GitHub อาจเลื่อน/ข้ามบางรอบ ระบบรองรับแล้ว)
+  workflow_dispatch:
+
+concurrency:
+  group: mynovel-insights
+  cancel-in-progress: false
+
+env:
+  DATA_BRANCH: mynovel-data
+  PLAYWRIGHT_VERSION: 1.49.1
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      code: ${{ steps.collect.outputs.code }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout data branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$REMOTE" "$DATA_BRANCH" >/dev/null; then
+            git clone --depth 1 --branch "$DATA_BRANCH" "$REMOTE" _data
+          else
+            mkdir _data && cd _data
+            git init -b "$DATA_BRANCH"
+            git remote add origin "$REMOTE"
+            echo "ข้อมูลที่เก็บอัตโนมัติโดย .github/workflows/mynovel-insights.yml" > README.md
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
+
+      - name: Collect
+        id: collect
+        run: |
+          set +e
+          DATA_DIR=_data node mynovel_insights/ci/collect.js
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Commit data
+        run: |
+          cd _data
+          git add -A
+          if git diff --cached --quiet; then echo "ไม่มีข้อมูลใหม่"; exit 0; fi
+          git -c user.name="mynovel-insights-bot" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "data: $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do
+            git push -q origin "HEAD:${DATA_BRANCH}" && exit 0
+            sleep $((i * 5))
+            git pull -q --rebase origin "$DATA_BRANCH" || true
+          done
+          exit 1
+
+      - name: Fail if nothing was collected
+        if: steps.collect.outputs.code != '0'
+        run: |
+          echo "::error::รอบนี้ไม่ได้ข้อมูลเลย — ดูตารางใน Summary ว่าหน้าไหนเปิดไม่ได้ (อาจโดนกันบอท หรือ URL ใน config.json ผิด)"
+          exit 1
+
+  pages:
+    needs: collect
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # ถ้ายังไม่เปิด GitHub Pages ขั้นนี้จะพัง แต่ไม่ทำให้การเก็บข้อมูลล้มเหลว
+    continue-on-error: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _site/data
+          cp mynovel_insights/index.html mynovel_insights/insights-core.js mynovel_insights/mynovel-collector.user.js _site/
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git clone -q --depth 1 --branch "$DATA_BRANCH" "$REMOTE" _data; then
+            cp _data/latest.json _site/data/ 2>/dev/null || true
+          fi
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

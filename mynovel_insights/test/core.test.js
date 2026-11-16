@@ -184,3 +184,52 @@ test('demoData ผ่าน pipeline ได้ครบ', () => {
   assert.ok(C.supplyGap(d.events));
   assert.ok(C.tagStats(d.books).length > 5);
 });
+
+test('viewDeltas: แบ่งวิวที่เพิ่มตามสัดส่วนเวลาในแต่ละชั่วโมง', () => {
+  const r = C.viewDeltas([
+    { ts: '2026-11-16 20:30', id: 'a', views: 100 },
+    { ts: '2026-11-16 21:30', id: 'a', views: 160 }, // +60 ใน 1 ชม. คร่อม 20:xx กับ 21:xx
+  ]);
+  const by = Object.fromEntries(C.normalize({ events: r.events }).events.map(e => [C.bkkParts(e.ts).hour, e.w]));
+  assert.equal(by[20], 30);
+  assert.equal(by[21], 30);
+  assert.equal(r.stats.positive, 1);
+});
+
+test('viewDeltas: ข้ามช่วงห่างเกิน, ยอดติดลบ และยอดแบบปัดเศษไม่เป็นตัวเลข', () => {
+  const r = C.viewDeltas([
+    { ts: '2026-11-16 08:00', id: 'a', views: 100 },
+    { ts: '2026-11-16 20:00', id: 'a', views: 900 }, // ห่าง 12 ชม. -> ข้าม
+    { ts: '2026-11-16 21:00', id: 'a', views: 850 }, // ติดลบ -> ข้าม
+    { ts: '2026-11-16 22:00', id: 'a', views: 'abc' },
+  ]);
+  assert.equal(r.events.length, 0);
+  assert.equal(r.stats.skippedGap, 1);
+  assert.equal(r.stats.negative, 1);
+});
+
+test('viewDeltas: เตือนเมื่อยอดวิวไม่อัปเดตเรียลไทม์', () => {
+  const rows = [];
+  for (let i = 0; i < 40; i++) rows.push({ ts: new Date(Date.UTC(2026, 10, 1) + i * 3.6e6).toISOString(), id: 'a', views: i < 39 ? 100 : 200 });
+  assert.ok(C.viewDeltas(rows).warnings.some(w => w.includes('เรียลไทม์')));
+});
+
+test('timeMatrix: วิว (น้ำหนักสูง) ไม่กลบคอมเมนต์ — ถูกปรับให้ได้อิทธิพลเท่ากัน', () => {
+  const d = C.normalize({ events: [
+    { ts: '2026-11-16 03:00', kind: 'view', w: 10000, bookId: '*' },
+    { ts: '2026-11-16 21:00', kind: 'comment' }, { ts: '2026-11-16 21:10', kind: 'comment' },
+  ] });
+  const tm = C.timeMatrix(d.events);
+  assert.equal(tm.byHour[3], tm.byHour[21]);
+  assert.equal(tm.counts[1][21], 2);
+  const onlyViews = C.timeMatrix(d.events, { kinds: ['view'] });
+  assert.equal(onlyViews.byHour[3], 10000);
+});
+
+test('quality: วิวรวม (bookId *) ไม่ถูกนับเป็น "เรื่องเดียวกินสัดส่วน"', () => {
+  const ev = ['a', 'b', 'c', 'd'].map((b, i) => ({ ts: `2026-11-16 1${i}:00`, kind: 'comment', bookId: b }));
+  for (let h = 0; h < 10; h++) ev.push({ ts: `2026-11-16 ${String(h).padStart(2, '0')}:30`, kind: 'view', bookId: '*', w: 50 });
+  const q = C.quality(C.normalize({ events: ev }));
+  assert.equal(q.viewHours, 10);
+  assert.ok(!q.warnings.some(w => w.includes('เรื่องเดียว')));
+});

@@ -50,7 +50,8 @@
   }
 
   const lc = s => String(s || '').toLowerCase();
-  const isRankPage = () => /rank|top|popular|trend|hot|อันดับ|ยอดนิยม/i.test(decodeURIComponent(location.href));
+  // CI ตั้ง window.__MNI_FORCE_RANK = true สำหรับหน้าที่ config บอกว่าเป็นหน้าอันดับ
+  const isRankPage = () => W.__MNI_FORCE_RANK === true || /rank|top|popular|trend|hot|อันดับ|ยอดนิยม/i.test(decodeURIComponent(location.href));
 
   function pickFirst(o, keys) { for (const k of keys) if (o[k] != null && o[k] !== '') return o[k]; return undefined; }
 
