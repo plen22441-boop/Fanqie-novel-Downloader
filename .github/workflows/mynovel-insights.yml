@@ -15,9 +15,8 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: mynovel-insights
-  cancel-in-progress: false
+# ล็อกเฉพาะ job ที่เขียนข้อมูล/อัปโหลดหน้าเว็บ (ไม่ล็อกทั้ง workflow)
+# เพื่อให้ปุ่ม Run workflow ที่กดเองรันได้ทันที แม้รอบในห่วงโซ่กำลังรอชั่วโมงถัดไป
 
 env:
   DATA_BRANCH: mynovel-data
@@ -26,6 +25,9 @@ env:
 jobs:
   collect:
     runs-on: ubuntu-24.04 # Playwright ที่ใช้รองรับถึง 24.04
+    concurrency:
+      group: mynovel-collect
+      cancel-in-progress: false
     timeout-minutes: 20
     permissions:
       contents: write
@@ -97,6 +99,9 @@ jobs:
     needs: collect
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04 # Playwright ที่ใช้รองรับถึง 24.04
+    concurrency:
+      group: mynovel-pages
+      cancel-in-progress: false
     # ถ้ายังไม่เปิด GitHub Pages ขั้นนี้จะพัง แต่ไม่ทำให้การเก็บข้อมูลล้มเหลว
     continue-on-error: true
     permissions:
@@ -135,3 +140,32 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+  # GitHub มักไม่รัน/รันช้ามากสำหรับงานตั้งเวลาใน repo ที่ fork มา (7 ชม.แรกไม่รันเลยสักรอบ)
+  # จึงให้แต่ละรอบรอจนถึงนาทีที่ 17 ของชั่วโมงถัดไป แล้วสั่งรันรอบใหม่เอง (ห่วงโซ่)
+  # workflow_dispatch ที่สั่งด้วย GITHUB_TOKEN สร้างรอบใหม่ได้ (ข้อยกเว้นที่ GitHub อนุญาต)
+  next:
+    needs: [collect, pages]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    permissions:
+      actions: write
+    steps:
+      - name: Wait for the next hour, then start the next run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          now=$(date +%s)
+          target=$(( now - now % 3600 + 17 * 60 ))
+          if [ "$target" -le $(( now + 300 )) ]; then target=$(( target + 3600 )); fi
+          echo "รอ $(( (target - now) / 60 )) นาที จนถึง $(date -u -d @"$target" +%H:%MZ)"
+          sleep $(( target - now ))
+          # ถ้ามีรอบที่ "ใหม่กว่า" รอคิว/กำลังรันอยู่ (กดรันเอง หรือจากตัวตั้งเวลา) ให้รอบนั้นต่อห่วงโซ่แทน
+          # -> มีห่วงโซ่เดียวเสมอ: ไม่ซ้อน และไม่ขาด (รอบที่ใหม่สุดเป็นคนสั่งรอบถัดไป)
+          others=$(gh run list --workflow mynovel-insights.yml --limit 20 --json databaseId,status \
+            -q "[.[] | select(.databaseId > ${GITHUB_RUN_ID} and (.status == \"queued\" or .status == \"in_progress\" or .status == \"waiting\" or .status == \"pending\" or .status == \"requested\"))] | length")
+          if [ "$others" -gt 0 ]; then echo "มีรอบที่ใหม่กว่าอยู่แล้ว ($others) ให้รอบนั้นต่อห่วงโซ่"; exit 0; fi
+          gh workflow run mynovel-insights.yml --ref "${GITHUB_REF_NAME}"
+          echo "สั่งรอบถัดไปแล้ว"
