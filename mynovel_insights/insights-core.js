@@ -366,7 +366,8 @@
     const warnings = [];
     if (stats.intervals >= 30 && stats.positive / stats.intervals < 0.25)
       warnings.push(`ยอดวิวเพิ่มแค่ ${Math.round(stats.positive / stats.intervals * 100)}% ของรอบที่เก็บ — เว็บอาจอัปเดตยอดวิวเป็นรอบ ๆ ไม่ใช่เรียลไทม์ กราฟจากวิวอาจคลาดเคลื่อน`);
-    if (stats.positive >= 30) {
+    // ต้องมีข้อมูลกระจายอย่างน้อย 8 ชั่วโมงก่อน ไม่งั้นเก็บมาแค่ไม่กี่ชั่วโมงก็ "กระจุก" เองเสมอ (เตือนผิด)
+    if (stats.positive >= 30 && stats.posByHour.filter(x => x > 0).length >= 8) {
       const top = Math.max(...stats.posByHour);
       if (top / stats.positive > 0.4) warnings.push(`ยอดวิวเพิ่มกระจุกที่ ${stats.posByHour.indexOf(top)}:00 (${Math.round(top / stats.positive * 100)}%) — น่าจะเป็นรอบอัปเดตตัวเลขของเว็บ ไม่ใช่ช่วงที่คนอ่านจริง`);
     }
