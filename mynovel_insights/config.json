@@ -8,12 +8,6 @@
       "scrolls": 4
     },
     {
-      "label": "อันดับ",
-      "url": "https://www.mynovel.co/rankings",
-      "rank": true,
-      "scrolls": 6
-    },
-    {
       "label": "นิยายอัปเดตล่าสุด",
       "url": "https://www.mynovel.co/explore?tab=books&category=novel&orderByField=lastChapterUpdatedAt&orderByDirection=desc",
       "rank": false,
@@ -21,5 +15,6 @@
     }
   ],
   "keepDays": 180,
-  "maxGapHours": 6
+  "maxGapHours": 6,
+  "_note_rankings": "หน้า /rankings ยังดึงข้อมูลไม่ได้ (โหลดข้อมูลแบบอื่น) — อันดับมาแรงได้จาก /api/books/trending ในหน้าแรกแทน"
 }
