@@ -81,6 +81,14 @@ th[aria-sort]::after{content:" ↓"}
 .reco li{margin:.35em 0}
 details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--text-secondary)}
 .hidden{display:none}
+.top{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.top li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.top .n{color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right}
+.top .t{min-width:0}
+.top .t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top small{display:block;color:var(--text-muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.top .v b{display:block}
 code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4px}
 </style>
 </head>
@@ -126,6 +134,10 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
         <label class="chk"><input type="checkbox" id="kOther">อื่น ๆ (เดาประเภทไม่ได้)</label>
         <label class="chk"><input type="checkbox" id="eq">ถ่วงน้ำหนักให้แต่ละเรื่องเท่ากัน</label>
       </div>
+      <div class="row">
+        <span>หมวดที่ใช้ดูแท็ก/เรื่องฮิต:</span>
+        <select id="cat" aria-label="หมวด"><option value="novel">นิยาย</option><option value="cartoon">การ์ตูน</option><option value="all">ทั้งหมด</option></select>
+      </div>
       <p class="muted">"ถ่วงน้ำหนัก" = กันไม่ให้เรื่องดังเรื่องเดียวที่คอมเมนต์ถล่มมาบิดภาพรวมของทั้งเว็บ (แนะนำให้เปิดเมื่อมีคำเตือน)</p>
     </section>
 
@@ -155,8 +167,17 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
     </section>
 
     <section class="card">
+      <h2>🔥 เรื่องที่คนอ่านเยอะ</h2>
+      <p class="muted"><b>วิวพุ่ง</b> = ยอดวิวที่เพิ่มใน 24 ชม.ล่าสุด (ถ้าเก็บมาไม่ถึง 24 ชม. ใช้เท่าที่มี) · <b>ยอดวิวรวม</b> = ยอดสะสมทั้งหมด (เรื่องเก่าได้เปรียบ)</p>
+      <h3 style="margin:.6em 0 .3em">วิวพุ่งที่สุด</h3>
+      <ol class="top" id="topGrowth"></ol>
+      <h3 style="margin:1em 0 .3em">ยอดวิวรวมสูงสุด</h3>
+      <ol class="top" id="topViews"></ol>
+    </section>
+
+    <section class="card">
       <h2>6) แท็ก / แนวที่ติดอันดับ</h2>
-      <p class="muted"><b>คะแนนอันดับ</b> = รวมน้ำหนักตามตำแหน่ง (อันดับ 1 ได้มากสุด) · <b>โอกาส</b> = ส่วนแบ่งในอันดับ ÷ ส่วนแบ่งในจำนวนเรื่องทั้งหมด (&gt;1× = ติดอันดับเกินจำนวนคู่แข่ง) · คลิกหัวตารางเพื่อเรียง</p>
+      <p class="muted"><b>คะแนนอันดับ</b> = รวมน้ำหนักตามตำแหน่ง (อันดับ 1 ได้มากสุด) · <b>โอกาส</b> = ส่วนแบ่งในอันดับ ÷ ส่วนแบ่งในจำนวนเรื่องทั้งหมด (&gt;1× = ติดอันดับเกินจำนวนคู่แข่ง) · <b>วิวพุ่ง/เรื่อง</b> = วิวที่เพิ่มเฉลี่ยต่อเรื่องในแท็กนั้น (แท็กไหนดึงคนอ่านได้จริง) · คลิกหัวตารางเพื่อเรียง</p>
       <div class="scroll" style="max-height:520px"><table id="tags"></table></div>
       <h2 style="margin-top:16px">แท็กที่มักมาคู่กัน</h2>
       <div id="pairs"></div>
@@ -220,10 +241,11 @@ for (const id of ['expS','expE']) for (let h=0; h<24; h++) $(id).add(new Option(
 const st = loadSettings();
 $('expS').value = st.expS ?? 20; $('expE').value = st.expE ?? 0;
 for (const k of ['kComment','kLike','kView','kOther','eq']) if (st[k] !== undefined) $(k).checked = st[k];
+if (st.cat) $('cat').value = st.cat;
 
 function getOpts(){
   return { expS: +$('expS').value, expE: +$('expE').value,
-    kComment: $('kComment').checked, kLike: $('kLike').checked, kView: $('kView').checked, kOther: $('kOther').checked, eq: $('eq').checked };
+    kComment: $('kComment').checked, kLike: $('kLike').checked, kView: $('kView').checked, kOther: $('kOther').checked, eq: $('eq').checked, cat: $('cat').value };
 }
 
 // ── import ──
@@ -250,7 +272,7 @@ $('usePaste').onclick = () => {
 };
 $('demo').onclick = () => { isDemo = true; meta = null; raw = C.demoData(7); run(); renderAuto(); };
 $('clear').onclick = () => { raw = { events: [], books: [] }; isDemo = false; $('file').value=''; run(); };
-for (const id of ['expS','expE','kComment','kLike','kView','kOther','eq']) $(id).addEventListener('change', () => { saveSettings(); if (data) render(); });
+for (const id of ['expS','expE','kComment','kLike','kView','kOther','eq','cat']) $(id).addEventListener('change', () => { saveSettings(); if (data) render(); });
 
 // ── tooltip ──
 const tip = $('tip');
@@ -275,14 +297,17 @@ function render(){
   const q = C.quality(data);
   const exp = C.expectationReport(tm.byHour, o.expS, o.expE);
   const gap = C.supplyGap(data.events);
-  const tags = C.tagStats(data.books);
+  // ข้อมูลตัวอย่าง/ไฟล์ที่ไม่มีหมวด ถือว่าผ่านตัวกรองทุกหมวด
+  const books = data.books.filter(b => o.cat === 'all' || !b.category || b.category === o.cat);
+  const tags = C.tagStats(books);
   renderWarnings(q, tm);
   renderTiles(tm, exp, gap, tags);
   renderHeatmap(tm);
   renderBars(exp, o);
   renderGap(gap);
   renderTags(tags);
-  renderPairs(C.tagPairs(data.books));
+  renderPairs(C.tagPairs(books));
+  renderTop(books);
   renderReco(tm, exp, gap, tags, q);
 }
 
@@ -306,7 +331,7 @@ function renderTiles(tm, exp, gap, tags){
   const g = gap ? gap.slice().sort((a,b)=>b.gap-a.gap)[0] : null;
   const topTag = tags.find(t => !t.lowSample && t.rankedCount);
   $('tiles').innerHTML =
-    tile('ช่วง 3 ชม. ที่คนอ่านมากสุด', range(w3.start, w3.end), `${pct(w3.share)} ของกิจกรรม (ค่าปกติ 12.5%)`) +
+    tile('⏰ เวลาทอง (3 ชม.ที่คนอ่านมากสุด)', range(w3.start, w3.end), `${pct(w3.share)} ของกิจกรรม (ค่าปกติ 12.5%)`) +
     tile('ช่วงที่คุณคาด จับได้', pct(exp.capture), `เทียบกับช่วงที่ดีที่สุดที่ยาว ${exp.expected.width} ชม. เท่ากัน`) +
     tile('ชั่วโมงที่ไม่คาดถึง', sur ? hh(sur.hour) : '—', sur ? `${sur.lift.toFixed(1)}× ของชั่วโมงเฉลี่ย` : 'ไม่มีชั่วโมงนอกช่วงที่คาดที่โดดเด่น') +
     tile('ชั่วโมงน่าลงตอน (แข่งน้อย)', g && g.gap > 0 ? hh(g.hour) : '—', g ? `ผู้อ่าน ${pct(g.demand)} vs ตอนใหม่ ${pct(g.supply)}` : 'ต้องมีเวลาลงตอนด้วย') +
@@ -370,7 +395,7 @@ function renderGap(gap){
 function renderTags(tags){
   if (!tags.length) { $('tags').innerHTML = '<tr><td class="muted">ยังไม่มีข้อมูลแท็ก — เปิดหน้าอันดับ/หน้าเรื่องตอนเก็บข้อมูล</td></tr>'; return; }
   const cols = [
-    ['tag','แท็ก'],['score','คะแนนอันดับ'],['rankedCount','ในอันดับ'],['count','เรื่องทั้งหมด'],['opportunity','โอกาส'],['medianViews','วิวมัธยฐาน'],['bestRank','ดีสุด'],
+    ['tag','แท็ก'],['score','คะแนนอันดับ'],['rankedCount','ในอันดับ'],['count','เรื่องทั้งหมด'],['opportunity','โอกาส'],['medianViews','วิวมัธยฐาน'],['growthPerBook','วิวพุ่ง/เรื่อง'],['totalViews','ยอดวิวรวม'],['bestRank','ดีสุด'],
   ];
   const sorted = tags.slice().sort((a,b)=>{
     const k = tagSort.key, va = a[k] ?? (k==='bestRank'?Infinity:-Infinity), vb = b[k] ?? (k==='bestRank'?Infinity:-Infinity);
@@ -383,7 +408,7 @@ function renderTags(tags){
       + `<td><span class="sb" style="width:${(t.score/maxS*60).toFixed(0)}px"></span>${t.score.toFixed(1)}</td>`
       + `<td>${t.rankedCount}</td><td>${t.count}</td>`
       + `<td>${t.rankedCount ? t.opportunity.toFixed(2)+'×' : '—'}</td>`
-      + `<td>${fmt(t.medianViews)}</td><td>${t.bestRank ? '#'+t.bestRank : '—'}</td></tr>`;
+      + `<td>${fmt(t.medianViews)}</td><td>${t.growthPerBook == null ? '—' : '+' + fmt(t.growthPerBook)}</td><td>${fmt(t.totalViews)}</td><td>${t.bestRank ? '#'+t.bestRank : '—'}</td></tr>`;
   }
   $('tags').innerHTML = h + '</tbody>';
   $('tags').querySelectorAll('th').forEach(th => th.onclick = () => {
@@ -391,6 +416,22 @@ function renderTags(tags){
     tagSort = { key: k, dir: tagSort.key === k ? -tagSort.dir : (k==='tag'||k==='bestRank' ? 1 : -1) };
     renderTags(tags);
   });
+}
+
+function renderTop(books){
+  // รายการแบบการ์ดสั้น อ่านง่ายบนมือถือ: ชื่อเรื่อง + แนว / ตัวเลขหลักชิดขวา
+  const item = (b, i, main) => {
+    const g = b.growth != null ? '+' + fmt(b.growth) + (b.growthHours && b.growthHours < 23 ? ` (${b.growthHours} ชม.)` : '') : '';
+    const big = main === 'growth' ? g : fmt(b.views);
+    const sub = [main === 'growth' ? 'รวม ' + fmt(b.views) : (g ? 'พุ่ง ' + g : ''), b.rank ? 'มาแรง #' + b.rank : ''].filter(Boolean).join(' · ');
+    return `<li><span class="n">${i + 1}</span><div class="t"><b title="${esc(b.title)}">${esc(b.title)}</b><small>${esc(b.tags.slice(0, 4).map(lab).join(' · ') || '—')}</small></div>`
+      + `<div class="v"><b>${big}</b><small>${sub}</small></div></li>`;
+  };
+  const g = books.filter(b => b.growth > 0).sort((a, b) => b.growth - a.growth).slice(0, 10);
+  $('topGrowth').innerHTML = g.length ? g.map((b, i) => item(b, i, 'growth')).join('')
+    : '<li class="muted" style="display:block">ยังคำนวณไม่ได้ — ต้องมียอดวิวอย่างน้อย 2 รอบ (ระบบอัตโนมัติจะมีข้อมูลหลังรันครบ 1–2 ชม.)</li>';
+  const v = books.filter(b => b.views != null).sort((a, b) => b.views - a.views).slice(0, 10);
+  $('topViews').innerHTML = v.length ? v.map((b, i) => item(b, i, 'views')).join('') : '<li class="muted" style="display:block">ยังไม่มีข้อมูลยอดวิว</li>';
 }
 
 function renderPairs(pairs){
@@ -416,6 +457,8 @@ function renderReco(tm, exp, gap, tags, q){
   const good = tags.filter(t => !t.lowSample && t.rankedCount >= 2);
   const opp = good.filter(t => t.opportunity > 1.2).sort((a,b)=>b.opportunity-a.opportunity).slice(0,4);
   const crowd = good.filter(t => t.opportunity < 0.8 && t.count >= 5).sort((a,b)=>b.count-a.count).slice(0,3);
+  const hot = tags.filter(t => !t.lowSample && t.growthPerBook > 0).sort((a,b)=>b.growthPerBook-a.growthPerBook).slice(0,5);
+  if (hot.length) r.push(`แท็ก/แนวที่ดึงคนอ่านได้มากที่สุดตอนนี้ (วิวพุ่งเฉลี่ยต่อเรื่อง): ${hot.map(t=>`${esc(lab(t.tag))} (+${fmt(t.growthPerBook)})`).join(', ')}`);
   if (good.length) r.push(`แท็กที่ครองอันดับ: ${good.slice(0,5).map(t=>esc(lab(t.tag))).join(', ')}`);
   if (opp.length) r.push(`แท็ก "ติดอันดับเกินจำนวนคู่แข่ง" (โอกาส &gt; 1.2×): ${opp.map(t=>`${esc(lab(t.tag))} (${t.opportunity.toFixed(1)}×)`).join(', ')} — น่าใส่ถ้าตรงกับเนื้อเรื่องจริง`);
   if (crowd.length) r.push(`แท็กคนแน่นแต่ติดอันดับน้อยกว่าสัดส่วน: ${crowd.map(t=>esc(lab(t.tag))).join(', ')} — ถ้าเขียนแนวนี้ต้องมีจุดขายต่าง/ปกและคำโปรยเด่น`);
