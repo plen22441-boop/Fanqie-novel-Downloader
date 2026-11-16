@@ -34,6 +34,17 @@ AUTHOR_NOTE_PAREN_RE = re.compile(
 )
 # 作者杂谈：不带括号，但以“宝子们”称呼读者并提到更新/作者/插图等
 AUTHOR_NOTE_PLAIN_RE = re.compile(r"宝子们.*(作者|下本书|更新|插图|见谅|稍等|书架|催更)|(作者|下本书|更新|插图).*宝子们")
+# 作者杂谈区块：从这一行起到下一章标题都是作者的话
+AUTHOR_BLOCK_RE = re.compile(r"^(作者有话说|作者的话|题外话|作者碎碎念)[：:]?$|^今天就更一章，说个题外话")
+# 作者求打赏、报更新字数等单行
+AUTHOR_NOTE_MISC_RE = re.compile(
+    r"(求打赏|爱发电|求一波发电|求票|今天就一更|我多补了.{0,4}字|一共写了.{0,6}[千万]"
+    r"|宝宝们.{0,30}(投票|投投票|发电|五星|新年快乐|安慰|抱歉|更新)"
+    r"|(投票|发电|五星|抱歉|更新).{0,30}宝宝们)"
+)
+# 章末分隔线（——、-、**）后面若是作者的话，整段删到下一章
+SEPARATOR_RE = re.compile(r"^(—{1,4}|-{1,4}|\*{2,4})$")
+AUTHOR_HINT_RE = re.compile(r"作者|读者|宝宝们|宝子们|更新|大纲|脑洞|撞梗|融梗|举报|正文回应|明天见|if线|番外|跳着看|再写")
 # 图片占位
 IMAGE_RE = re.compile(r"^［(插图|图片)］")
 
@@ -45,6 +56,23 @@ def _next_nonempty(lines, i, lookahead=3):
         if line.strip():
             return line.strip()
     return ""
+
+
+def _separator_starts_author_note(lines, i, max_lines=8):
+    """分隔线之后到下一章之间（不超过 max_lines 行）是否是作者的话。"""
+    seen = 0
+    for line in lines[i + 1:]:
+        s = line.strip()
+        if not s:
+            continue
+        if CHAPTER_RE.match(s):
+            return seen > 0
+        seen += 1
+        if seen > max_lines:
+            return False
+        if not AUTHOR_HINT_RE.search(s):
+            return False
+    return False
 
 
 def strip_comments(text, remove_author_notes=True):
@@ -66,6 +94,13 @@ def strip_comments(text, remove_author_notes=True):
             stats["chapters"] += 1
         elif BLOCK_START_RE.match(s):
             skipping = True
+        elif remove_author_notes and (
+            AUTHOR_BLOCK_RE.match(s)
+            or (SEPARATOR_RE.match(s) and _separator_starts_author_note(lines, i))
+        ):
+            skipping = True
+            stats["author_notes"] += 1
+            continue
 
         if skipping:
             stats["comment_lines"] += 1
@@ -73,6 +108,7 @@ def strip_comments(text, remove_author_notes=True):
 
         if remove_author_notes and s and (
             IMAGE_RE.match(s) or AUTHOR_NOTE_PAREN_RE.match(s) or AUTHOR_NOTE_PLAIN_RE.search(s)
+            or AUTHOR_NOTE_MISC_RE.search(s)
         ):
             stats["author_notes"] += 1
             continue
