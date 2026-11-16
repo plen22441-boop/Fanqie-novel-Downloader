@@ -174,7 +174,7 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
     <ol>
       <li>ติดตั้ง Tampermonkey/Violentmonkey แล้วเพิ่มสคริปต์ <code>mynovel-collector.user.js</code></li>
       <li>เปิด MyNovel ตามปกติ: หน้าอันดับ (ทุกหมวด), หน้าเรื่อง, หน้าตอนที่มีคอมเมนต์ — เลื่อนลงให้คอมเมนต์โหลด แผงมุมขวาล่างจะนับให้</li>
-      <li>เก็บต่อเนื่อง ≥ 14 วัน แล้วกด <b>Export JSON</b> → เปิดไฟล์นี้ แล้วเลือกไฟล์</li>
+      <li>เก็บ 2–3 วันก็พอดูแนวโน้มได้ (ยิ่งนานยิ่งแม่น) แล้วกด <b>Export JSON</b> → เปิดไฟล์นี้ แล้วเลือกไฟล์</li>
     </ol>
     <ul class="muted">
       <li><b>คอมเมนต์ ≠ การอ่าน</b>: คนเงียบอ่านไม่คอมเมนต์ และคนคอมเมนต์มักเป็นแฟนเหนียวแน่น รูปแบบเวลาจึงเป็น "ตัวแทน" ที่อาจเอียง</li>
@@ -285,7 +285,8 @@ function renderWarnings(q, tm){
     for (const x of meta.warnings || []) w.push(x);
   }
   if (isDemo) w.unshift('นี่คือข้อมูลสมมติที่สร้างขึ้นเพื่อทดลองหน้าจอ — ตัวเลขทั้งหมดไม่ได้มาจาก MyNovel');
-  $('warns').innerHTML = w.length ? `<div class="warn"><b>ตรวจคุณภาพข้อมูล</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  const badge = `<p><b>ความน่าเชื่อถือของผล: ${q.level}</b> <span class="muted">(${q.level === 'ต่ำ' ? 'ยังเป็นแค่สมมติฐาน เก็บต่ออีกหน่อย' : q.level === 'พอใช้' ? 'พอดูแนวโน้มได้ ใช้ตัดสินใจเบื้องต้นได้' : 'ข้อมูลครบสัปดาห์ เทียบวันธรรมดา/วันหยุดได้'})</span></p>`;
+  $('warns').innerHTML = badge + (w.length ? `<div class="warn"><b>ตรวจคุณภาพข้อมูล</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '');
 }
 
 function tile(k, v, d){ return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`; }
@@ -389,7 +390,7 @@ function renderPairs(pairs){
 
 function renderReco(tm, exp, gap, tags, q){
   const r = [];
-  const weak = q.reader < 300;
+  const weak = q.level === 'ต่ำ';
   const hedge = weak ? ' <span class="flag">(ข้อมูลยังน้อย — ถือเป็นสมมติฐาน)</span>' : '';
   if (tm.total) {
     const w = C.bestWindow(tm.byHour, 3);
@@ -397,7 +398,7 @@ function renderReco(tm, exp, gap, tags, q){
     if (exp.capture < 0.8) r.push(`ช่วงที่คุณคาด (${range(exp.expected.start, exp.expected.end)}) จับกิจกรรมได้แค่ ${pct(exp.capture)} ของช่วงที่ดีที่สุด — ลองย้ายไปใกล้ <b>${range(exp.actual.start, exp.actual.end)}</b>${hedge}`);
     if (exp.surprises.length) r.push(`ชั่วโมงที่ไม่คาดถึง ${exp.surprises.slice(0,3).map(s=>hh(s.hour)).join(', ')} — เหมาะกับโพสต์โปรโมต/ทีเซอร์ในโซเชียล หรือทดลองลงตอนพิเศษ${hedge}`);
     const wk = (tm.byDow[0]+tm.byDow[6])/2, wd = (tm.byDow[1]+tm.byDow[2]+tm.byDow[3]+tm.byDow[4]+tm.byDow[5])/5;
-    if (wd && Math.abs(wk/wd-1) > .15) r.push(`วันหยุดมีกิจกรรมต่อวัน${wk>wd?'มากกว่า':'น้อยกว่า'}วันธรรมดา ${Math.round(Math.abs(wk/wd-1)*100)}% — ${wk>wd?'ตอนสำคัญ/ไคลแมกซ์ลงเสาร์-อาทิตย์':'เน้นลงตอนวันธรรมดา'}${hedge}`);
+    if (tm.distinctDays >= 7 && wd && Math.abs(wk/wd-1) > .15) r.push(`วันหยุดมีกิจกรรมต่อวัน${wk>wd?'มากกว่า':'น้อยกว่า'}วันธรรมดา ${Math.round(Math.abs(wk/wd-1)*100)}% — ${wk>wd?'ตอนสำคัญ/ไคลแมกซ์ลงเสาร์-อาทิตย์':'เน้นลงตอนวันธรรมดา'}${hedge}`);
   }
   if (gap) {
     const g = gap.slice().sort((a,b)=>b.gap-a.gap)[0];

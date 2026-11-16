@@ -482,14 +482,18 @@
       return reader.length ? max / reader.length : 0;
     })();
     const warnings = [];
-    if (reader.length < 300 && viewHours < 24 * 14) warnings.push(`กิจกรรมผู้อ่านมีแค่ ${reader.length} รายการ (ควร ≥ 300 ถึงจะเริ่มเชื่อรูปแบบรายชั่วโมงได้; ≥ 1,000 ถึงจะดูราย วัน×ชั่วโมง)`);
-    if (tm.distinctDays && tm.distinctDays < 14) warnings.push(`ข้อมูลครอบคลุมแค่ ${tm.distinctDays} วัน — ควรเก็บ ≥ 14 วันให้ครบทุกวันในสัปดาห์อย่างน้อย 2 รอบ`);
+    // เกณฑ์ "พอดูแนวโน้มออก" (ไม่ต้องรอหลายสัปดาห์): คอมเมนต์/ไลก์ ≥ 100 หรือ วิวรายชั่วโมง ≥ 48 ชม.
+    const enough = reader.length >= 100 || viewHours >= 48;
+    const good = (reader.length >= 400 || viewHours >= 24 * 7) && tm.distinctDays >= 7;
+    const level = good ? 'ดี' : enough && tm.distinctDays >= 2 ? 'พอใช้' : 'ต่ำ';
+    if (!enough) warnings.push(`ข้อมูลยังน้อย (คอมเมนต์/ไลก์ ${reader.length} รายการ, วิวรายชั่วโมง ${viewHours} ชม.) — ต้องมีคอมเมนต์ ≥ 100 หรือวิว ≥ 48 ชม. ถึงจะพอดูแนวโน้มได้`);
+    if (tm.distinctDays && tm.distinctDays < 2) warnings.push('ข้อมูลมีแค่วันเดียว — เก็บอีก 1–2 วันจะเห็นรูปแบบชัดขึ้น');
     if (topBookShare > 0.3) warnings.push(`${Math.round(topBookShare * 100)}% ของกิจกรรมมาจากเรื่องเดียว — แนะนำเปิด "ถ่วงน้ำหนักให้แต่ละเรื่องเท่ากัน"`);
     if (ev.length - precise.length > 0) warnings.push(`${ev.length - precise.length} รายการรู้แค่วันที่ (เช่น "3 วันที่แล้ว") — ไม่นำมาคิดรายชั่วโมง`);
     if (!chapters.length) warnings.push('ไม่มีเวลาลงตอน (chapter) — วิเคราะห์ "ช่องว่างดีมานด์-ซัพพลาย" ไม่ได้');
     if (data.books.filter(b => b.rank > 0).length < 20) warnings.push('หนังสือที่มีอันดับน้อยกว่า 20 เรื่อง — ผลแท็กยอดนิยมยังไม่น่าเชื่อถือ');
     if (data.dropped) warnings.push(`อ่านเวลาไม่ออก ${data.dropped} รายการ (ถูกข้าม)`);
-    return { totalEvents: ev.length, precise: precise.length, reader: reader.length, viewHours,
+    return { level, totalEvents: ev.length, precise: precise.length, reader: reader.length, viewHours,
       chapters: chapters.length, books: data.books.length,
       ranked: data.books.filter(b => b.rank > 0).length,
       distinctDays: tm.distinctDays, topBookShare, warnings };

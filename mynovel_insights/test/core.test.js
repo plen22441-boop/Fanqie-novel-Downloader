@@ -173,7 +173,8 @@ test('tagPairs นับคู่แท็ก', () => {
 
 test('quality เตือนเมื่อข้อมูลน้อย / ไม่มีเวลาลงตอน', () => {
   const q = C.quality(C.normalize({ events: [{ ts: '2026-11-16 10:00', kind: 'comment' }] }));
-  assert.ok(q.warnings.some(w => w.includes('300')));
+  assert.ok(q.warnings.some(w => w.includes('100')));
+  assert.equal(q.level, 'ต่ำ');
   assert.ok(q.warnings.some(w => w.includes('chapter')));
 });
 
@@ -232,4 +233,16 @@ test('quality: วิวรวม (bookId *) ไม่ถูกนับเป�
   const q = C.quality(C.normalize({ events: ev }));
   assert.equal(q.viewHours, 10);
   assert.ok(!q.warnings.some(w => w.includes('เรื่องเดียว')));
+});
+
+test('quality.level: 2–3 วัน + คอมเมนต์ ≥ 100 = พอใช้, 7 วัน + ข้อมูลมาก = ดี', () => {
+  const mk = (days, perDay) => {
+    const ev = [];
+    for (let d = 0; d < days; d++) for (let i = 0; i < perDay; i++)
+      ev.push({ ts: new Date(Date.UTC(2026, 10, 1 + d, i % 17)).toISOString(), kind: 'comment', bookId: 'b' + (i % 10), id: d + '-' + i });
+    return C.quality(C.normalize({ events: ev })).level;
+  };
+  assert.equal(mk(3, 40), 'พอใช้');
+  assert.equal(mk(7, 60), 'ดี');
+  assert.equal(mk(1, 200), 'ต่ำ');
 });
