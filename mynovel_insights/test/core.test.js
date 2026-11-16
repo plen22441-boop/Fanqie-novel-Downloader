@@ -268,3 +268,12 @@ test('tagStats: รวมยอดวิวและวิวเพิ่มต�
   assert.equal(s.x.growthPerBook, 20);
   assert.equal(s.y.growth, null);
 });
+
+test('viewDeltas: ไม่เตือน "กระจุก" ถ้าเพิ่งเก็บมาไม่กี่ชั่วโมง', () => {
+  const rows = [];
+  for (let b = 0; b < 40; b++) for (let h = 0; h < 3; h++)
+    rows.push({ ts: new Date(Date.UTC(2026, 10, 16, 11 + h)).toISOString(), id: 'b' + b, views: 100 + h * 10 });
+  const r = C.viewDeltas(rows);
+  assert.ok(r.stats.positive >= 30);
+  assert.ok(!r.warnings.some(w => w.includes('กระจุก')));
+});
