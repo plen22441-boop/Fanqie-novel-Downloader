@@ -24,10 +24,11 @@
   const MAX_EVENTS = 60000;
   const W = window;
 
-  const TIME_KEYS = ['createdAt', 'created_at', 'createDate', 'create_date', 'publishedAt', 'published_at',
+  // MyNovel (api-mynovel.co) ใช้ชื่อ bookName / bookTags / bookTypes / bookViews / chapterPublishedAt
+  const TIME_KEYS = ['chapterPublishedAt', 'commentedAt', 'createdAt', 'created_at', 'createDate', 'create_date', 'publishedAt', 'published_at',
     'publishAt', 'publish_at', 'publishDate', 'releasedAt', 'commentedAt', 'postedAt', 'posted_at', 'createdTime', 'created_time'];
-  const TAG_KEYS = ['tags', 'hashtags', 'hashTags', 'tag', 'tagList', 'tag_list', 'categories', 'category', 'genres', 'genre', 'subCategory'];
-  const VIEW_KEYS = ['views', 'view', 'viewCount', 'view_count', 'totalView', 'total_view', 'readCount', 'read_count', 'reads', 'viewTotal'];
+  const TAG_KEYS = ['bookTags', 'bookTypes', 'tags', 'hashtags', 'hashTags', 'tag', 'tagList', 'tag_list', 'categories', 'category', 'genres', 'genre', 'subCategory'];
+  const VIEW_KEYS = ['bookViews', 'views', 'view', 'viewCount', 'view_count', 'totalView', 'total_view', 'readCount', 'read_count', 'reads', 'viewTotal'];
   const ID_KEYS = ['novelId', 'novel_id', 'bookId', 'book_id', 'storyId', 'story_id'];
 
   let store = load();
@@ -58,7 +59,7 @@
   function guessKind(path, o) {
     const p = lc(path.join('.'));
     if (/comment|reply|review/.test(p) || (o.content !== undefined && (o.user || o.member || o.author) && !o.title)) return 'comment';
-    if (/chapter|episode|\bep\b|eps/.test(p) || o.chapterNo != null || o.episodeNo != null || o.chapter_number != null || o.ep != null) return 'chapter';
+    if (o.chapterId != null || o.chapterPublishedAt != null || /chapter|episode|\bep\b|eps/.test(p) || o.chapterNo != null || o.episodeNo != null || o.chapter_number != null || o.ep != null) return 'chapter';
     if (/like|vote|heart|gift|donate/.test(p)) return 'like';
     return 'other';
   }
@@ -74,14 +75,18 @@
       o.forEach((x, i) => walk(x, path.concat(listName), Object.assign({}, ctx, { index: i, listName }), depth + 1));
       return;
     }
-    const title = o.title || o.name || o.novelName || o.novel_name;
-    const tagVal = pickFirst(o, TAG_KEYS);
-    const ownId = o.id ?? o._id ?? o.slug;
+    const title = o.bookName || o.title || o.name || o.novelName || o.novel_name;
+    // รวมแท็กจากทุกช่องที่มี (MyNovel มีทั้ง bookTags = #แท็ก และ bookTypes = แนว)
+    const tagKeys = TAG_KEYS.filter(k => o[k] != null && k !== 'category' && k !== 'subCategory');
+    const tagVal = tagKeys.length ? tagKeys.flatMap(k => [].concat(o[k])) : (o.bookName ? [] : undefined);
+    const ownId = o.chapterId ?? o.commentId ?? o.id ?? o._id;
+    // ต้องมีรหัสหนังสือด้วย กันแบนเนอร์/คอลเลกชันที่มี title + category ถูกนับเป็นหนังสือ
+    const isBook = typeof title === 'string' && tagVal != null && (o.bookName != null || pickFirst(o, ID_KEYS) != null) && o.chapterId == null;
 
-    // หนังสือ: มีชื่อ + แท็ก/หมวด
-    if (title && tagVal != null && typeof title === 'string') {
+    // หนังสือ: มีชื่อ + แท็ก/แนว + รหัส
+    if (isBook) {
       const id = String(pickFirst(o, ID_KEYS) ?? ownId ?? title);
-      const tags = [].concat(tagVal).map(t => (t && typeof t === 'object') ? (t.name || t.title || t.tag || t.label) : t).filter(Boolean);
+      const tags = tagVal.map(t => (t && typeof t === 'object') ? (t.name || t.title || t.tag || t.label) : t).filter(Boolean);
       const prev = store.books[id] || {};
       const rankish = /rank|top|popular|trend|hot/i.test(lc(path.join('.'))) || isRankPage();
       const rank = o.rank ?? o.ranking ?? o.position ?? (rankish && ctx.index != null ? ctx.index + 1 : undefined);
@@ -91,19 +96,26 @@
         views: pickFirst(o, VIEW_KEYS) ?? prev.views,
         rank: rank != null ? (prev.rank ? Math.min(prev.rank, +rank) : +rank) : prev.rank,
         list: rank != null ? location.pathname : prev.list,
+        category: o.category ?? prev.category,
       };
+      // เวลาอัปเดตตอนล่าสุดของเรื่อง = ข้อมูลฝั่ง "คนลงตอน"
+      const lc2 = o.lastChapterUpdatedAt;
+      if (lc2 && !/^1970/.test(lc2) && !store.events['chapter:' + id + ':' + lc2]) store.events['chapter:' + id + ':' + lc2] = { ts: lc2, kind: 'chapter', bookId: id, src: 'json' };
       ctx = Object.assign({}, ctx, { bookId: id });
     }
 
     // event: มีฟิลด์เวลา
     const ts = pickFirst(o, TIME_KEYS);
-    if (ts != null && !(title && tagVal != null)) {
+    if (ts != null && !isBook) {
       const kind = guessKind(path, o);
       const user = o.userId ?? o.user_id ?? (o.user && (o.user.id ?? o.user._id)) ?? (o.member && o.member.id);
       const bid = bookIdFor(o, path, ctx.bookId);
       const key = (ownId != null ? kind + ':' + ownId : [kind, ts, bid, user].join('|'));
-      if (kind !== 'other') jsonHits++;
-      if (!store.events[key]) store.events[key] = { ts, kind, bookId: bid, user, src: 'json' };
+      // ไม่เก็บเวลาที่เดาประเภทไม่ได้ (เช่น วันที่สร้างแบนเนอร์) — เป็นแค่สัญญาณรบกวน
+      if (kind !== 'other') {
+        jsonHits++;
+        if (!store.events[key]) store.events[key] = { ts, kind, bookId: bid, user, src: 'json' };
+      }
     }
     for (const k in o) if (o[k] && typeof o[k] === 'object') walk(o[k], path.concat(k), ctx, depth + 1);
   }

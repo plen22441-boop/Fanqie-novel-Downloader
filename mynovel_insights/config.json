@@ -1,7 +1,24 @@
 {
   "_help": "หน้าที่ GitHub Actions จะเปิดทุกชั่วโมง แก้ได้ทาง GitHub (กดรูปดินสอ) — rank:true = หน้าอันดับ (ลำดับบนหน้า = อันดับ), scrolls = จำนวนครั้งที่เลื่อนลงเพื่อโหลดเพิ่ม",
   "pages": [
-    { "label": "หน้าแรก", "url": "https://www.mynovel.co/", "rank": false, "scrolls": 4 }
+    {
+      "label": "หน้าแรก",
+      "url": "https://www.mynovel.co/",
+      "rank": false,
+      "scrolls": 4
+    },
+    {
+      "label": "อันดับ",
+      "url": "https://www.mynovel.co/rankings",
+      "rank": true,
+      "scrolls": 6
+    },
+    {
+      "label": "นิยายอัปเดตล่าสุด",
+      "url": "https://www.mynovel.co/explore?tab=books&category=novel&orderByField=lastChapterUpdatedAt&orderByDirection=desc",
+      "rank": false,
+      "scrolls": 6
+    }
   ],
   "keepDays": 180,
   "maxGapHours": 6

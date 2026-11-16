@@ -184,7 +184,9 @@
       if (!id) continue;
       const nb = {
         id, title: title || id,
-        tags: [...new Set(splitTags(b.tags ?? b.hashtags ?? b.tag ?? []).concat(splitTags(b.category ?? b.genre ?? [])))],
+        // category (novel/cartoon) เป็นหมวดใหญ่ ไม่ใช่แท็ก -> เก็บแยกไว้ใน category
+        tags: [...new Set(splitTags(b.tags ?? b.hashtags ?? b.tag ?? []).concat(splitTags(b.genre ?? [])))],
+        category: b.category != null ? String(b.category) : undefined,
         views: toNum(b.views ?? b.view ?? b.reads),
         rank: toNum(b.rank),
         list: b.list || b.source || undefined,
