@@ -34,6 +34,16 @@ jobs:
     outputs:
       code: ${{ steps.collect.outputs.code }}
     steps:
+      # รอบที่ห่วงโซ่สั่งมา จะถูกสร้างราวนาทีที่ 02 -> รอจนถึงนาทีที่ 17 ค่อยเก็บ (เวลาเก็บตรงทุกชั่วโมง)
+      # รอบที่คนกดเองเก็บทันที
+      - name: Wait until :17 (chained runs only)
+        if: github.actor == 'github-actions[bot]'
+        run: |
+          now=$(date +%s); target=$(( now - now % 3600 + 17 * 60 ))
+          if [ "$target" -gt "$now" ] && [ $(( target - now )) -le 1200 ]; then
+            echo "รอ $(( (target - now) / 60 )) นาที"; sleep $(( target - now ))
+          fi
+
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -142,13 +152,14 @@ jobs:
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
 
   # GitHub มักไม่รัน/รันช้ามากสำหรับงานตั้งเวลาใน repo ที่ fork มา (7 ชม.แรกไม่รันเลยสักรอบ)
-  # จึงให้แต่ละรอบรอจนถึงนาทีที่ 17 ของชั่วโมงถัดไป แล้วสั่งรันรอบใหม่เอง (ห่วงโซ่)
+  # จึงให้แต่ละรอบสั่งรันรอบใหม่เอง (ห่วงโซ่) ตอนนาทีที่ 02 ของชั่วโมงถัดไป
+  # ห้ามรอนานเกิน ~50 นาที: GITHUB_TOKEN หมดอายุราว 60 นาทีหลังเริ่มรอบ (เคยโดน 401 แล้วห่วงโซ่ขาด)
   # workflow_dispatch ที่สั่งด้วย GITHUB_TOKEN สร้างรอบใหม่ได้ (ข้อยกเว้นที่ GitHub อนุญาต)
   next:
     needs: [collect, pages]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 80
+    timeout-minutes: 60
     permissions:
       actions: write
     steps:
@@ -158,8 +169,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           now=$(date +%s)
-          target=$(( now - now % 3600 + 17 * 60 ))
-          if [ "$target" -le $(( now + 300 )) ]; then target=$(( target + 3600 )); fi
+          target=$(( now - now % 3600 + 2 * 60 ))
+          if [ "$target" -le $(( now + 120 )) ]; then target=$(( target + 3600 )); fi
+          # กันเหนียว: ไม่รอเกิน 50 นาที ไม่ว่ารอบนี้เริ่มตอนไหน
+          if [ $(( target - now )) -gt 3000 ]; then target=$(( now + 3000 )); fi
           echo "รอ $(( (target - now) / 60 )) นาที จนถึง $(date -u -d @"$target" +%H:%MZ)"
           sleep $(( target - now ))
           # ถ้ามีรอบที่ "ใหม่กว่า" รอคิว/กำลังรันอยู่ (กดรันเอง หรือจากตัวตั้งเวลา) ให้รอบนั้นต่อห่วงโซ่แทน
