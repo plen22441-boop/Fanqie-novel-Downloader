@@ -22,6 +22,9 @@ import sys
 
 # 章节标题：第12章 / 第 12 章 / 番外
 CHAPTER_RE = re.compile(r"^(第\s*\d+\s*章|番外)")
+# 只有“第N章”、没有标题的行；以及取章节号
+BARE_CHAPTER_RE = re.compile(r"^第\s*(\d+)\s*章$")
+CHAPTER_NUM_RE = re.compile(r"^第\s*(\d+)\s*章")
 # 段落末尾的段评标记
 INLINE_MARK_RE = re.compile(r"〔段评\d+〕")
 # 评论区块开始
@@ -80,7 +83,8 @@ def strip_comments(text, remove_author_notes=True):
     lines = text.split("\n")
     out = []
     skipping = False
-    stats = {"comment_lines": 0, "inline_marks": 0, "author_notes": 0, "chapters": 0}
+    stats = {"comment_lines": 0, "inline_marks": 0, "author_notes": 0, "chapters": 0, "duplicate_headers": 0}
+    last_header_num, last_header_idx = None, -1
 
     for i, line in enumerate(lines):
         s = line.strip()
@@ -90,8 +94,16 @@ def strip_comments(text, remove_author_notes=True):
             if skipping and LIKE_LINE_RE.search(_next_nonempty(lines, i)):
                 stats["comment_lines"] += 1
                 continue
+            # 标题下面重复一行只有“第N章”的：同一章，不算新章节
+            bare = BARE_CHAPTER_RE.match(s)
+            if bare and last_header_num == bare.group(1) and not any(l.strip() for l in out[last_header_idx + 1:]):
+                stats["duplicate_headers"] += 1
+                continue
             skipping = False
             stats["chapters"] += 1
+            m = CHAPTER_NUM_RE.match(s)
+            last_header_num = m.group(1) if m else None
+            last_header_idx = len(out)
         elif BLOCK_START_RE.match(s):
             skipping = True
         elif remove_author_notes and (
