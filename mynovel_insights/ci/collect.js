@@ -23,6 +23,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const CONFIG = JSON.parse(fs.readFileSync(process.env.CONFIG || path.join(ROOT, 'config.json'), 'utf8'));
 const US = fs.readFileSync(path.join(ROOT, 'mynovel-collector.user.js'), 'utf8');
+const CORE = fs.readFileSync(path.join(ROOT, 'insights-core.js'), 'utf8'); // userscript ใช้ตัวคำนวณจากไฟล์นี้
 const KEEP_MS = (CONFIG.keepDays || 180) * 8.64e7;
 
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8')); } catch (e) { return d; } };
@@ -60,6 +61,7 @@ async function visit(browser, page) {
   const ctx = await browser.newContext({ locale: 'th-TH', timezoneId: 'Asia/Bangkok', viewport: { width: 1280, height: 900 } });
   try {
     await ctx.addInitScript(`window.__MNI_FORCE_RANK = ${page.rank === true};`);
+    await ctx.addInitScript(CORE);
     await ctx.addInitScript(US);
     const p = await ctx.newPage();
     if (DEBUG) p.on('response', async r => {
