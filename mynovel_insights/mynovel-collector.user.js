@@ -1,33 +1,42 @@
 // ==UserScript==
-// @name         MyNovel Insights Collector
+// @name         MyNovel Insights
 // @namespace    mynovel-insights
-// @version      1.0.0
-// @description  เก็บเวลาคอมเมนต์/ลงตอน + แท็ก/อันดับ จากหน้าที่คุณเปิดดูเอง แล้ว export เป็น JSON ไปวิเคราะห์ใน index.html
+// @version      2.0.0
+// @description  ดูเวลาทอง แท็ก/แนวที่ฮิต และเรื่องที่ยอดวิวพุ่งของ MyNovel — เก็บจากเบราว์เซอร์ของคุณเอง ไม่ต้องใช้เซิร์ฟเวอร์
 // @match        *://mynovel.co/*
 // @match        *://*.mynovel.co/*
 // @run-at       document-start
 // @grant        none
+// @updateURL    https://raw.githubusercontent.com/plen22441-boop/Fanqie-novel-Downloader/main/mynovel_insights/dist/mynovel-insights.user.js
+// @downloadURL  https://raw.githubusercontent.com/plen22441-boop/Fanqie-novel-Downloader/main/mynovel_insights/dist/mynovel-insights.user.js
 // ==/UserScript==
 
 /*
- * วิธีทำงาน (ไม่ยิง request เพิ่มเอง — อ่านแค่สิ่งที่หน้าเว็บโหลดมาให้คุณอยู่แล้ว):
- *  1) ดักผล fetch/XHR ที่เป็น JSON แล้วหา object ที่มีเวลา (createdAt ฯลฯ) หรือมีแท็ก
- *  2) สแกน DOM หา <time datetime>, ข้อความเวลาภาษาไทย และ #แท็ก
- * ข้อมูลเก็บใน localStorage ของเบราว์เซอร์คุณเท่านั้น
+ * ไฟล์นี้คือ "ต้นฉบับ" — ไฟล์ที่ติดตั้งจริงคือ dist/mynovel-insights.user.js
+ * (รวม insights-core.js ไว้ข้างในแล้ว สร้างด้วย: node mynovel_insights/build-userscript.js)
  *
- * ⚠️ ผู้เขียนสคริปต์ไม่ได้ทดสอบกับ HTML/API จริงของ mynovel.co (เข้าไม่ได้จากที่พัฒนา)
- *    ถ้าตัวนับไม่ขึ้น ให้กด "Debug" แล้วดู console ว่า JSON ที่ได้มีหน้าตาอย่างไร
+ * วิธีทำงาน
+ *  1) ดักผล JSON ที่หน้าเว็บ MyNovel โหลดมาอยู่แล้ว (api-mynovel.co): ชื่อเรื่อง แท็ก แนว ยอดวิว เวลาลงตอน
+ *  2) จดยอดวิวของแต่ละเรื่องพร้อมเวลา -> คำนวณ "วิวที่เพิ่มต่อชั่วโมง" (เวลาทอง) และ "วิวพุ่ง 24 ชม."
+ *  3) ถ้าเปิดแท็บ MyNovel ทิ้งไว้ สคริปต์ดึงรายการเรื่องมาแรง/อัปเดตล่าสุดเองทุก ~1 ชม. (3 request/ชม.)
+ *  4) กดปุ่ม 📊 มุมขวาล่างเพื่อดูผลได้ทันที
+ * ข้อมูลเก็บใน localStorage ของเบราว์เซอร์คุณเท่านั้น ไม่ส่งไปที่ไหน
  */
 (function () {
   'use strict';
-  const KEY = 'mni_data_v1';
-  const MAX_EVENTS = 60000;
   const W = window;
+  const C = () => W.InsightsCore; // มาจาก insights-core.js (รวมไว้ใน dist หรือ CI ฉีดเข้ามาก่อน)
+  const KEY = 'mni_data_v1';
+  const AUTO_KEY = 'mni_last_auto';
+  const AUTO_EVERY = 55 * 60 * 1000;
+  const KEEP_EVENTS_MS = 60 * 8.64e7;
+  const DASHBOARD_URL = 'https://plen22441-boop.github.io/Fanqie-novel-Downloader/';
+  let apiBase = 'https://api-mynovel.co';
 
   // MyNovel (api-mynovel.co) ใช้ชื่อ bookName / bookTags / bookTypes / bookViews / chapterPublishedAt
   const TIME_KEYS = ['chapterPublishedAt', 'commentedAt', 'createdAt', 'created_at', 'createDate', 'create_date', 'publishedAt', 'published_at',
-    'publishAt', 'publish_at', 'publishDate', 'releasedAt', 'commentedAt', 'postedAt', 'posted_at', 'createdTime', 'created_time'];
-  const TAG_KEYS = ['bookTags', 'bookTypes', 'tags', 'hashtags', 'hashTags', 'tag', 'tagList', 'tag_list', 'categories', 'category', 'genres', 'genre', 'subCategory'];
+    'publishAt', 'publish_at', 'publishDate', 'releasedAt', 'postedAt', 'posted_at', 'createdTime', 'created_time'];
+  const TAG_KEYS = ['bookTags', 'bookTypes', 'tags', 'hashtags', 'hashTags', 'tag', 'tagList', 'tag_list', 'categories', 'genres', 'genre'];
   const VIEW_KEYS = ['bookViews', 'views', 'view', 'viewCount', 'view_count', 'totalView', 'total_view', 'readCount', 'read_count', 'reads', 'viewTotal'];
   const ID_KEYS = ['novelId', 'novel_id', 'bookId', 'book_id', 'storyId', 'story_id'];
 
@@ -35,26 +44,50 @@
   let debug = false;
   let jsonHits = 0; // ถ้า JSON จับได้แล้ว ไม่ต้องสแกนข้อความ DOM ซ้ำ (กันนับคอมเมนต์เดียวกันสองครั้ง)
 
+  function emptyStore() { return { v: 2, events: {}, books: {}, vt: null }; }
   function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || { events: {}, books: {} }; }
-    catch (e) { return { events: {}, books: {} }; }
+    let s;
+    try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { s = null; }
+    if (!s || typeof s !== 'object') return emptyStore();
+    if (s.v !== 2) { // ข้อมูลจากเวอร์ชันแรก: ทิ้งเวลาที่เดาประเภทไม่ได้ และแบนเนอร์ที่เคยถูกนับเป็นหนังสือ
+      for (const k of Object.keys(s.events || {})) if (s.events[k].kind === 'other') delete s.events[k];
+      for (const k of Object.keys(s.books || {})) if (s.books[k].views == null && /banner/.test((s.books[k].tags || []).join())) delete s.books[k];
+      s.v = 2;
+    }
+    s.events = s.events || {}; s.books = s.books || {};
+    return s;
+  }
+  function tracker() {
+    if (!store.vt && C()) store.vt = C().newTracker();
+    return store.vt;
   }
   let saveTimer = null;
   function save() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      const keys = Object.keys(store.events);
-      if (keys.length > MAX_EVENTS) for (const k of keys.slice(0, keys.length - MAX_EVENTS)) delete store.events[k];
-      try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { console.warn('[MNI] save failed', e); }
-      render();
-    }, 400);
+      const now = Date.now();
+      for (const [k, e] of Object.entries(store.events)) { // ตัดเวลาลงตอนที่เก่าเกิน 60 วัน
+        const t = Date.parse(e.ts);
+        if (isFinite(t) && now - t > KEEP_EVENTS_MS) delete store.events[k];
+      }
+      if (store.vt && C()) C().pruneTracker(store.vt, now);
+      store.updatedAt = new Date(now).toISOString();
+      try { localStorage.setItem(KEY, JSON.stringify(store)); }
+      catch (e) { // พื้นที่เต็ม: ลดรายการเวลาลงตอนลงครึ่งหนึ่งแล้วลองใหม่
+        const keys = Object.keys(store.events);
+        for (const k of keys.slice(0, Math.floor(keys.length / 2))) delete store.events[k];
+        try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e2) { console.warn('[MNI] save failed', e2); }
+      }
+      if (sheetOpen) renderSheet();
+      updateBadge();
+    }, 500);
   }
 
   const lc = s => String(s || '').toLowerCase();
   // CI ตั้ง window.__MNI_FORCE_RANK = true สำหรับหน้าที่ config บอกว่าเป็นหน้าอันดับ
   const isRankPage = () => W.__MNI_FORCE_RANK === true || /rank|top|popular|trend|hot|อันดับ|ยอดนิยม/i.test(decodeURIComponent(location.href));
-
   function pickFirst(o, keys) { for (const k of keys) if (o[k] != null && o[k] !== '') return o[k]; return undefined; }
+  const exactViews = v => (typeof v === 'number' ? v : (/^\s*\d[\d,]*\s*$/.test(String(v ?? '')) ? +String(v).replace(/[,\s]/g, '') : undefined));
 
   function guessKind(path, o) {
     const p = lc(path.join('.'));
@@ -63,9 +96,9 @@
     if (/like|vote|heart|gift|donate/.test(p)) return 'like';
     return 'other';
   }
-
-  function bookIdFor(o, path, ctxId) {
-    return pickFirst(o, ID_KEYS) ?? ctxId ?? pageBookId();
+  function pageBookId() {
+    const m = location.pathname.match(/\/(?:novel|book|story|novels|books)\/([^/?#]+)/i);
+    return m ? m[1] : undefined;
   }
 
   function walk(o, path, ctx, depth) {
@@ -77,39 +110,46 @@
     }
     const title = o.bookName || o.title || o.name || o.novelName || o.novel_name;
     // รวมแท็กจากทุกช่องที่มี (MyNovel มีทั้ง bookTags = #แท็ก และ bookTypes = แนว)
-    const tagKeys = TAG_KEYS.filter(k => o[k] != null && k !== 'category' && k !== 'subCategory');
+    const tagKeys = TAG_KEYS.filter(k => o[k] != null);
     const tagVal = tagKeys.length ? tagKeys.flatMap(k => [].concat(o[k])) : (o.bookName ? [] : undefined);
     const ownId = o.chapterId ?? o.commentId ?? o.id ?? o._id;
     // ต้องมีรหัสหนังสือด้วย กันแบนเนอร์/คอลเลกชันที่มี title + category ถูกนับเป็นหนังสือ
     const isBook = typeof title === 'string' && tagVal != null && (o.bookName != null || pickFirst(o, ID_KEYS) != null) && o.chapterId == null;
 
-    // หนังสือ: มีชื่อ + แท็ก/แนว + รหัส
     if (isBook) {
       const id = String(pickFirst(o, ID_KEYS) ?? ownId ?? title);
       const tags = tagVal.map(t => (t && typeof t === 'object') ? (t.name || t.title || t.tag || t.label) : t).filter(Boolean);
       const prev = store.books[id] || {};
+      const now = Date.now();
       const rankish = /rank|top|popular|trend|hot/i.test(lc(path.join('.'))) || isRankPage();
       const rank = o.rank ?? o.ranking ?? o.position ?? (rankish && ctx.index != null ? ctx.index + 1 : undefined);
+      // อันดับเก่ากว่า 48 ชม. ถือว่าหมดอายุ (เดิมเก็บอันดับดีที่สุดตลอดกาล ทำให้อันดับค้าง)
+      const prevRankFresh = prev.rankAt && now - Date.parse(prev.rankAt) < 48 * 3.6e6;
+      const views = pickFirst(o, VIEW_KEYS);
       store.books[id] = {
         id, title,
         tags: [...new Set((prev.tags || []).concat(tags.map(String)))],
-        views: pickFirst(o, VIEW_KEYS) ?? prev.views,
-        rank: rank != null ? (prev.rank ? Math.min(prev.rank, +rank) : +rank) : prev.rank,
+        views: views ?? prev.views,
+        rank: rank != null ? (prevRankFresh && prev.rank ? Math.min(prev.rank, +rank) : +rank) : (prevRankFresh ? prev.rank : undefined),
+        rankAt: rank != null ? new Date(now).toISOString() : (prevRankFresh ? prev.rankAt : undefined),
         list: rank != null ? location.pathname : prev.list,
         category: o.category ?? prev.category,
+        seenAt: new Date(now).toISOString(),
       };
+      const ev = exactViews(views);
+      // จดห่างกันอย่างน้อย 20 นาที: พอสำหรับวิวต่อชั่วโมง และไม่กินพื้นที่ localStorage (~5MB)
+      if (ev != null && tracker()) C().addViewPoint(store.vt, id, now, ev, { minSpacingMin: 20 });
       // เวลาอัปเดตตอนล่าสุดของเรื่อง = ข้อมูลฝั่ง "คนลงตอน"
-      const lc2 = o.lastChapterUpdatedAt;
-      if (lc2 && !/^1970/.test(lc2) && !store.events['chapter:' + id + ':' + lc2]) store.events['chapter:' + id + ':' + lc2] = { ts: lc2, kind: 'chapter', bookId: id, src: 'json' };
+      const lu = o.lastChapterUpdatedAt;
+      if (lu && !/^1970/.test(lu) && !store.events['chapter:' + id + ':' + lu]) store.events['chapter:' + id + ':' + lu] = { ts: lu, kind: 'chapter', bookId: id, src: 'json' };
       ctx = Object.assign({}, ctx, { bookId: id });
     }
 
-    // event: มีฟิลด์เวลา
     const ts = pickFirst(o, TIME_KEYS);
     if (ts != null && !isBook) {
       const kind = guessKind(path, o);
       const user = o.userId ?? o.user_id ?? (o.user && (o.user.id ?? o.user._id)) ?? (o.member && o.member.id);
-      const bid = bookIdFor(o, path, ctx.bookId);
+      const bid = pickFirst(o, ID_KEYS) ?? ctx.bookId ?? pageBookId();
       const key = (ownId != null ? kind + ':' + ownId : [kind, ts, bid, user].join('|'));
       // ไม่เก็บเวลาที่เดาประเภทไม่ได้ (เช่น วันที่สร้างแบนเนอร์) — เป็นแค่สัญญาณรบกวน
       if (kind !== 'other') {
@@ -123,12 +163,11 @@
   function ingestJSON(text, url) {
     if (!text || (text[0] !== '{' && text[0] !== '[')) return;
     let j; try { j = JSON.parse(text); } catch (e) { return; }
-    const before = Object.keys(store.events).length + Object.keys(store.books).length;
+    try { const u = new URL(url, location.href); if (/\/api\/books/.test(u.pathname)) apiBase = u.origin; } catch (e) {}
     walk(j, [lc(url).split('?')[0].split('/').slice(-2).join('.')], {}, 0);
-    const after = Object.keys(store.events).length + Object.keys(store.books).length;
     if (jsonHits) purgeDomDupes();
-    if (debug) console.log('[MNI]', url, after - before, 'new', j);
-    if (after !== before) save();
+    if (debug) console.log('[MNI]', url, j);
+    save();
   }
 
   // JSON แม่นกว่า DOM: ถ้าหน้านี้ได้ JSON แล้ว ลบรายการจาก DOM ของหน้านี้ทิ้ง (กันนับคอมเมนต์เดียวกันซ้ำ)
@@ -162,123 +201,256 @@
     return oopen.apply(this, arguments);
   };
 
-  // ── DOM scan (สำรอง) ──
-  const TH_TIME = /(\d{1,2}\s*(?:ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.)\s*\d{2,4}(?:\s*(?:เวลา)?\s*\d{1,2}[:.]\d{2})?|\d+\s*(?:นาที|ชั่วโมง|ชม\.)\s*(?:ที่แล้ว|ก่อน)|เมื่อวาน\s*\d{1,2}[:.]\d{2})/;
+  // ── ดึงข้อมูลเองเมื่อเปิดแท็บทิ้งไว้ (ทุก ~1 ชม. ทุกแท็บรวมกันครั้งเดียว) ──
+  const REFRESH_PATHS = ['/api/books/trending', '/api/books/stories/latest', '/api/books?orderByField=lastChapterUpdatedAt&orderByDirection=desc'];
+  let lastRefreshMsg = '';
+  async function refreshNow(manual) {
+    if (!ofetch) return;
+    try { localStorage.setItem(AUTO_KEY, String(Date.now())); } catch (e) {}
+    let ok = 0;
+    for (const p of REFRESH_PATHS) {
+      try {
+        const r = await W.fetch(apiBase + p, { credentials: 'omit' }); // ผ่านตัวดักข้างบน -> ถูกบันทึกอัตโนมัติ
+        if (r.ok) ok++;
+      } catch (e) { /* เครือข่ายหลุด/ถูกบล็อก ข้ามไป */ }
+    }
+    lastRefreshMsg = ok ? `ดึงข้อมูลล่าสุดแล้ว (${ok}/${REFRESH_PATHS.length})` : 'ดึงข้อมูลไม่สำเร็จ — ลองเปิดหน้าแรกของ MyNovel แทน';
+    if (manual && sheetOpen) renderSheet();
+  }
+  function autoTick() {
+    let last = 0;
+    try { last = +localStorage.getItem(AUTO_KEY) || 0; } catch (e) {}
+    if (Date.now() - last >= AUTO_EVERY) refreshNow(false);
+  }
+  setInterval(autoTick, 5 * 60 * 1000);
 
+  // ── DOM scan (สำรอง สำหรับหน้าที่ไม่มี JSON) ──
+  const TH_TIME = /(\d{1,2}\s*(?:ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.)\s*\d{2,4}(?:\s*(?:เวลา)?\s*\d{1,2}[:.]\d{2})?|\d+\s*(?:นาที|ชั่วโมง|ชม\.)\s*(?:ที่แล้ว|ก่อน)|เมื่อวาน\s*\d{1,2}[:.]\d{2})/;
   function scanDOM() {
-    // Next.js: ข้อมูลหน้าแรกฝังใน __NEXT_DATA__
     const nd = document.getElementById('__NEXT_DATA__');
     if (nd && !nd.dataset.mni) { nd.dataset.mni = '1'; ingestJSON(nd.textContent, location.pathname); }
-
+    if (jsonHits) return;
     let added = 0;
-    const domOk = jsonHits === 0;
     const kindOf = el => {
       const c = lc((el.closest('[class*="omment"],[class*="hapter"],[class*="pisode"],[id*="omment"]') || {}).className);
       return /omment/.test(c) ? 'comment' : /hapter|pisode/.test(c) ? 'chapter' : 'other';
     };
-    if (domOk) document.querySelectorAll('time[datetime]').forEach(el => {
-      const ts = el.getAttribute('datetime');
+    document.querySelectorAll('time[datetime]').forEach(el => {
+      const ts = el.getAttribute('datetime'), kind = kindOf(el);
+      if (kind === 'other') return;
       const key = 'dom|' + ts + '|' + location.pathname + '|' + (el.closest('[data-id]') || {}).dataset?.id;
-      if (!store.events[key]) { store.events[key] = { ts, kind: kindOf(el), bookId: pageBookId(), src: 'dom' }; added++; }
+      if (!store.events[key]) { store.events[key] = { ts, kind, bookId: pageBookId(), src: 'dom' }; added++; }
     });
-    // ข้อความเวลาไทยในกล่องคอมเมนต์/ตอน (ข้อความสัมพัทธ์ถูกแปลงเป็นเวลาจริงทันทีที่เห็น)
-    if (domOk) document.querySelectorAll('[class*="omment"] *, [class*="hapter"] *, [class*="pisode"] *').forEach(el => {
+    document.querySelectorAll('[class*="omment"] *, [class*="hapter"] *, [class*="pisode"] *').forEach(el => {
       if (el.children.length || el.dataset.mni) return;
       const m = (el.textContent || '').trim().match(TH_TIME);
       if (!m || el.textContent.length > 60) return;
       el.dataset.mni = '1';
       const box = el.closest('[class*="omment"],[class*="hapter"],[class*="pisode"]');
-      // ตัดข้อความเวลาออกจาก fingerprint ("2 ชม.ที่แล้ว" เปลี่ยนไปเรื่อย ๆ จะทำให้นับซ้ำ)
       const fp = (box && box.textContent || '').replace(m[0], '').replace(/\s+/g, ' ').slice(0, 80);
       const key = 'domtxt|' + location.pathname + '|' + fp;
-      if (!store.events[key]) { store.events[key] = { ts: m[1], seenAt: new Date().toISOString(), kind: kindOf(el), bookId: pageBookId(), src: 'domtext' }; added++; }
+      const kind = kindOf(el);
+      if (kind !== 'other' && !store.events[key]) { store.events[key] = { ts: m[1], seenAt: new Date().toISOString(), kind, bookId: pageBookId(), src: 'domtext' }; added++; }
     });
-    // หน้าเรื่อง: h1 + #แท็ก
-    const h1 = document.querySelector('h1');
-    const tagEls = [...document.querySelectorAll('a')].filter(a => /^[#＃]/.test((a.textContent || '').trim()) || /[?&/]tags?[=/]/.test(a.getAttribute('href') || ''));
-    if (h1 && tagEls.length && tagEls.length < 40) {
-      const id = pageBookId() || h1.textContent.trim();
-      const prev = store.books[id] || {};
-      const tags = tagEls.map(a => a.textContent.trim()).filter(t => t && t.length < 30);
-      const before = (prev.tags || []).length;
-      store.books[id] = Object.assign({ id, title: h1.textContent.trim() }, prev,
-        { tags: [...new Set((prev.tags || []).concat(tags))] });
-      if (store.books[id].tags.length !== before) added++;
-    }
     if (added) save();
   }
-  function pageBookId() {
-    const m = location.pathname.match(/\/(?:novel|book|story|novels|books)\/([^/?#]+)/i);
-    return m ? m[1] : undefined;
-  }
 
-  // ── แผงควบคุม ──
-  let panel;
-  function render() {
-    if (!panel) return;
-    const ev = Object.values(store.events);
-    const c = k => ev.filter(e => e.kind === k).length;
-    const books = Object.values(store.books);
-    panel.querySelector('.mni-stat').textContent =
-      `คอมเมนต์ ${c('comment')} · ลงตอน ${c('chapter')} · ไลก์ ${c('like')} · อื่น ๆ ${c('other')} | เรื่อง ${books.length} (มีอันดับ ${books.filter(b => b.rank).length})`;
+  // ── รวมข้อมูลเป็นรูปแบบเดียวกับไฟล์จาก GitHub Actions (ใช้ทั้งแผงสรุปและ Export) ──
+  function snapshot() {
+    const out = C() && store.vt ? C().trackerOutput(store.vt) : { events: [], growth: new Map() };
+    const now = Date.now();
+    const books = Object.values(store.books).map(b => Object.assign({}, b, {
+      rank: b.rankAt && now - Date.parse(b.rankAt) < 48 * 3.6e6 ? b.rank : undefined,
+      growth: out.growth.has(b.id) ? out.growth.get(b.id).gain : undefined,
+      growthHours: out.growth.has(b.id) ? out.growth.get(b.id).hours : undefined,
+    }));
+    return {
+      exportedAt: new Date(now).toISOString(), source: location.host,
+      meta: { viewStats: store.vt ? store.vt.stats : null },
+      events: Object.entries(store.events).map(([id, e]) => Object.assign({ id }, e)).concat(out.events),
+      books,
+    };
   }
   function exportData() {
-    // ข้อความสัมพัทธ์ ("2 ชั่วโมงที่แล้ว") ส่ง seenAt ไปด้วย ให้ตัววิเคราะห์คำนวณเวลาจริง
-    const out = {
-      exportedAt: new Date().toISOString(), source: location.host,
-      events: Object.entries(store.events).map(([id, e]) => Object.assign({ id }, e)),
-      books: Object.values(store.books),
-    };
-    const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(snapshot())], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'mynovel-insights-' + new Date().toISOString().slice(0, 10) + '.json';
     document.body.appendChild(a); a.click(); a.remove();
-  }
-  function mountPanel() {
-    if (panel || !document.body) return;
-    panel = document.createElement('div');
-    panel.innerHTML = `
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <b>📊 Insights</b><span class="mni-stat"></span>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-        <button data-a="exp">Export JSON</button>
-        <button data-a="scan">สแกนหน้านี้</button>
-        <button data-a="dbg">Debug</button>
-        <button data-a="clr">ล้างข้อมูล</button>
-        <button data-a="min">ย่อ</button>
-      </div>`;
-    Object.assign(panel.style, {
-      position: 'fixed', right: '12px', bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 2147483647,
-      background: '#1a1a19', color: '#f0efec', font: '13px/1.4 system-ui,sans-serif', padding: '10px 12px',
-      borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,.3)', maxWidth: 'min(92vw,420px)',
-    });
-    panel.querySelectorAll('button').forEach(b => Object.assign(b.style, {
-      minHeight: '36px', padding: '4px 10px', borderRadius: '6px', border: '1px solid #555', background: '#2c2c2a', color: '#f0efec', cursor: 'pointer',
-    }));
-    panel.addEventListener('click', e => {
-      const a = e.target.dataset && e.target.dataset.a;
-      if (a === 'exp') exportData();
-      if (a === 'scan') scanDOM();
-      if (a === 'dbg') { debug = !debug; e.target.textContent = debug ? 'Debug: ON' : 'Debug'; console.log('[MNI] store', store); }
-      if (a === 'clr' && confirm('ล้างข้อมูลที่เก็บไว้ทั้งหมด?')) { store = { events: {}, books: {} }; localStorage.removeItem(KEY); render(); }
-      if (a === 'min') {
-        const rows = panel.children[1];
-        rows.style.display = rows.style.display === 'none' ? 'flex' : 'none';
-      }
-    });
-    document.body.appendChild(panel);
-    render();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
 
-  document.addEventListener('DOMContentLoaded', () => { mountPanel(); scanDOM(); });
-  // SPA: เปลี่ยนหน้าโดยไม่รีโหลด / โหลดคอมเมนต์เพิ่มตอนเลื่อน
+  // ── หน้าจอ: ปุ่ม 📊 + แผ่นสรุปผล (อยู่ใน Shadow DOM ไม่ชนกับสไตล์ของเว็บ) ──
+  let host, root, sheetOpen = false, cat = 'novel', confirmClear = false;
+  try { cat = localStorage.getItem('mni_cat') || 'novel'; } catch (e) {}
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = n => n == null ? '—' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(Math.round(n));
+  const hh = h => String(h).padStart(2, '0') + ':00';
+
+  const CSS = `
+    :host { all: initial; }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, "Noto Sans Thai", "Sarabun", sans-serif; }
+    .fab { position: fixed; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      width: 52px; height: 52px; border-radius: 26px; border: 0; background: #2a78d6; color: #fff; font-size: 22px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.35); cursor: pointer; z-index: 2147483646; }
+    .fab .dot { position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px; border-radius: 9px; background: #1baf7a;
+      font: 600 11px/18px system-ui; padding: 0 4px; }
+    .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      background: #1a1a19; color: #f0efec; border-radius: 16px 16px 0 0; box-shadow: 0 -6px 24px rgba(0,0,0,.4);
+      padding: 14px max(16px, env(safe-area-inset-left, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px));
+      z-index: 2147483647; font-size: 14px; line-height: 1.5; }
+    @media (min-width: 720px) { .sheet { left: auto; right: 16px; bottom: 16px; width: 440px; border-radius: 16px; max-height: 86vh; } }
+    .top { display: flex; align-items: center; gap: 8px; position: sticky; top: -14px; background: #1a1a19; padding: 4px 0 8px; }
+    .top b { font-size: 16px; flex: 1; }
+    button { font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid #44443f; background: #2c2c2a; color: #f0efec; cursor: pointer; }
+    button.pri { background: #2a78d6; border-color: #2a78d6; color: #fff; }
+    button.x { min-width: 44px; padding: 0; font-size: 18px; }
+    .muted { color: #a8a79f; font-size: 12.5px; }
+    h3 { font-size: 14.5px; margin: 16px 0 6px; }
+    .lvl { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .lvl.low { background: #4a3a10; color: #f2d58a; } .lvl.mid { background: #173a5c; color: #9ec5f4; } .lvl.good { background: #123d2c; color: #8fdcb8; }
+    .gold { font-size: 22px; font-weight: 700; margin: 2px 0; }
+    .bars { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; align-items: end; height: 70px; margin-top: 6px; }
+    .bars i { display: block; background: #3987e5; border-radius: 3px 3px 0 0; min-height: 2px; }
+    .bars i.no { background: repeating-linear-gradient(45deg, #33332f 0 3px, transparent 3px 6px); height: 100% !important; opacity: .5; }
+    .bars i.best { background: #eda100; }
+    .ax { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; font-size: 10px; color: #8f8e86; text-align: center; }
+    ol { list-style: none; margin: 0; padding: 0; }
+    li { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid #2f2f2c; }
+    li .n { color: #8f8e86; text-align: right; font-variant-numeric: tabular-nums; }
+    li .t { min-width: 0; } li .t b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    li small { display: block; color: #a8a79f; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    li .v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chips button { min-height: 36px; padding: 4px 12px; border-radius: 999px; }
+    .chips button.on { background: #f0efec; color: #1a1a19; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { background: #2c2c2a; border: 1px solid #3a3a36; border-radius: 999px; padding: 4px 10px; font-size: 13px; }
+    .tag em { font-style: normal; color: #8fdcb8; margin-left: 4px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .row button { flex: 1 1 140px; }
+    a { color: #6da7ec; }
+    .warn { background: #2e2610; color: #f2d58a; border-radius: 10px; padding: 8px 10px; font-size: 12.5px; margin-top: 10px; }
+  `;
+
+  function mount() {
+    if (host || !document.body) return;
+    host = document.createElement('div');
+    host.id = 'mni-insights';
+    root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `<style>${CSS}</style><button class="fab" aria-label="เปิด MyNovel Insights">📊<span class="dot" hidden></span></button><div class="sheet" hidden></div>`;
+    root.querySelector('.fab').addEventListener('click', () => toggle(true));
+    root.querySelector('.sheet').addEventListener('click', onSheetClick);
+    document.body.appendChild(host);
+    updateBadge();
+  }
+  function toggle(open) {
+    sheetOpen = open;
+    root.querySelector('.sheet').hidden = !open;
+    root.querySelector('.fab').hidden = open;
+    confirmClear = false;
+    if (open) renderSheet();
+  }
+  function updateBadge() {
+    if (!root) return;
+    const dot = root.querySelector('.dot');
+    const n = Object.keys(store.books).length;
+    dot.hidden = !n;
+    dot.textContent = n > 999 ? '999+' : String(n);
+  }
+  function onSheetClick(e) {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const a = b.dataset.a;
+    if (a === 'close') toggle(false);
+    else if (a === 'cat') { cat = b.dataset.v; try { localStorage.setItem('mni_cat', cat); } catch (er) {} renderSheet(); }
+    else if (a === 'refresh') { lastRefreshMsg = 'กำลังดึงข้อมูล…'; renderSheet(); refreshNow(true); }
+    else if (a === 'export') exportData();
+    else if (a === 'clear') {
+      if (!confirmClear) { confirmClear = true; renderSheet(); return; }
+      store = emptyStore(); try { localStorage.removeItem(KEY); } catch (er) {}
+      confirmClear = false; renderSheet(); updateBadge();
+    } else if (a === 'debug') { debug = !debug; console.log('[MNI] store', store, snapshot()); b.textContent = debug ? 'Debug: เปิด (ดูใน console)' : 'Debug'; }
+  }
+
+  function renderSheet() {
+    const sheet = root && root.querySelector('.sheet');
+    if (!sheet) return;
+    const core = C();
+    if (!core) { sheet.innerHTML = '<div class="top"><b>📊 MyNovel Insights</b><button class="x" data-a="close">✕</button></div><p>โหลดตัวคำนวณไม่สำเร็จ — ติดตั้งสคริปต์จากไฟล์ dist/mynovel-insights.user.js ใหม่อีกครั้ง</p>'; return; }
+    const keepScroll = sheet.scrollTop; // ข้อมูลอัปเดตเองระหว่างอ่าน -> ไม่ให้เด้งกลับขึ้นบน
+    requestAnimationFrame(() => { sheet.scrollTop = keepScroll; });
+    const data = core.normalize(snapshot());
+    const books = data.books.filter(b => cat === 'all' || !b.category || b.category === cat);
+    const ha = core.hourlyAverage(data.events);
+    const known = ha.avg.map(x => x ?? 0);
+    const coverage = ha.n.filter(x => x > 0).length;
+    // เวลาทองต้องมีข้อมูลครบทั้ง 3 ชั่วโมงในช่วงนั้น ไม่งั้นช่วงที่ไม่มีข้อมูล (=0) จะลากค่าเฉลี่ยลง/บิดผล
+    let best = null;
+    if (coverage >= 3) for (let s = 0; s < 24; s++) {
+      const hs = [s, (s + 1) % 24, (s + 2) % 24];
+      if (hs.some(h => ha.avg[h] == null)) continue;
+      const sum = hs.reduce((a, h) => a + ha.avg[h], 0);
+      if (!best || sum > best.sum) best = { start: s, sum };
+    }
+    const maxAvg = Math.max(1, ...known);
+    const days = new Set(data.events.filter(e => e.kind === 'view').map(e => Math.floor((e.ts.getTime() + 7 * 3.6e6) / 8.64e7))).size;
+    const lvl = ha.hours >= 72 && coverage >= 22 ? ['good', 'ดี'] : ha.hours >= 24 && coverage >= 12 ? ['mid', 'พอใช้'] : ['low', 'ต่ำ'];
+    const growth = books.filter(b => b.growth > 0).sort((a, b) => b.growth - a.growth).slice(0, 7);
+    const topViews = books.filter(b => b.views != null).sort((a, b) => b.views - a.views).slice(0, 5);
+    const tags = core.tagStats(books);
+    const hotTags = tags.filter(t => t.count >= 3 && t.growthPerBook > 0).sort((a, b) => b.growthPerBook - a.growthPerBook).slice(0, 8);
+    const rankTags = tags.filter(t => t.rankedCount >= 2).slice(0, 8);
+    const item = (b, i, big, sub) => `<li><span class="n">${i + 1}</span><div class="t"><b>${esc(b.title)}</b><small>${esc(b.tags.slice(0, 3).map(core.tagLabel).join(' · ') || '—')}</small></div><div class="v">${big}<small>${sub}</small></div></li>`;
+    const updated = store.updatedAt ? new Date(store.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '—';
+
+    sheet.innerHTML = `
+      <div class="top"><b>📊 MyNovel Insights</b><button class="x" data-a="close" aria-label="ปิด">✕</button></div>
+      <div class="muted">เก็บแล้ว ${ha.hours} ชั่วโมง (${coverage}/24 ช่วงเวลา, ${days} วัน) · ${Object.keys(store.books).length} เรื่อง · อัปเดต ${updated}
+        · ความน่าเชื่อถือ <span class="lvl ${lvl[0]}">${lvl[1]}</span></div>
+      <div class="chips" style="margin-top:8px">${[['novel', 'นิยาย'], ['cartoon', 'การ์ตูน'], ['all', 'ทั้งหมด']].map(([v, l]) => `<button data-a="cat" data-v="${v}" class="${cat === v ? 'on' : ''}">${l}</button>`).join('')}</div>
+
+      <h3>⏰ เวลาทอง (วิวที่เพิ่มเฉลี่ยต่อชั่วโมง)</h3>
+      ${best ? `<div class="gold">${hh(best.start)}–${hh((best.start + 3) % 24)}</div><div class="muted">ลงตอนก่อนช่วงนี้ 30–60 นาที ให้ขึ้นหน้าอัปเดตทันตอนคนเข้ามา</div>`
+        : `<div class="muted">ยังไม่พอ — ต้องมียอดวิวอย่างน้อย 3 ชั่วโมงติดกัน เปิดแท็บ MyNovel ทิ้งไว้ สคริปต์จะเก็บเองทุกชั่วโมง</div>`}
+      <div class="bars">${ha.avg.map((x, h) => x == null ? `<i class="no" title="${hh(h)} ยังไม่มีข้อมูล"></i>`
+        : `<i class="${best && [best.start, (best.start + 1) % 24, (best.start + 2) % 24].includes(h) ? 'best' : ''}" style="height:${Math.max(3, x / maxAvg * 100)}%" title="${hh(h)} ≈ ${Math.round(x)} วิว/ชม."></i>`).join('')}</div>
+      <div class="ax">${Array.from({ length: 24 }, (_, h) => `<span>${h % 3 === 0 ? h : ''}</span>`).join('')}</div>
+      ${coverage < 24 ? `<div class="muted">ลายทาง = ช่วงที่ยังไม่มีข้อมูล (${24 - coverage} ช่วง)</div>` : ''}
+
+      <h3>🔥 วิวพุ่ง (24 ชม.ล่าสุด)</h3>
+      ${growth.length ? `<ol>${growth.map((b, i) => item(b, i, '+' + fmt(b.growth), (b.growthHours < 23 ? b.growthHours + ' ชม. · ' : '') + 'รวม ' + fmt(b.views))).join('')}</ol>`
+        : '<div class="muted">ยังคำนวณไม่ได้ — ต้องเห็นยอดวิวเรื่องเดิมซ้ำห่างกันอย่างน้อย 1 ชม.</div>'}
+
+      <h3>🏷️ แท็ก/แนวที่ดึงคนอ่าน (วิวพุ่งเฉลี่ยต่อเรื่อง)</h3>
+      ${hotTags.length ? `<div class="tags">${hotTags.map(t => `<span class="tag">${esc(core.tagLabel(t.tag))}<em>+${fmt(t.growthPerBook)}</em></span>`).join('')}</div><div class="muted">นับเฉพาะแท็กที่มีอย่างน้อย 3 เรื่อง</div>`
+        : '<div class="muted">ยังไม่มีข้อมูลวิวพุ่ง</div>'}
+      ${rankTags.length ? `<h3>📈 แท็ก/แนวที่ติดรายการมาแรง</h3><div class="tags">${rankTags.map(t => `<span class="tag">${esc(core.tagLabel(t.tag))}<em>${t.rankedCount}/${t.count}</em></span>`).join('')}</div><div class="muted">ตัวเลข = เรื่องที่ติดมาแรง / เรื่องทั้งหมดที่เห็นในแท็กนั้น</div>` : ''}
+
+      <h3>🏆 ยอดวิวรวมสูงสุด</h3>
+      ${topViews.length ? `<ol>${topViews.map((b, i) => item(b, i, fmt(b.views), b.rank ? 'มาแรง #' + b.rank : '')).join('')}</ol>` : '<div class="muted">ยังไม่มีข้อมูล — เปิดหน้าแรกของ MyNovel</div>'}
+
+      ${lvl[0] === 'low' ? '<div class="warn">ข้อมูลยังน้อย ผลเป็นแค่แนวโน้มคร่าว ๆ — เปิดแท็บ MyNovel ทิ้งไว้หลายช่วงเวลา (เช้า/บ่าย/ค่ำ/ดึก) 2–3 วันจะเชื่อถือได้มากขึ้น</div>' : ''}
+      <div class="row">
+        <button class="pri" data-a="refresh">เก็บข้อมูลตอนนี้</button>
+        <button data-a="export">Export ไฟล์</button>
+      </div>
+      <div class="muted" style="margin-top:6px">${esc(lastRefreshMsg)}</div>
+      <div class="muted" style="margin-top:8px">ดูแบบละเอียด: กด Export แล้วเปิด <a href="${DASHBOARD_URL}" target="_blank" rel="noopener">หน้าวิเคราะห์เต็ม</a> → เลือกไฟล์</div>
+      <div class="row">
+        <button data-a="clear">${confirmClear ? 'แตะอีกครั้งเพื่อยืนยันล้างข้อมูล' : 'ล้างข้อมูล'}</button>
+        <button data-a="debug">${debug ? 'Debug: เปิด (ดูใน console)' : 'Debug'}</button>
+      </div>`;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => { mount(); scanDOM(); setTimeout(autoTick, 15000); });
+  // SPA: เปลี่ยนหน้าโดยไม่รีโหลด / โหลดข้อมูลเพิ่มตอนเลื่อน
   let t = null;
   (function observe() {
-    // ตอน document-start บางตัวจัดการสคริปต์ยังไม่มี <html> ให้ observe
     if (!document.documentElement) return setTimeout(observe, 50);
-    new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { mountPanel(); scanDOM(); }, 1200); })
-      .observe(document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(muts => {
+      if (host && muts.every(m => host.contains(m.target))) return; // ไม่สนการเปลี่ยนแปลงในแผงของเราเอง
+      clearTimeout(t); t = setTimeout(() => { mount(); scanDOM(); }, 1200);
+    }).observe(document.documentElement, { childList: true, subtree: true });
   })();
 })();

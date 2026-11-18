@@ -131,6 +131,22 @@
       .filter(Boolean);
   }
 
+  // แนวเรื่องที่ MyNovel ส่งมาเป็นรหัสภาษาอังกฤษ (bookTypes) -> ชื่อไทย; แท็กอื่นแสดงเป็น #แท็ก
+  const TYPE_TH = { fantasy: 'แฟนตาซี', romance: 'โรแมนติก', drama: 'ดราม่า', martial_arts: 'กำลังภายใน', historical: 'ย้อนยุค/อิงประวัติศาสตร์',
+    system: 'ระบบ', regression: 'ย้อนเวลา', transmigration: 'ทะลุมิติ', reincarnation: 'เกิดใหม่', revenge: 'แก้แค้น', supernatural: 'เหนือธรรมชาติ',
+    adventure: 'ผจญภัย', comedy: 'ตลก', family: 'ครอบครัว', strong_female_lead: 'นางเอกเก่ง', strong_male_lead: 'พระเอกเก่ง', action: 'แอ็กชัน',
+    horror: 'สยองขวัญ', mystery: 'สืบสวน', thriller: 'ระทึกขวัญ', 'sci-fi': 'ไซไฟ', scifi: 'ไซไฟ', sci_fi: 'ไซไฟ', school: 'วัยเรียน',
+    slice_of_life: 'ชีวิตประจำวัน', yaoi: 'วาย', boys_love: 'วาย', bl: 'วาย', yuri: 'ยูริ', girls_love: 'ยูริ', harem: 'ฮาเร็ม',
+    cultivation: 'บำเพ็ญเพียร', isekai: 'ต่างโลก', game: 'เกม', sports: 'กีฬา', military: 'ทหาร', urban: 'เมือง', urban_life: 'ชีวิตเมือง',
+    rural_life: 'ชีวิตชนบท', modern: 'ปัจจุบัน', ancient: 'จีนโบราณ', palace: 'ชีวิตในวัง', business: 'ธุรกิจ', business_management: 'บริหารกิจการ',
+    medical: 'การแพทย์', apocalypse: 'วันสิ้นโลก', zombie: 'ซอมบี้', villain: 'ตัวร้าย', tragedy: 'โศกนาฏกรรม', psychological: 'จิตวิทยา',
+    mature: 'ผู้ใหญ่', heartwarming: 'อบอุ่นหัวใจ', smart_protagonist: 'ตัวเอกฉลาด', farming: 'ทำฟาร์ม', cooking: 'ทำอาหาร', parenting: 'เลี้ยงลูก' };
+  function tagLabel(t) {
+    t = String(t);
+    if (TYPE_TH[t]) return TYPE_TH[t] + ' (แนว)';
+    return /^[a-z0-9_-]+$/.test(t) ? t.replace(/_/g, ' ') + ' (แนว)' : '#' + t;
+  }
+
   // ── Normalize raw import ────────────────────────────────────────────────
   function toNum(v) {
     if (v == null || v === '') return undefined;
@@ -326,6 +342,73 @@
     return out;
   }
 
+  /**
+   * ตัวจดยอดวิวแบบสะสม (ใช้ในสคริปต์บนเบราว์เซอร์ ที่เก็บได้ไม่มาก)
+   * tracker = { pts: {id: [[t, views], ...]},  // จุดของแต่ละเรื่อง เก็บแค่ ~26 ชม.ล่าสุด (ไว้คิดวิวพุ่ง 24 ชม.)
+   *             hours: {hourStartMs: viewsGained}, // วิวที่เพิ่มรวมทุกเรื่องต่อชั่วโมง (ไว้หาเวลาทอง) เก็บ 90 วัน
+   *             stats: {intervals, positive} }
+   * - จุดที่ห่างจากจุดก่อนไม่ถึง minSpacing (10 นาที) จะไม่บันทึก กันข้อมูลบวมเวลาเปิดหลายหน้า
+   * - ช่วงที่ห่างเกิน maxGap (6 ชม.) ไม่นำมาแบ่งลงชั่วโมง (ไม่รู้ว่าคนอ่านช่วงไหนในช่วงยาวนั้น)
+   */
+  function newTracker() { return { pts: {}, hours: {}, stats: { intervals: 0, positive: 0 } }; }
+
+  function addViewPoint(tr, id, t, views, opts) {
+    opts = opts || {};
+    const minSpacing = (opts.minSpacingMin ?? 10) * 6e4, maxGap = (opts.maxGapHours ?? 6) * 3.6e6;
+    const v = toNum(views);
+    if (id == null || v == null || !isFinite(t)) return false;
+    const list = tr.pts[id] || (tr.pts[id] = []);
+    const last = list[list.length - 1];
+    if (last) {
+      const dt = t - last[0];
+      if (dt < minSpacing) return false;
+      const d = v - last[1];
+      if (dt <= maxGap && d >= 0) {
+        tr.stats.intervals++;
+        if (d > 0) {
+          tr.stats.positive++;
+          let x = last[0];
+          while (x < t) {
+            const bucket = Math.floor(x / 3.6e6) * 3.6e6;
+            const end = Math.min(t, bucket + 3.6e6);
+            tr.hours[bucket] = Math.round(((tr.hours[bucket] || 0) + d * (end - x) / dt) * 100) / 100;
+            x = end;
+          }
+        }
+      }
+    }
+    list.push([t, v]);
+    // เก็บจุดย้อนหลังแค่ 26 ชม. (แต่เหลือจุดล่าสุดไว้เสมอ)
+    const keepFrom = t - 26 * 3.6e6;
+    while (list.length > 1 && list[0][0] < keepFrom) list.shift();
+    return true;
+  }
+
+  function pruneTracker(tr, now) {
+    const hoursFrom = now - 90 * 8.64e7, ptsFrom = now - 7 * 8.64e7;
+    for (const k of Object.keys(tr.hours)) if (+k < hoursFrom) delete tr.hours[k];
+    for (const id of Object.keys(tr.pts)) {
+      const list = tr.pts[id];
+      if (!list.length || list[list.length - 1][0] < ptsFrom) delete tr.pts[id]; // เรื่องที่ไม่เห็นเกิน 7 วัน
+    }
+  }
+
+  // tracker -> { events: [วิวต่อชั่วโมง], growth: Map(id -> {gain, hours}) } ในรูปแบบเดียวกับไฟล์จาก GitHub Actions
+  function trackerOutput(tr) {
+    const events = Object.keys(tr.hours).map(Number).sort((a, b) => a - b)
+      .map(b => ({ ts: new Date(b + 1.8e6).toISOString(), kind: 'view', bookId: '*', w: tr.hours[b] }));
+    const growth = new Map();
+    for (const [id, list] of Object.entries(tr.pts)) {
+      if (list.length < 2) continue;
+      const last = list[list.length - 1];
+      const first = list.find(p => p[0] >= last[0] - 24 * 3.6e6);
+      if (!first || last[0] - first[0] < 3.6e6) continue; // ต้องห่างกันอย่างน้อย 1 ชม.
+      const gain = last[1] - first[1];
+      if (gain >= 0) growth.set(id, { gain, hours: Math.round((last[0] - first[0]) / 3.6e6 * 10) / 10 });
+    }
+    return { events, growth };
+  }
+
   function viewDeltas(rows, opts) {
     opts = opts || {};
     const maxGap = (opts.maxGapHours || 6) * 3.6e6;
@@ -372,6 +455,22 @@
       if (top / stats.positive > 0.4) warnings.push(`ยอดวิวเพิ่มกระจุกที่ ${stats.posByHour.indexOf(top)}:00 (${Math.round(top / stats.positive * 100)}%) — น่าจะเป็นรอบอัปเดตตัวเลขของเว็บ ไม่ใช่ช่วงที่คนอ่านจริง`);
     }
     return { events, stats, warnings };
+  }
+
+  /**
+   * ค่าเฉลี่ยวิวต่อชั่วโมงของวัน (0–23) จากเหตุการณ์ kind 'view' (1 รายการ = 1 ชั่วโมงจริง)
+   * ใช้ "ค่าเฉลี่ยเฉพาะชั่วโมงที่มีข้อมูล" แทนผลรวม: ถ้าเก็บข้อมูลแค่บางช่วง (เช่น เปิดเว็บแต่ตอนค่ำ)
+   * ผลรวมจะทำให้ช่วงนั้นดูเยอะเกินจริง เพราะถูกนับหลายวันกว่าช่วงอื่น
+   */
+  function hourlyAverage(events) {
+    const sum = new Array(24).fill(0), n = new Array(24).fill(0);
+    for (const e of events) {
+      if (e.kind !== 'view' || !e.precise) continue;
+      const h = bkkParts(e.ts).hour;
+      sum[h] += e.w != null ? e.w : 1;
+      n[h]++;
+    }
+    return { avg: sum.map((x, h) => (n[h] ? x / n[h] : null)), n, hours: n.reduce((a, b) => a + b, 0) };
   }
 
   // หาช่วง window ชั่วโมงติดกัน (วนรอบเที่ยงคืนได้) ที่มีสัดส่วนสูงสุด
@@ -574,6 +673,6 @@
   }
 
   return { parseTime, normTag, splitTags, toNum, normalize, parseCSV, importText,
-    timeMatrix, viewDeltas, viewGrowth, bestWindow, expectationReport, supplyGap, tagStats, tagPairs, quality,
+    timeMatrix, hourlyAverage, tagLabel, viewDeltas, viewGrowth, newTracker, addViewPoint, pruneTracker, trackerOutput, bestWindow, expectationReport, supplyGap, tagStats, tagPairs, quality,
     demoData, bkkParts, hoursInRange, DAYS_TH };
 });

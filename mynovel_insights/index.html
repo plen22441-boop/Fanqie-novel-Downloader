@@ -107,7 +107,7 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
 
   <section class="card" id="importCard">
     <h2>1) ใส่ข้อมูล</h2>
-    <p class="muted">ไฟล์ JSON จากสคริปต์ <code>mynovel-collector.user.js</code> หรือ CSV ที่มีคอลัมน์ <code>ts,kind,bookId</code> (เวลา) และ/หรือ <code>title,tags,views,rank</code> (หนังสือ) — ประมวลผลในเครื่องคุณทั้งหมด ไม่ส่งข้อมูลไปไหน</p>
+    <p class="muted">ไฟล์ JSON ที่กด Export จากแผง 📊 ของสคริปต์ MyNovel Insights หรือ CSV ที่มีคอลัมน์ <code>ts,kind,bookId</code> (เวลา) และ/หรือ <code>title,tags,views,rank</code> (หนังสือ) — ประมวลผลในเครื่องคุณทั้งหมด ไม่ส่งข้อมูลไปไหน</p>
     <div class="row">
       <label class="filebtn">📂 เลือกไฟล์ (หลายไฟล์ได้)<input type="file" id="file" accept=".json,.csv,.txt" multiple></label>
       <button id="demo">ลองด้วยข้อมูลตัวอย่าง (สมมติ)</button>
@@ -193,9 +193,9 @@ code{font-size:.85em;background:var(--surface-0);padding:1px 5px;border-radius:4
   <section class="card">
     <h2>วิธีใช้ & ข้อจำกัด (อ่านก่อนตีความ)</h2>
     <ol>
-      <li>ติดตั้ง Tampermonkey/Violentmonkey แล้วเพิ่มสคริปต์ <code>mynovel-collector.user.js</code></li>
-      <li>เปิด MyNovel ตามปกติ: หน้าอันดับ (ทุกหมวด), หน้าเรื่อง, หน้าตอนที่มีคอมเมนต์ — เลื่อนลงให้คอมเมนต์โหลด แผงมุมขวาล่างจะนับให้</li>
-      <li>เก็บ 2–3 วันก็พอดูแนวโน้มได้ (ยิ่งนานยิ่งแม่น) แล้วกด <b>Export JSON</b> → เปิดไฟล์นี้ แล้วเลือกไฟล์</li>
+      <li>ติดตั้ง Tampermonkey/Violentmonkey แล้วเปิดลิงก์ติดตั้งสคริปต์: <span style="word-break:break-all;user-select:all">https://raw.githubusercontent.com/plen22441-boop/Fanqie-novel-Downloader/main/mynovel_insights/dist/mynovel-insights.user.js</span></li>
+      <li>เปิด MyNovel ตามปกติ แล้วกดปุ่ม 📊 มุมขวาล่าง — ดูเวลาทอง วิวพุ่ง แท็กฮิต ได้ทันที (เปิดแท็บทิ้งไว้ สคริปต์เก็บเองทุก ~1 ชม.)</li>
+      <li>อยากดูละเอียด: กด <b>Export ไฟล์</b> ในแผง → กลับมาหน้านี้ แล้วเลือกไฟล์</li>
     </ol>
     <ul class="muted">
       <li><b>คอมเมนต์ ≠ การอ่าน</b>: คนเงียบอ่านไม่คอมเมนต์ และคนคอมเมนต์มักเป็นแฟนเหนียวแน่น รูปแบบเวลาจึงเป็น "ตัวแทน" ที่อาจเอียง</li>
@@ -219,15 +219,7 @@ const hh = h => String(h).padStart(2,'0') + ':00';
 const range = (s,e) => `${hh(s)}–${hh(e)}`;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(Math.round(n));
-// แนวเรื่องที่ MyNovel ส่งมาเป็นรหัสภาษาอังกฤษ (bookTypes) -> ชื่อไทย; แท็กอื่นแสดงเป็น #แท็ก
-const TYPE_TH = { fantasy:'แฟนตาซี', romance:'โรแมนติก', drama:'ดราม่า', martial_arts:'กำลังภายใน', historical:'ย้อนยุค/อิงประวัติศาสตร์',
-  system:'ระบบ', regression:'ย้อนเวลา', transmigration:'ทะลุมิติ', reincarnation:'เกิดใหม่', revenge:'แก้แค้น', supernatural:'เหนือธรรมชาติ',
-  adventure:'ผจญภัย', comedy:'ตลก', family:'ครอบครัว', strong_female_lead:'นางเอกเก่ง', strong_male_lead:'พระเอกเก่ง', action:'แอ็กชัน',
-  horror:'สยองขวัญ', mystery:'สืบสวน', thriller:'ระทึกขวัญ', 'sci-fi':'ไซไฟ', scifi:'ไซไฟ', school:'วัยเรียน', slice_of_life:'ชีวิตประจำวัน',
-  yaoi:'วาย', boys_love:'วาย', bl:'วาย', yuri:'ยูริ', girls_love:'ยูริ', harem:'ฮาเร็ม', cultivation:'บำเพ็ญเพียร', isekai:'ต่างโลก',
-  game:'เกม', sports:'กีฬา', military:'การทหาร', urban:'เมือง', modern:'ปัจจุบัน', ancient:'จีนโบราณ', palace:'ชีวิตในวัง', business:'ธุรกิจ',
-  medical:'การแพทย์', apocalypse:'วันสิ้นโลก', zombie:'ซอมบี้', villain:'ตัวร้าย', tragedy:'โศกนาฏกรรม', psychological:'จิตวิทยา', mature:'ผู้ใหญ่' };
-const lab = t => TYPE_TH[t] ? TYPE_TH[t] + ' (แนว)' : (/^[a-z0-9_-]+$/.test(t) ? t.replace(/_/g, ' ') + ' (แนว)' : '#' + t);
+const lab = C.tagLabel; // แนว (รหัสอังกฤษ) -> ชื่อไทย, แท็กอื่น -> #แท็ก
 const DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'];
 
 let raw = { events: [], books: [] }, data = null, isDemo = false, meta = null;

@@ -277,3 +277,73 @@ test('viewDeltas: ไม่เตือน "กระจุก" ถ้าเพ�
   assert.ok(r.stats.positive >= 30);
   assert.ok(!r.warnings.some(w => w.includes('กระจุก')));
 });
+
+test('addViewPoint: แบ่งวิวที่เพิ่มลงชั่วโมงตามเวลาจริง และข้ามจุดถี่เกิน/ห่างเกิน', () => {
+  const tr = C.newTracker();
+  const T = h => Date.UTC(2026, 10, 17, 13) + h * 3.6e6; // 13:00Z = 20:00 น.
+  assert.equal(C.addViewPoint(tr, 'a', T(0), 1000), true);
+  assert.equal(C.addViewPoint(tr, 'a', T(0.05), 1010), false);  // 3 นาทีต่อมา -> ไม่บันทึก
+  C.addViewPoint(tr, 'a', T(1), 1100);                            // +100 ใน 20:00
+  C.addViewPoint(tr, 'a', T(1.5), 1160);                          // +60 ครึ่งชม. 21:00
+  C.addViewPoint(tr, 'a', T(10), 2000);                           // ห่าง 8.5 ชม. -> ไม่แบ่งลงชั่วโมง
+  const out = C.trackerOutput(tr);
+  const by = Object.fromEntries(C.normalize({ events: out.events }).events.map(e => [C.bkkParts(e.ts).hour, e.w]));
+  assert.deepEqual(by, { 20: 100, 21: 60 });
+  assert.equal(tr.stats.intervals, 2);
+});
+
+test('addViewPoint: ยอดลดลง (ข้อมูลแคช/รีเซ็ต) ไม่ถูกนับ และ trackerOutput คิดวิวพุ่ง 24 ชม.', () => {
+  const tr = C.newTracker();
+  const T = h => Date.UTC(2026, 10, 17, 0) + h * 3.6e6;
+  C.addViewPoint(tr, 'a', T(0), 500);
+  C.addViewPoint(tr, 'a', T(2), 480);   // ลดลง
+  C.addViewPoint(tr, 'a', T(5), 900);
+  C.addViewPoint(tr, 'b', T(5), 50);    // จุดเดียว -> คิดวิวพุ่งไม่ได้
+  const g = C.trackerOutput(tr).growth;
+  assert.deepEqual(g.get('a'), { gain: 400, hours: 5 });
+  assert.equal(g.has('b'), false);
+  assert.equal(tr.stats.intervals, 1);
+});
+
+test('addViewPoint/pruneTracker: เก็บจุดแค่ 26 ชม. และล้างเรื่องที่ไม่เห็นเกิน 7 วัน', () => {
+  const tr = C.newTracker();
+  const T = h => Date.UTC(2026, 10, 1) + h * 3.6e6;
+  for (let h = 0; h <= 30; h++) C.addViewPoint(tr, 'a', T(h), 100 + h);
+  assert.ok(tr.pts.a[0][0] >= T(30 - 26));
+  C.addViewPoint(tr, 'old', T(0), 1);
+  C.pruneTracker(tr, T(30) + 8 * 8.64e7);
+  assert.equal(tr.pts.old, undefined);
+});
+
+test('hourlyAverage: ใช้ค่าเฉลี่ยเฉพาะชั่วโมงที่มีข้อมูล ไม่ลำเอียงไปทางช่วงที่เก็บบ่อย', () => {
+  // ช่วง 21:00 เก็บได้ 3 วัน วันละ 100; ช่วง 10:00 เก็บได้วันเดียว 250 -> 10:00 ต้องชนะ
+  const ev = [];
+  for (let d = 0; d < 3; d++) ev.push({ ts: new Date(Date.UTC(2026, 10, 10 + d, 14, 30)).toISOString(), kind: 'view', w: 100 });
+  ev.push({ ts: new Date(Date.UTC(2026, 10, 10, 3, 30)).toISOString(), kind: 'view', w: 250 });
+  const h = C.hourlyAverage(C.normalize({ events: ev }).events);
+  assert.equal(h.avg[21], 100);
+  assert.equal(h.avg[10], 250);
+  assert.equal(h.avg[5], null);
+  assert.equal(h.n[21], 3);
+});
+
+test('tagLabel: แนวเป็นภาษาไทย แท็กอื่นขึ้นต้นด้วย #', () => {
+  assert.equal(C.tagLabel('rural_life'), 'ชีวิตชนบท (แนว)');
+  assert.equal(C.tagLabel('some_new_type'), 'some new type (แนว)');
+  assert.equal(C.tagLabel('ยุค60'), '#ยุค60');
+});
+
+test('dist/mynovel-insights.user.js ตรงกับต้นฉบับ (ลืมรัน build จะไม่ผ่าน)', () => {
+  const { execFileSync } = require('node:child_process');
+  execFileSync(process.execPath, [require('node:path').join(__dirname, '..', 'build-userscript.js'), '--check'], { stdio: 'pipe' });
+});
+
+test('ไฟล์ติดตั้งโหลดตัวคำนวณได้เอง (ไม่ต้องพึ่งไฟล์อื่น)', () => {
+  const fs = require('node:fs'), vm = require('node:vm'), path = require('node:path');
+  const code = fs.readFileSync(path.join(__dirname, '..', 'dist', 'mynovel-insights.user.js'), 'utf8');
+  const core = code.slice(0, code.indexOf('// ───── mynovel-collector.user.js'));
+  const sandbox = { self: {} };
+  vm.runInNewContext(core, sandbox);
+  assert.equal(typeof sandbox.self.InsightsCore.addViewPoint, 'function');
+  assert.match(code, /@updateURL\s+https:\/\/raw\.githubusercontent\.com\/.+\/dist\/mynovel-insights\.user\.js/);
+});
