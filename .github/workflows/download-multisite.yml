@@ -65,6 +65,18 @@ jobs:
           mkdir -p output
           python scripts/download_novel.py
 
+      - name: Listing kit (ชื่อเรื่อง / ผู้แต่ง / แฮชแท็ก MyNovel)
+        if: always()
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BOOK_URL: ${{ inputs.novel_url }}
+        run: |
+          git fetch --depth 1 origin mynovel-data:refs/remotes/origin/mynovel-data || true
+          if [ -n "$ANTHROPIC_API_KEY" ]; then pip install -q anthropic; fi
+          python scraper/listing_kit.py "$BOOK_URL" --out output
+          cat output/LISTING_*.md >> "$GITHUB_STEP_SUMMARY" || true
+
       - name: Show result
         if: always()
         run: |
@@ -103,4 +115,5 @@ jobs:
           path: |
             output/*.txt
             output/*.json
+            output/*.md
           retention-days: 30

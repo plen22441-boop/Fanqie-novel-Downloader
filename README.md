@@ -238,3 +238,14 @@ graph LR
 [GitHub 仓库](https://github.com/POf-L/Fanqie-Tomato-Downloader) | [问题反馈](https://github.com/POf-L/Fanqie-Tomato-Downloader/issues)
 
 </p>
+
+## 📋 Listing kit — ข้อมูลเตรียมลงเรื่อง MyNovel
+
+หลังโหลด + QC เสร็จ workflow จะทำไฟล์ `LISTING_<ชื่อเรื่อง>.md` ให้ด้วย (ดูได้ในหน้า Summary ของการรัน และอยู่ใน artifact) อ่านแค่หน้าเรื่องหน้าเดียว ไม่ไล่ตอน:
+- ชื่อเรื่อง / ผู้แต่ง ภาษาจีน, หมวด, เรื่องย่อต้นฉบับ
+- แฮชแท็กที่ตรงกับเรื่อง เรียงตามความนิยมจริงบน MyNovel (ใช้ข้อมูลจาก `mynovel_insights`)
+- ชื่อเรื่องที่วิวสูงในแท็กเดียวกัน ไว้ดูเป็นแนวตั้งชื่อ
+- ชื่อเรื่องไทยที่แนะนำ + คำโปรย + เรื่องย่อ โดย Claude — ต้องเพิ่ม secret `ANTHROPIC_API_KEY` (Settings → Secrets and variables → Actions) ถ้าไม่มี ไฟล์จะมี prompt ให้คัดลอกไปวางในแชตแทน
+
+ทำแยกโดยไม่ต้องโหลดนิยาย: Actions → **Listing kit — ข้อมูลลงเรื่อง MyNovel** → ใส่ลิงก์หน้าเรื่อง
+รันบนเครื่อง: `python scraper/listing_kit.py <ลิงก์หน้าเรื่อง>`
