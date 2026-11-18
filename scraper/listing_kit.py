@@ -375,7 +375,12 @@ def safe_name(s: str) -> str:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("url")
+    ap.add_argument("url", nargs="?", default="", help="ลิงก์หน้าเรื่อง (ไม่ใส่ได้ ถ้าใส่ --title เอง)")
+    ap.add_argument("--title", help="ชื่อเรื่องจีน (เช่น อ่านจากภาพหน้าจอ) ใช้แทนค่าที่ดึงจากเว็บ")
+    ap.add_argument("--author")
+    ap.add_argument("--intro", help="เรื่องย่อจีน")
+    ap.add_argument("--categories", help="หมวด/แท็กจีน คั่นด้วย , หรือ ช่องว่าง")
+    ap.add_argument("--status")
     ap.add_argument("--stats", help="path to mynovel-data store.json")
     ap.add_argument("--out", default="output")
     ap.add_argument("--name", default="")
@@ -385,11 +390,20 @@ def main():
     if re.fullmatch(r"\d{5,}", args.url.strip()):      # boluomao1 workflow accepts a bare id
         args.url = f"https://www.boluomao1.com/book/{args.url.strip()}.html"
     fetch_error = ""
-    try:
-        page = pathlib.Path(args.html_file).read_text(encoding="utf-8") if args.html_file else fetch(args.url)
-    except Exception as e:
-        page, fetch_error = "", str(e)
-    info = extract_book(page, args.url)
+    page = ""
+    if args.html_file:
+        page = pathlib.Path(args.html_file).read_text(encoding="utf-8")
+    elif args.url and not args.title:
+        try:
+            page = fetch(args.url)
+        except Exception as e:
+            fetch_error = str(e)
+    info = extract_book(page, args.url or "(ข้อมูลจากภาพ/ไฟล์ที่ส่งมา)")
+    for k in ("title", "author", "intro", "status"):
+        if getattr(args, k):
+            info[k] = getattr(args, k).strip()
+    if args.categories:
+        info["categories"] = [x for x in re.split(r"[,，/、\s]+", args.categories) if x]
     print(f"ชื่อเรื่อง: {info['title'] or '-'} | ผู้แต่ง: {info['author'] or '-'}")
 
     store = load_store(args.stats)
