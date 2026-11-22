@@ -18,6 +18,7 @@
 | `Rose_PronounLock_v1.0_CharacterVoiceRegistry.md` | ทะเบียนสรรพนาม เพศ และน้ำเสียงตัวละครข้ามเซสชัน |
 | `Rose_Arthar_t_v1.1_TonalResonanceProtocol.md` | โปรโตคอลอารมณ์ฉาก — ส่งความรู้สึกต้นฉบับไปถึงผู้อ่านไทย |
 | `07_Rose_SceneGender_AuditGuide_v8.2.md` | ตรวจ 4 มิติลึก: Male Gaze / Relationship Remap / Cool Calibration / Inner Voice |
+| `08_Rose_PolishPass_v1.0.md` | (ไม่บังคับ) รอบเก็บงานในแชทใหม่หลังส่งงาน — แก้เฉพาะจุด ไม่ใช่ Pass 4 |
 
 เมื่อขัดกัน: Master นี้มีอำนาจเหนือกว่าเสมอ  
 ถ้าโหลดไฟล์ใดไม่ได้ → รายงาน `FILE_LOAD_FAILED:[ชื่อไฟล์]` ก่อนเริ่มงาน
