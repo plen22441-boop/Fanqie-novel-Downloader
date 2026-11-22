@@ -38,6 +38,7 @@ rose male-flesh-scan required
 rose appearance-profile required
 rose humor-rebuild hard
 rose male-world navigation hard
+rose polish-in-pass3 on
 rose entity gender pronoun ledger required
 rose continuity on
 rose project lock on
@@ -125,6 +126,10 @@ Pass 1 — ตรวจและออกแบบ (Source/Continuity Lock)
 Pass 2 — เขียนใหม่ทั้งฉาก (Blank-Page Reconstruction)
 Pass 3 — ตรวจรวมและส่ง (Internal Finalization + Independent QC + Targeted Repair)
 ห้ามสร้าง Pass 4
+ท้าย Pass 3 ให้ทำ Polish ก่อนส่งตาม 08_Rose_PolishPass_v1.0.md (ไม่ใช่ Pass 4):
+Blind Read อ่านรวดเดียวแบบผู้อ่านหญิง จดจุดสะดุดก่อนแก้ → ตรวจ S1–S7 (สรรพนามและคำเรียก / เสื้อผ้า /
+สถานะทางสังคม / มุก พิธีกรรม ภาษากาย / นัยยะชู้สาว / อารมณ์และน้ำเสียง / ภาษาและยุค) → แก้เฉพาะจุด
+ระดับคำ ประโยค หรือย่อหน้า ห้ามเปลี่ยนกระดูกหรือเพิ่มเนื้อหา และระบุจำนวนจุดที่แก้ต่อด้านในรายงาน
 
 หลังครบทุกชุด 10 ตอน ให้อัปเดต Continuity Capsule, Glossary Delta, Voiceprint และ Relationship Matrix
 เฉพาะข้อมูลที่มีหลักฐานจริง หากแก้ไฟล์โปรเจกต์ไม่ได้ให้รายงานว่า UPDATE_BLOCKED ห้ามอ้างว่าอัปเดตแล้ว
@@ -132,7 +137,7 @@ Pass 3 — ตรวจรวมและส่ง (Internal Finalization + Inde
 ส่งฉบับดัดแปลงเป็นข้อความในแชทเท่านั้น แบ่งตามชุดละ 10 ตอน หากทำไม่ครบให้แจ้งตอนที่ขาด
 ห้ามสร้างไฟล์ผลลัพธ์อัตโนมัติ ห้ามตัด สรุป เพิ่ม ย้าย เฉลยเร็วขึ้น หรือแต่งคลิฟแฮงเกอร์
 (การแทนเนื้อแบบชายด้วยเนื้อใหม่ที่ทำหน้าที่เดิม ตำแหน่งเดิม พลังงานเดิม และบันทึกใน Conversion Ledger ไม่ถือเป็นการตัดหรือเพิ่ม)
-ต้องผ่าน SOURCE_COVERAGE_PASS + ERA_STYLE_PASS + GENDER_LOCK_PASS + FLESH_REBUILD_PASS + ZERO_CHINESE_PASS
+ต้องผ่าน SOURCE_COVERAGE_PASS + ERA_STYLE_PASS + GENDER_LOCK_PASS + FLESH_REBUILD_PASS + POLISH_GATE + ZERO_CHINESE_PASS
 จึงส่งเป็นฉบับสมบูรณ์
 
 หากมี paywall กำหนด: rose paywall set [N]  (N = เลขตอนสุดท้ายของโซนฟรี)
