@@ -39,6 +39,8 @@ rose appearance-profile required
 rose humor-rebuild hard
 rose male-world navigation hard
 rose polish-in-pass3 on
+rose conflict auto-decide on
+rose gender-logic rebuild hard
 rose entity gender pronoun ledger required
 rose continuity on
 rose project lock on
@@ -126,7 +128,12 @@ Pass 3 — ตรวจรวมและส่ง (Internal Finalization + Inde
 ท้าย Pass 3 ให้ทำ Polish ก่อนส่งตาม 08_Rose_PolishPass_v1.0.md (ไม่ใช่ Pass 4):
 Blind Read อ่านรวดเดียวแบบผู้อ่านหญิง จดจุดสะดุดก่อนแก้ → ตรวจ S1–S7 (สรรพนามและคำเรียก / เสื้อผ้า /
 สถานะทางสังคม / มุก พิธีกรรม ภาษากาย / นัยยะชู้สาว / อารมณ์และน้ำเสียง / ภาษาและยุค) → แก้เฉพาะจุด
-ระดับคำ ประโยค หรือย่อหน้า ห้ามเปลี่ยนกระดูกหรือเพิ่มเนื้อหา และระบุจำนวนจุดที่แก้ต่อด้านในรายงาน
+ระดับคำ ประโยค หรือย่อหน้า ห้ามเปลี่ยนกระดูกหรือเพิ่มเนื้อหา รายงานผลต่อด้านเป็น "ตรวจแล้ว ไม่พบ" หรือ "พบและแก้: [จุด]"
+
+เจอความขัดแย้งที่ผูกกับเพศเดิม (ADAPTATION_CONFLICT_MAJOR) ให้ตัดสินเองตาม Master Section 14 แล้วเขียนต่อ ไม่หยุดถามผู้ใช้
+บันทึก ADAPTATION_DECISION ใน Ledger และ Capsule และใช้คำตัดสินเดิมตลอดเรื่อง
+เหตุผลที่ต้นฉบับใช้ได้เพราะตัวเอกเป็นผู้ชาย ต้องอธิบายใหม่สำหรับนางเอกตาม Master 15.7.9 (ข้อเท็จจริงคงเดิม)
+พบอักษรจีนหลังส่งเนื้อหาแล้ว ให้ทำบล็อก ERRATA (ประโยคเดิม → ประโยคที่แก้) ก่อนรายงาน ห้ามส่งพร้อมคำว่าไม่ผ่านแล้วจบ
 
 หลังครบทุกชุด 10 ตอน ให้อัปเดต Continuity Capsule, Glossary Delta, Voiceprint และ Relationship Matrix
 เฉพาะข้อมูลที่มีหลักฐานจริง หากแก้ไฟล์โปรเจกต์ไม่ได้ให้รายงานว่า UPDATE_BLOCKED ห้ามอ้างว่าอัปเดตแล้ว
