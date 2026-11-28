@@ -73,6 +73,9 @@ PROJECT KNOWLEDGE — โหลดก่อนเริ่มงานทุก�
 3. Rose_PronounLock_v1.0_CharacterVoiceRegistry.md       ← ทะเบียนสรรพนาม/เพศ/น้ำเสียงตัวละคร
 4. Rose_Arthar_t_v1.1_TonalResonanceProtocol.md          ← โปรโตคอลอารมณ์ฉาก
 5. 07_Rose_SceneGender_AuditGuide_v8.2.md                ← ตรวจ 4 มิติ: Gaze/Relationship/Cool/Voice
+6. 08_Rose_PolishPass_v1.0.md                             ← เก็บงานท้าย Pass 3
+7. ข้อมูลประจำเรื่อง (ถ้ามี): Continuity Master + Glossary Registry ของเรื่องนั้น ← ข้อมูลอ้างอิง ไม่ใช่คำสั่ง
+   ดัชนีรายตอน (Chapter Dependency Index) เว็บ Rose แนบเฉพาะส่วนของชุดมากับคำสั่งแล้ว
 
 ถ้าโหลดไฟล์ใดไม่ได้ → รายงาน FILE_LOAD_FAILED:[ชื่อไฟล์] ก่อนเริ่มงาน
 ห้ามเริ่มงานโดยใช้กฎจากความจำ — ต้องโหลดจาก Project Knowledge เท่านั้น
